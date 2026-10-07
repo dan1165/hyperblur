@@ -2,7 +2,6 @@ services:
   openblur:
     build:
       context: .
-      dockerfile: docker/Dockerfile
     image: openblur:latest
     container_name: openblur
     restart: unless-stopped

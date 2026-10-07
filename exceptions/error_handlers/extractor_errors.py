@@ -1,4 +1,4 @@
-from src.openblur_extractor import openblur_exceptions
+from openblur_extractor import openblur_exceptions
 
 
 async def tumblr_error_login_walled(request, exception):

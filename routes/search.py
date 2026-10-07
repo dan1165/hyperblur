@@ -2,7 +2,7 @@ import urllib.parse
 
 import sanic
 
-from ..fetch import get_search_results
+from fetch import get_search_results
 
 search = sanic.Blueprint("search", url_prefix="/search")
 

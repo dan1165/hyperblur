@@ -28,7 +28,7 @@ python -m venv venv
 source venv/bin/activate
 
 pip install -r requirements.txt
-python -m src.server
+python -m server
 ```
 
 ## Custom Tumblr token (optional)
@@ -46,7 +46,7 @@ environment:
 Manually:
 
 ```bash
-OPENBLUR_TUMBLR_API_TOKEN=your-token-here python -m src.server
+OPENBLUR_TUMBLR_API_TOKEN=your-token-here python -m server
 ```
 
 ## Performance

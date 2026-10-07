@@ -2,7 +2,7 @@ import urllib.parse
 
 import sanic
 
-from ....fetch import get_poll_results
+from fetch import get_poll_results
 
 misc = sanic.Blueprint("api_misc", url_prefix="/")
 

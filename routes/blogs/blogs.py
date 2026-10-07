@@ -2,8 +2,8 @@ import urllib.parse
 
 import sanic
 
-from ... import openblur_extractor
-from ...fetch import get_blog_posts, get_blog_search_results
+import openblur_extractor
+from fetch import get_blog_posts, get_blog_search_results
 
 blogs = sanic.Blueprint("blogs", url_prefix="/")
 

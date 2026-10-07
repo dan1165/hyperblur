@@ -3,8 +3,9 @@ import urllib.parse
 
 import sanic
 
-from ... import fetch, openblur_extractor
-from ...helpers.helpers import to_bool
+import fetch
+import openblur_extractor
+from helpers.helpers import to_bool
 
 blog_post_bp = sanic.Blueprint("blog_post", url_prefix="/<post_id:int>")
 

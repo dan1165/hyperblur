@@ -4,8 +4,8 @@ import aiohttp
 import sanic
 import sanic.exceptions
 
-from src.exceptions import TumblrInvalidRedirect
-from src.exceptions.error_handlers import base
+from exceptions import TumblrInvalidRedirect
+from exceptions.error_handlers import base
 
 
 async def request_timeout(request, exception):

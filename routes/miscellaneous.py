@@ -1,7 +1,7 @@
 import urllib.parse
 
 import sanic
-from src.exceptions import TumblrInvalidRedirect
+from exceptions import TumblrInvalidRedirect
 
 miscellaneous = sanic.Blueprint("miscellaneous", url_prefix="/")
 

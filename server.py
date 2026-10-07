@@ -10,9 +10,12 @@ import babel.numbers
 import babel.dates
 import babel.lists
 
-from . import routes, openblur_extractor, preferences, i18n
-from .exceptions import error_handlers
-from .helpers import setup_logging, helpers, render, ext_npf_renderer
+import i18n
+import openblur_extractor
+import preferences
+import routes
+from exceptions import error_handlers
+from helpers import setup_logging, helpers, render, ext_npf_renderer
 
 
 # openblur is configless: everything is fixed here, and the only thing read
@@ -42,7 +45,7 @@ app.ctx.LANGUAGES = i18n.initialize_locales()
 
 # Constants
 
-app.config.TEMPLATING_PATH_TO_TEMPLATES = "src/templates"
+app.config.TEMPLATING_PATH_TO_TEMPLATES = "templates"
 
 app.ctx.LOGGER = logging.getLogger("openblur")
 
@@ -52,7 +55,7 @@ app.ctx.BLACKLIST_RESPONSE_HEADERS = ("access-control-allow-origin", "alt-svc", 
 app.ctx.DOMAIN = DOMAIN
 app.ctx.translate = i18n.translate
 
-app.ctx.OPENBLUR_PARENT_DIR_PATH = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+app.ctx.OPENBLUR_PARENT_DIR_PATH = os.path.abspath(os.path.dirname(__file__))
 app.ctx.create_user_friendly_error_message = error_handlers.create_user_friendly_error_message
 
 
@@ -188,7 +191,7 @@ async def after_all_routes(request, response):
     response.headers["pragma"] = "no-cache"
     response.headers["expires"] = "0"
 
-    # Media is loaded directly from Tumblr's CDN (see src/routes/media.py), so
+    # Media is loaded directly from Tumblr's CDN (see routes/media.py), so
     # images and audio/video must be allowed to load from *.tumblr.com.
     response.headers["content-security-policy"] = "; ".join(
         [

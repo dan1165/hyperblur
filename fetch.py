@@ -4,7 +4,7 @@ openblur performs no caching: every request hits the origin server so the data
 returned is always fresh.
 """
 
-from .openblur_extractor import (
+from openblur_extractor import (
     parse_timeline,
     parse_blog_timeline,
     parse_note_timeline,
