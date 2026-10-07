@@ -642,3 +642,13 @@ func buildDurationString(d time.Duration) string {
 	}
 	return out
 }
+
+// pyFloatStr renders a float the way Python's str() would, so a whole number
+// keeps a trailing ".0".
+func pyFloatStr(f float64) string {
+	s := fmt.Sprintf("%v", f)
+	if !strings.ContainsAny(s, ".eE") {
+		s += ".0"
+	}
+	return s
+}

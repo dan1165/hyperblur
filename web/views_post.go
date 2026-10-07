@@ -39,54 +39,11 @@ func PostPath(post *tumblr.Post) string {
 func (a *App) renderPostHeader(v *view, data *PageData, hd postHeaderData) {
 	v.raw(`<div class="post-header"><div class="post-author">`)
 
-	active := hd.Blog != nil && hd.Blog.Active
-	if active {
-		v.raw(`<a href="/`)
-		v.esc(hd.Blog.Name)
-		v.raw(`"><img class="avatar" alt="`)
-		v.esc("Blog avatar")
-		v.raw(`" loading="lazy" src="`)
-		v.esc(render.URLHandler(hd.Blog.AvatarURL()))
-		v.raw(`"></a>`)
-	} else {
-		v.raw(`<img class="avatar" alt="`)
-		v.esc("Blog avatar")
-		v.raw(`" loading="lazy" src="/assets/images/anon_96px.png">`)
-	}
+	renderAvatar(v, hd.Blog)
 
 	v.raw(`<div class="author-information"><div class="primary-post-author">`)
-
-	switch {
-	case hd.Blog != nil && !hd.Blog.Active:
-		v.raw(`<span class="link blog-name deactivated-blog">`)
-		v.esc(hd.Blog.Name)
-		v.raw(`</span>`)
-	case hd.Blog != nil:
-		v.raw(`<a class="link blog-name" href="/`)
-		v.esc(hd.Blog.Name)
-		v.raw(`">`)
-		v.esc(hd.Blog.Name)
-		v.raw(`</a>`)
-	default:
-		v.raw(`<span class="link blog-name broken-blog" href="/`)
-		v.esc(hd.BrokenBlog.Name)
-		v.raw(`">`)
-		v.esc(hd.BrokenBlog.Name)
-		v.raw(`</span>`)
-	}
-
-	if hd.Date != nil {
-		v.raw(`<span class="separator">•</span><span class="post-timestamp" title="`)
-		v.esc(formatDatetime(*hd.Date))
-		v.raw(`"><a href="/`)
-		v.esc(hd.UseThisPostURL)
-		v.raw(`"><time datetime="`)
-		v.esc(hd.Date.Format("2006-01-02T15:04"))
-		v.raw(`">`)
-		v.esc(formatDate(*hd.Date))
-		v.raw(`</time></a></span>`)
-	}
-
+	renderBlogName(v, hd.Blog, hd.BrokenBlog)
+	renderPostDate(v, hd.Date, hd.UseThisPostURL)
 	v.raw(`</div>`)
 
 	if hd.ReblogFrom != nil && !hd.SkipReblog {
@@ -97,6 +54,94 @@ func (a *App) renderPostHeader(v *view, data *PageData, hd postHeaderData) {
 	}
 
 	v.raw(`</div></div></div>`)
+}
+
+// renderAvatarLink renders a linked blog avatar.
+func renderAvatarLink(v *view, href, src string) {
+	v.raw(`<a href="/`)
+	v.esc(href)
+	v.raw(`"><img class="avatar" alt="Blog avatar" loading="lazy" src="`)
+	v.esc(src)
+	v.raw(`"></a>`)
+}
+
+// renderAvatar renders a blog's avatar, or an anonymous one when the blog is
+// inactive or missing.
+func renderAvatar(v *view, blog *tumblr.Blog) {
+	if blog != nil && blog.Active {
+		renderAvatarLink(v, blog.Name, render.URLHandler(blog.AvatarURL()))
+		return
+	}
+	v.raw(`<img class="avatar" alt="Blog avatar" loading="lazy" src="/assets/images/anon_96px.png">`)
+}
+
+// renderBlogName renders a blog's name, styled by whether the blog is active,
+// deactivated or broken.
+func renderBlogName(v *view, blog *tumblr.Blog, broken *tumblr.BrokenBlog) {
+	switch {
+	case blog != nil && !blog.Active:
+		v.raw(`<span class="link blog-name deactivated-blog">`)
+		v.esc(blog.Name)
+		v.raw(`</span>`)
+	case blog != nil:
+		v.raw(`<a class="link blog-name" href="/`)
+		v.esc(blog.Name)
+		v.raw(`">`)
+		v.esc(blog.Name)
+		v.raw(`</a>`)
+	case broken != nil:
+		v.raw(`<span class="link blog-name broken-blog" href="/`)
+		v.esc(broken.Name)
+		v.raw(`">`)
+		v.esc(broken.Name)
+		v.raw(`</span>`)
+	}
+}
+
+// renderPostDate renders a post timestamp, linked to postPath when given.
+func renderPostDate(v *view, date *time.Time, postPath string) {
+	if date == nil {
+		return
+	}
+	v.raw(`<span class="separator">•</span><span class="post-timestamp" title="`)
+	v.esc(formatDatetime(*date))
+	v.raw(`">`)
+	if postPath != "" {
+		v.raw(`<a href="/`)
+		v.esc(postPath)
+		v.raw(`">`)
+	}
+	v.raw(`<time datetime="`)
+	v.esc(date.Format("2006-01-02T15:04"))
+	v.raw(`">`)
+	v.esc(formatDate(*date))
+	v.raw(`</time>`)
+	if postPath != "" {
+		v.raw(`</a>`)
+	}
+	v.raw(`</span>`)
+}
+
+// renderTags renders a post's tags, scoped to blogName's tag page when given.
+func renderTags(v *view, tags []string, blogName string) {
+	if len(tags) == 0 {
+		return
+	}
+	v.raw(`<div class="post-tags">`)
+	for _, tag := range tags {
+		v.raw(`<a class="post-tag" href="/`)
+		if blogName != "" {
+			v.esc(blogName)
+			v.raw(`/tagged/`)
+		} else {
+			v.raw(`tagged/`)
+		}
+		v.raw(urlEscape(tag))
+		v.raw(`"><span>#`)
+		v.esc(tag)
+		v.raw(`</span></a>`)
+	}
+	v.raw(`</div>`)
 }
 
 // reblogAttribution renders who the post was reblogged from.

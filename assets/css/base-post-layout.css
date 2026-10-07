@@ -135,13 +135,8 @@ font-size: 1.3em
   margin: 0px 3px;
 }
 
-.audio-block, .audio-block > iframe {
+.audio-block {
   width: 100%;
-}
-
-/* Spotify embeds can sometimes generate with a large amount of excess white space */
-.spotify_audio_player {
-  max-height: 352px;
 }
 
 /* Audio blocks */
@@ -178,10 +173,6 @@ img.ab-poster {
 
 
 /* Video blocks */
-.video-block iframe {
-  width: 100%;
-}
-
 .video-block {
   position: relative;
   width: 100%;

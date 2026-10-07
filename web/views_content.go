@@ -104,27 +104,7 @@ func (a *App) renderPostBody(v *view, data *PageData, post *tumblr.Post) {
 func (a *App) renderPostFooter(v *view, data *PageData, post *tumblr.Post, postURL string) {
 	v.raw(`<footer class="post-footer">`)
 
-	if len(post.Tags) > 0 {
-		v.raw(`<div class="post-tags">`)
-		for _, tag := range post.Tags {
-			if data.BlogTagName != "" {
-				v.raw(`<a class="post-tag" href="/`)
-				v.esc(data.BlogTagName)
-				v.raw(`/tagged/`)
-				v.raw(urlEscape(tag))
-				v.raw(`"><span>#`)
-				v.esc(tag)
-				v.raw(`</span></a>`)
-			} else {
-				v.raw(`<a class="post-tag" href="/tagged/`)
-				v.raw(urlEscape(tag))
-				v.raw(`"><span>#`)
-				v.esc(tag)
-				v.raw(`</span></a>`)
-			}
-		}
-		v.raw(`</div>`)
-	}
+	renderTags(v, post.Tags, data.BlogTagName)
 
 	noteCount := 0
 	if post.NoteCount != nil {

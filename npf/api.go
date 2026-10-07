@@ -1,5 +1,19 @@
 package npf
 
+import "time"
+
+// Localizer supplies the human-readable strings and value formatting used
+// while rendering.
+type Localizer interface {
+	// Translate returns the (optionally substituted) string for key.
+	Translate(key string, subst map[string]string) string
+	// TranslatePlural returns the correct plural form for number.
+	TranslatePlural(key string, number int, subst map[string]string) string
+	FormatDuration(key string, d time.Duration) string
+	FormatDatetime(key string, t time.Time) string
+	FormatDecimal(key string, n float64) string
+}
+
 // Options configure NPF formatting.
 type Options struct {
 	// URLHandler rewrites every URL emitted into the HTML.

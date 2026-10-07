@@ -60,10 +60,16 @@ func (a *App) handleExplore(w http.ResponseWriter, r *http.Request, target explo
 		return
 	}
 
+	a.renderTimelinePage(w, data, nil, func(v *view) {
+		a.renderNextPagePaging(v, data)
+	})
+}
+
+// renderTimelinePage renders a timeline page with the given control bar and
+// paging blocks.
+func (a *App) renderTimelinePage(w http.ResponseWriter, data *PageData, controlBar, paging func(v *view)) {
 	html := a.renderPage(data, func(v *view) {
-		a.renderTimelineCenter(v, data, nil, func(v *view) {
-			a.renderNextPagePaging(v, data)
-		})
+		a.renderTimelineCenter(v, data, controlBar, paging)
 	})
 	a.writePage(w, http.StatusOK, html)
 }
@@ -182,14 +188,11 @@ func (a *App) renderSearch(w http.ResponseWriter, r *http.Request, timeline *tum
 	data.TimeFilter = timeFilter
 	data.QueryArgs = r.URL.Query()
 
-	html := a.renderPage(data, func(v *view) {
-		a.renderTimelineCenter(v, data, func(v *view) {
-			a.renderSearchControlBar(v, data)
-		}, func(v *view) {
-			a.renderSearchPaging(v, data)
-		})
+	a.renderTimelinePage(w, data, func(v *view) {
+		a.renderSearchControlBar(v, data)
+	}, func(v *view) {
+		a.renderSearchPaging(v, data)
 	})
-	a.writePage(w, http.StatusOK, html)
 }
 
 // ---------------------------------------------------------------------------
@@ -221,14 +224,11 @@ func (a *App) handleTagged(w http.ResponseWriter, r *http.Request) {
 	data.Timeline = tumblr.ParseTimeline(responseOf(raw))
 	data.QueryArgs = r.URL.Query()
 
-	html := a.renderPage(data, func(v *view) {
-		a.renderTimelineCenter(v, data, func(v *view) {
-			a.renderTaggedControlBar(v, data)
-		}, func(v *view) {
-			a.renderNextPagePaging(v, data)
-		})
+	a.renderTimelinePage(w, data, func(v *view) {
+		a.renderTaggedControlBar(v, data)
+	}, func(v *view) {
+		a.renderNextPagePaging(v, data)
 	})
-	a.writePage(w, http.StatusOK, html)
 }
 
 // ---------------------------------------------------------------------------

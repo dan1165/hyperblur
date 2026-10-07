@@ -120,41 +120,11 @@ func (a *App) renderReplyNote(v *view, data *PageData, note *tumblr.ReplyNote) {
 	v.esc(note.ReplyID)
 	v.raw(`">`)
 
-	if blog != nil && blog.Active {
-		v.raw(`<a href="/`)
-		v.esc(blog.Name)
-		v.raw(`"><img class="avatar" alt="`)
-		v.esc("Blog avatar")
-		v.raw(`" loading="lazy" src="`)
-		v.esc(render.URLHandler(blog.AvatarURL()))
-		v.raw(`"></a>`)
-	} else {
-		v.raw(`<img class="avatar" alt="`)
-		v.esc("Blog avatar")
-		v.raw(`" loading="lazy" src="/assets/images/anon_96px.png">`)
-	}
+	renderAvatar(v, blog)
 
 	v.raw(`<div><div class="author-information"><div class="primary-post-author">`)
-	if blog != nil && !blog.Active {
-		v.raw(`<span class="link blog-name deactivated-blog">`)
-		v.esc(blog.Name)
-		v.raw(`</span>`)
-	} else if blog != nil {
-		v.raw(`<a class="link blog-name" href="/`)
-		v.esc(blog.Name)
-		v.raw(`">`)
-		v.esc(blog.Name)
-		v.raw(`</a>`)
-	}
-	if note.Date != nil {
-		v.raw(`<span class="separator">•</span><span class="post-timestamp" title="`)
-		v.esc(formatDatetime(*note.Date))
-		v.raw(`"><time datetime="`)
-		v.esc(note.Date.Format("2006-01-02T15:04"))
-		v.raw(`">`)
-		v.esc(formatDate(*note.Date))
-		v.raw(`</time></span>`)
-	}
+	renderBlogName(v, blog, nil)
+	renderPostDate(v, note.Date, "")
 	v.raw(`</div></div><p>`)
 
 	blogName := ""
@@ -186,15 +156,9 @@ func (a *App) renderReblogNote(v *view, data *PageData, note *tumblr.ReblogNote)
 	v.raw(tag)
 	v.raw(`</div>`)
 	if len(note.Tags) > 0 {
-		v.raw(`<footer class="post-footer"><div class="post-tags">`)
-		for _, tag := range note.Tags {
-			v.raw(`<a class="post-tag" href="/tagged/`)
-			v.raw(urlEscape(tag))
-			v.raw(`"><span>#`)
-			v.esc(tag)
-			v.raw(`</span></a>`)
-		}
-		v.raw(`</div></footer>`)
+		v.raw(`<footer class="post-footer">`)
+		renderTags(v, note.Tags, "")
+		v.raw(`</footer>`)
 	}
 	v.raw(`</div><hr>`)
 }
@@ -204,11 +168,9 @@ func (a *App) renderLikeNote(v *view, _ *PageData, note *tumblr.LikeNote) {
 	if note.Avatar != nil {
 		avatar = note.Avatar["128"]
 	}
-	v.raw(`<div class="note like"><div class="post-author"><a href="/`)
-	v.esc(note.BlogName)
-	v.raw(`"><img class="avatar" alt="Blog avatar" loading="lazy" src="`)
-	v.esc(render.URLHandler(avatar))
-	v.raw(`"></a><div class="author-information"><div class="primary-post-author"><div class="blog-name-title-grouping"><a class="link blog-name" href="/`)
+	v.raw(`<div class="note like"><div class="post-author">`)
+	renderAvatarLink(v, note.BlogName, render.URLHandler(avatar))
+	v.raw(`<div class="author-information"><div class="primary-post-author"><div class="blog-name-title-grouping"><a class="link blog-name" href="/`)
 	v.esc(note.BlogName)
 	v.raw(`">`)
 	v.esc(note.BlogName)
