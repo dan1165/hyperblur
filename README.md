@@ -33,11 +33,13 @@ asset embedded.
 
 ### Docker
 
+Pulls the published image (`ghcr.io/dan1165/openblur:latest`):
+
 ```bash
-docker compose up -d --build
+docker compose up -d
 ```
 
-Or use the published image:
+Or run it directly:
 
 ```bash
 docker run --rm -p 8000:8000 ghcr.io/dan1165/openblur:latest

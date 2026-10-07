@@ -1,8 +1,6 @@
 services:
   openblur:
-    build:
-      context: .
-    image: openblur:latest
+    image: ghcr.io/dan1165/openblur:latest
     container_name: openblur
     restart: unless-stopped
     environment:
