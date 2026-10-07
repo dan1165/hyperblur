@@ -28,14 +28,14 @@ async def render_template(template: str = "", context: Optional[Dict[str, Any]] 
 
         jinja_context["page_url"] = page_url
 
-        if (elements := jinja_context.get("blog")) and elements.posts:
-            jinja_context["updated"] = elements.posts[-1].date
-        elif (elements := jinja_context.get("timeline")) and elements.elements:
-            jinja_context["updated"] = elements.elements[-1].date
-        elif (elements := jinja_context.get("notes")) and elements.notes:
-            jinja_context["updated"] = elements.notes[-1].date
-        else:
-            jinja_context["updated"] = datetime.datetime.now(tz=datetime.timezone.utc)
+        updated = None
+        for key, attr in (("blog", "posts"), ("timeline", "elements"), ("notes", "notes")):
+            elements = jinja_context.get(key)
+            if elements and getattr(elements, attr):
+                updated = getattr(elements, attr)[-1].date
+                break
+
+        jinja_context["updated"] = updated or datetime.datetime.now(tz=datetime.timezone.utc)
 
     template = f"{template}.jinja"
 

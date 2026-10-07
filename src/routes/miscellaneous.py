@@ -1,7 +1,7 @@
 import urllib.parse
 
 import sanic
-from src.exceptions import exceptions
+from src.exceptions import TumblrInvalidRedirect
 
 miscellaneous = sanic.Blueprint("miscellaneous", url_prefix="/")
 
@@ -16,4 +16,4 @@ async def _at_links(request: sanic.Request, path: str):
         if location.path.startswith("/"):
             return sanic.redirect(location.path)
 
-    raise exceptions.TumblrInvalidRedirect()
+    raise TumblrInvalidRedirect()

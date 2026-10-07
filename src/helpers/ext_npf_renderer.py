@@ -1,7 +1,5 @@
 """Extensions to npf-renderer to allow asynchronous code and some other custom styling"""
 
-import urllib.parse
-
 import dominate
 import dominate.util
 import npf_renderer
@@ -19,22 +17,13 @@ DOWNLOAD_ICON = (
 
 
 def as_download_url(url: str) -> str:
-    """Marks a proxied media URL so that it is served as a forced download
-
-    Media is normally redirected straight to Tumblr's CDN. The download button
-    instead asks openblur to proxy the media as an attachment.
-    """
-    parsed = urllib.parse.urlsplit(url)
-    query = [
-        (key, value) for key, value in urllib.parse.parse_qsl(parsed.query) if key != "download"
-    ]
-    query.append(("download", "1"))
-
-    return urllib.parse.urlunsplit(parsed._replace(query=urllib.parse.urlencode(query)))
+    """Marks a proxied media URL so that it is served as a forced download"""
+    return f"{url}?download=1"
 
 
 class NPFParser(npf_renderer.parse.Parser):
     def __init__(self, content, poll_callback=None):
+        # The base parser names this argument `poll_result_callback`
         super().__init__(content, poll_callback)
 
     async def _parse_poll_block(self):
@@ -143,21 +132,17 @@ class NPFFormatter(npf_renderer.format.Formatter):
         forbid_external_iframes=False,
         request=None,
     ):
-        initialization_arguments = {
-            "content": content,
-            "layout": layout,
-            "url_handler": url_handler,
-            "forbid_external_iframes": forbid_external_iframes,
-        }
+        super().__init__(
+            content,
+            layout,
+            url_handler=url_handler,
+            forbid_external_iframes=forbid_external_iframes,
+        )
 
         if request:
             # Asking to expand a post is the reverse of asking to truncate a post
-            initialization_arguments["truncate"] = not request.ctx.preferences.expand_posts
-            initialization_arguments["localizer"] = request.app.ctx.LANGUAGES[
-                request.ctx.language
-            ].npf_renderer_localizer
-
-        super().__init__(**initialization_arguments)
+            self.truncate = not request.ctx.preferences.expand_posts
+            self.localizer = request.app.ctx.LANGUAGES[request.ctx.language].npf_renderer_localizer
 
         # We store the blog and post ID as to be able to render a link to
         # fetch poll results for JS disabled users

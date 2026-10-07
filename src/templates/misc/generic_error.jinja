@@ -55,15 +55,15 @@
 </style>
 
 {% endblock %}
-{% block title %}{{translate(request.ctx.language, "openblur_error_page_title")}}{% endblock %}
+{% block title %}{{translate("openblur_error_page_title")}}{% endblock %}
 
 {% block center %}
 <section id="openblur-error">
     <div class="card">
         <div id="error-header">
-            <h2>{{translate(request.ctx.language, "openblur_error_generic")}}</h2>
-            <p>{{translate(request.ctx.language, "openblur_error_generic_description")}}</p>
-            <p>{{translate(request.ctx.language, "openblur_error_generic_description_2")}}</p>
+            <h2>{{translate("openblur_error_generic")}}</h2>
+            <p>{{translate("openblur_error_generic_description")}}</p>
+            <p>{{translate("openblur_error_generic_description_2")}}</p>
         </div>
 
         {{render_error_details(exception_name, exception_message, exception_context)}}

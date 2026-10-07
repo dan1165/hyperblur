@@ -31,7 +31,6 @@ app = sanic.Sanic(
 app.config.OAS = False
 
 app.ctx.LANGUAGES = i18n.initialize_locales()
-app.ctx.SUPPORTED_LANGUAGES = i18n.SUPPORTED_LANGUAGES
 
 # Constants
 
@@ -119,7 +118,9 @@ async def initialize(app):
 
     app.ext.environment.filters["update_query_params"] = helpers.update_query_params
     app.ext.environment.filters["remove_query_params"] = helpers.remove_query_params
-    app.ext.environment.filters["deseq_urlencode"] = helpers.deseq_urlencode
+    app.ext.environment.filters["deseq_urlencode"] = functools.partial(
+        urllib.parse.urlencode, doseq=True
+    )
     app.ext.environment.filters["ensure_single_prefix_slash"] = (
         helpers.prefix_slash_in_url_if_missing
     )

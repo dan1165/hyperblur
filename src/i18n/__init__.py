@@ -1,1 +1,1 @@
-from .i18n import SUPPORTED_LANGUAGES, initialize_locales, translate
+from .i18n import initialize_locales, translate

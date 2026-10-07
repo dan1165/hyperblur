@@ -144,15 +144,8 @@ def remove_query_params(base_query_args, key):
     return urllib.parse.urlencode(base_query_args, doseq=True)
 
 
-def deseq_urlencode(query_args):
-    return urllib.parse.urlencode(query_args, doseq=True)
-
-
 def prefix_slash_in_url_if_missing(url):
-    if not url.startswith("/"):
-        return f"/{url}"
-    else:
-        return f"/{url.lstrip('/')}"
+    return f"/{url.lstrip('/')}"
 
 
 async def create_poll_callback(ctx, blog, post_id):

@@ -5,7 +5,7 @@
 {% block logo %}
     <image>
         <url>{{url_handler(blog.blog_info.avatar[-2].url)}}</url>
-        <title>{{translate(request.ctx.language, "blog_avatar_alt")}}</title>
+        <title>{{translate("blog_avatar_alt")}}</title>
         <link>{{page_url}}</link>
     </image>
     <atom:logo><atom:icon>{{url_handler(blog.blog_info.avatar[-2].url)}}</atom:icon></atom:logo>

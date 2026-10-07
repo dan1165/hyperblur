@@ -18,9 +18,9 @@
     <form class="blog-search-bar search-bar" method="get" action="/{{blog.blog_info.name}}/search" autocomplete="off">
         {{-search_icon(20, 20)}}
         {%- if blog_search_query is defined -%}
-            <input name="q" type="text" value="{{blog_search_query | e}}" placeholder="{{translate(request.ctx.language, "blog_search_placeholder_text")}}"></input>
+            <input name="q" type="text" value="{{blog_search_query | e}}" placeholder="{{translate("blog_search_placeholder_text")}}"></input>
         {%- else -%}
-            <input name="q" type="text" placeholder={{translate(request.ctx.language, "blog_search_placeholder_text")}}></input>
+            <input name="q" type="text" placeholder={{translate("blog_search_placeholder_text")}}></input>
         {%- endif -%}
     </form>
     
@@ -31,7 +31,7 @@
         <div class="paging">
             {% block paging %}
                 <a class="primary next-page button" href="{{request.path}}?continuation={{blog.next.cursor | urlencode}}#m">
-                    {{translate(request.ctx.language, "pagination_next_page")}}
+                    {{translate("pagination_next_page")}}
                 </a>
             {% endblock%}
         </div>

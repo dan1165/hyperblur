@@ -23,29 +23,6 @@ class ReplyNote(NamedTuple):
 
     blog: blog.Blog
 
-    def to_json_serialisable(self):
-        json_serializable = self._asdict()
-
-        json_serializable["type"] = "reply"
-
-        json_serializable["blog"] = json_serializable["blog"].to_json_serialisable()
-        if self.date:
-            json_serializable["date"] = self.date.replace(tzinfo=datetime.timezone.utc).timestamp()
-
-        return json_serializable
-
-    @classmethod
-    def from_json(cls, json):
-        if json["date"] is not None:
-            json["date"] = datetime.datetime.fromtimestamp(json["date"], tz=datetime.timezone.utc)
-
-        if json["blog"]:
-            json["blog"] = blog.Blog.from_json(json["blog"])
-
-        del json["type"]
-
-        return cls(**json)
-
 
 class ReblogNote(NamedTuple):
     uuid: str
@@ -63,35 +40,6 @@ class ReblogNote(NamedTuple):
 
     community_labels: Sequence[CommunityLabel]
 
-    def to_json_serialisable(self):
-        json_serializable = self._asdict()
-
-        json_serializable["type"] = "reblog"
-
-        json_serializable["blog"] = json_serializable["blog"].to_json_serialisable()
-        if self.date:
-            json_serializable["date"] = self.date.replace(tzinfo=datetime.timezone.utc).timestamp()
-
-        return json_serializable
-
-    @classmethod
-    def from_json(cls, json):
-        if json["date"] is not None:
-            json["date"] = datetime.datetime.utcfromtimestamp(json["date"])
-
-        if json["blog"]:
-            json["blog"] = blog.Blog.from_json(json["blog"])
-
-        community_labels = []
-        for label_value in json["community_labels"]:
-            community_labels.append(CommunityLabel(label_value))
-
-        json["community_labels"] = community_labels
-
-        del json["type"]
-
-        return cls(**json)
-
 
 class LikeNote(NamedTuple):
     blog_name: str
@@ -104,25 +52,6 @@ class LikeNote(NamedTuple):
     # TODO
     # avatar_shape
 
-    def to_json_serialisable(self):
-        json_serializable = self._asdict()
-
-        json_serializable["type"] = "like"
-
-        if self.date:
-            json_serializable["date"] = self.date.replace(tzinfo=datetime.timezone.utc).timestamp()
-
-        return json_serializable
-
-    @classmethod
-    def from_json(cls, json):
-        if json["date"] is not None:
-            json["date"] = datetime.datetime.fromtimestamp(json["date"], tz=datetime.timezone.utc)
-
-        del json["type"]
-
-        return cls(**json)
-
 
 class ReblogAttribution(NamedTuple):
     """Object representing reblog author information from individual posts"""
@@ -132,13 +61,6 @@ class ReblogAttribution(NamedTuple):
     blog_name: str
     blog_title: str
 
-    def to_json_serialisable(self):
-        return self._asdict()
-
-    @classmethod
-    def from_json(cls, json):
-        return cls(**json)
-
 
 class PostTrail(NamedTuple):
     id: Optional[str]
@@ -146,30 +68,6 @@ class PostTrail(NamedTuple):
     date: Optional[datetime.datetime]
     content: Optional[list[dict]]
     layout: Optional[list[dict]]
-
-    def to_json_serialisable(self):
-        json_serializable = self._asdict()
-
-        if json_serializable["blog"]:
-            json_serializable["blog"] = json_serializable["blog"].to_json_serialisable()
-
-        if json_serializable["date"]:
-            json_serializable["date"] = self.date.replace(tzinfo=datetime.timezone.utc).timestamp()
-
-        return json_serializable
-
-    @classmethod
-    def from_json(cls, json):
-        # Broken blogs contains only two attributes
-        if len(json["blog"]) > 2:
-            json["blog"] = blog.Blog.from_json(json["blog"])
-        else:
-            json["blog"] = blog.BrokenBlog.from_json(json["blog"])
-
-        if json["date"] is not None:
-            json["date"] = datetime.datetime.utcfromtimestamp(json["date"])
-
-        return cls(**json)
 
 
 class Post(NamedTuple):
@@ -203,42 +101,3 @@ class Post(NamedTuple):
     reblog_root: Optional[ReblogAttribution] = None
 
     community_labels: list[CommunityLabel] = []
-
-    def to_json_serialisable(self):
-        json_serializable = self._asdict()
-
-        if json_serializable["date"]:
-            json_serializable["date"] = self.date.replace(tzinfo=datetime.timezone.utc).timestamp()
-        json_serializable["trail"] = [trail.to_json_serialisable() for trail in self.trail]
-
-        # Serialize the attributes that are NamedTuples to JSON
-        for key in ("blog", "reblog_from", "reblog_root"):
-            if json_serializable[key]:
-                json_serializable[key] = json_serializable[key].to_json_serialisable()
-
-        return json_serializable
-
-    @classmethod
-    def from_json(cls, json):
-        if json["date"] is not None:
-            json["date"] = datetime.datetime.utcfromtimestamp(json["date"])
-
-        trails = []
-        for trail in json["trail"]:
-            trails.append(PostTrail.from_json(trail))
-        json["trail"] = trails
-
-        for key, object_ in (
-            ("blog", blog.Blog),
-            ("reblog_from", ReblogAttribution),
-            ("reblog_root", ReblogAttribution),
-        ):
-            if json[key]:
-                json[key] = object_.from_json(json[key])
-
-        community_labels = []
-        for label_value in json["community_labels"]:
-            community_labels.append(CommunityLabel(label_value))
-        json["community_labels"] = community_labels
-
-        return cls(**json)

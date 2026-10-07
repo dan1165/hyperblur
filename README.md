@@ -56,8 +56,6 @@ source venv/bin/activate
 
 pip install -r requirements.txt
 
-pybabel compile -d locales -D openblur
-
 python -m src.server
 
 # You can also launch openblur through Sanic (our web framework)'s CLI tool

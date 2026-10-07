@@ -17,34 +17,6 @@ class BlogTimeline(NamedTuple):
     total_posts: int | None
     next: Optional[base.Cursor] = None
 
-    def to_json_serialisable(self):
-        json_serializable = {
-            "blog_info": self.blog_info.to_json_serialisable(),
-        }
-        json_serializable["posts"] = [post.to_json_serialisable() for post in self.posts]
-        json_serializable["total_posts"] = self.total_posts
-
-        if self.next:
-            json_serializable["next"] = self.next.to_json_serialisable()
-        else:
-            json_serializable["next"] = None
-
-        return json_serializable
-
-    @classmethod
-    def from_json(cls, json):
-        json["blog_info"] = Blog.from_json(json["blog_info"])
-
-        posts = []
-        for post in json["posts"]:
-            posts.append(Post.from_json(post))
-        json["posts"] = posts
-
-        if json["next"]:
-            json["next"] = base.Cursor.from_json(json["next"])
-
-        return cls(**json)
-
 
 class NoteTimeline(NamedTuple):
     notes: Sequence[ReplyNote | ReblogNote | LikeNote]
@@ -61,29 +33,6 @@ class NoteTimeline(NamedTuple):
     before_timestamp: Optional[str] = None
     after_id: Optional[str] = None
 
-    def to_json_serialisable(self):
-        json_serializable = self._asdict()
-
-        json_serializable["notes"] = [note.to_json_serialisable() for note in self.notes]
-
-        return json_serializable
-
-    @classmethod
-    def from_json(cls, json):
-        notes = []
-        for note in json["notes"]:
-            match note["type"]:
-                case "reply":
-                    notes.append(ReplyNote.from_json(note))
-                case "reblog":
-                    notes.append(ReblogNote.from_json(note))
-                case "like":
-                    notes.append(LikeNote.from_json(note))
-
-        json["notes"] = notes
-
-        return cls(**json)
-
 
 class Timeline(NamedTuple):
     """Object representing Tumblr API's Timeline object.
@@ -94,45 +43,3 @@ class Timeline(NamedTuple):
     elements: Sequence[Post | Blog]
     signposts: Sequence[Signpost] = []
     next: Optional[base.Cursor] = None
-
-    def to_json_serialisable(self):
-        elements = []
-        for element in self.elements:
-            if isinstance(element, Post):
-                elements.append({"post": element.to_json_serialisable()})
-            else:
-                elements.append({"blog": element.to_json_serialisable()})
-
-        signposts = []
-        for signpost in self.signposts:
-            signposts.append(signpost.to_json_serialisable())
-
-        next_ = self.next
-        if next_:
-            next_ = next_.to_json_serialisable()
-
-        return {
-            "elements": elements,
-            "signposts": signposts,
-            "next": next_,
-        }
-
-    @classmethod
-    def from_json(cls, json):
-        elements = []
-        for element in json["elements"]:
-            if post := element.get("post"):
-                elements.append(Post.from_json(post))
-            else:
-                elements.append(Blog.from_json(element.get("blog")))
-
-        json["elements"] = elements
-
-        signposts = []
-        for signpost in json["signposts"]:
-            signposts.append(Signpost.from_json(signpost))
-
-        if json["next"]:
-            json["next"] = base.Cursor.from_json(json["next"])
-
-        return cls(**json)

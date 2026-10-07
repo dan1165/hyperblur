@@ -1,9 +1,5 @@
 from typing import Optional, NamedTuple
 
-# Used for cache busting
-# Applied when .to_json_serialisable() is called
-# Removed from serialized back with from_json()
-
 
 class Cursor(NamedTuple):
     """Object representing Tumblr's API's "Next" object.
@@ -32,10 +28,3 @@ class Cursor(NamedTuple):
     # Not always present
     # Type of filter selected. IE "Text" means text posts only.
     post_type_filter: Optional[str] = None
-
-    def to_json_serialisable(self):
-        return self._asdict()
-
-    @classmethod
-    def from_json(cls, json):
-        return cls(**json)

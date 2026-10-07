@@ -87,6 +87,15 @@ class BlogTimelineParser:
         else:
             return None
 
+    def _parse_posts(self):
+        posts = []
+        total_raw_posts = len(self.target["posts"])
+        for post_index, post in enumerate(self.target["posts"]):
+            if result := items.parse_item(post, post_index, total_raw_posts):
+                posts.append(result)
+
+        return posts, total_raw_posts
+
     def parse(self):
         # First let's begin with the cursor object
         cursor = _CursorParser.process(self.target)
@@ -95,11 +104,7 @@ class BlogTimelineParser:
         blog = items.BlogParser(self.target["blog"]).parse()
 
         # Now the posts contained within
-        posts = []
-        total_raw_posts = len(self.target["posts"])
-        for post_index, post in enumerate(self.target["posts"]):
-            if result := items.parse_item(post, post_index, total_raw_posts):
-                posts.append(result)
+        posts, _ = self._parse_posts()
 
         return models.timelines.BlogTimeline(
             blog_info=blog,
@@ -112,11 +117,7 @@ class BlogTimelineParser:
         cursor = _CursorParser.process(self.target)
 
         # Now the posts contained within
-        posts = []
-        total_raw_posts = len(self.target["posts"])
-        for post_index, post in enumerate(self.target["posts"]):
-            if result := items.parse_item(post, post_index, total_raw_posts):
-                posts.append(result)
+        posts, total_raw_posts = self._parse_posts()
 
         return models.timelines.BlogTimeline(
             blog_info=posts[0].blog,

@@ -4,96 +4,58 @@ import urllib.parse
 
 @dataclasses.dataclass
 class UserPreferences:
-    # See DefaultUserPreferences in config/user_preferences.py
+    # See DefaultUserPreferences in config/__init__.py
     expand_posts: bool
 
     def replace_from_forms(self, request) -> "UserPreferences":
-        """Returns updated UserPreferences class from POST form data"""
-        return self._replace(request, request.form)
+        """Returns updated UserPreferences from POST form data"""
+        return self._replace(request.form)
 
     def replace_from_query(self, request) -> "UserPreferences":
-        """Returns updated UserPreferences class from request query args"""
-        return self._replace(request, request.args)
+        """Returns updated UserPreferences from request query args"""
+        return self._replace(request.args)
 
     def replace_from_cookie(self, request) -> "UserPreferences":
-        """Returns updated UserPreferences class from the settings cookie"""
+        """Returns updated UserPreferences from the settings cookie"""
         request.ctx.invalid_settings_cookie = False
 
         try:
             if raw_prefs := request.cookies.get("settings"):
-                raw_prefs = urllib.parse.parse_qs(raw_prefs)
-                return self._replace(request, raw_prefs)
+                return self._replace(urllib.parse.parse_qs(raw_prefs))
         except (TypeError, KeyError, ValueError):
             request.ctx.invalid_settings_cookie = True
 
         return self
 
-    def _replace(self, request, raw_new_prefs):
-        """Returns updated UserPreferences class from values in raw_new_prefs"""
-        # Get the field names of the UserPreferences dataclass
-        fields = tuple(field.name for field in dataclasses.fields(UserPreferences))
+    def _replace(self, raw_prefs):
+        value = raw_prefs.get("expand_posts")
+        if not value:
+            return self
 
-        # Process Sanic's RequestParameters object to a dictionary
-        # mapping the request argument to its first value.
-        # Also skips over unknown fields.
-        raw_new_prefs = {key: value[0] for key, value in raw_new_prefs.items() if key in fields}
+        if isinstance(value, str):
+            value = [value]
 
-        self.convert_value_to_python(raw_new_prefs)
-
-        # TODO provide an error message to the end user when an unknown field is set,
-        # or when an value is invalid.
-
-        new_preferences = dataclasses.replace(self, **raw_new_prefs)
-
-        return new_preferences
+        return dataclasses.replace(self, expand_posts=value[0] == "on")
 
     def to_url_encoded(self):
-        """Encodes user preferences as URL query parameters
+        """Encodes the preferences as URL query parameters
 
         Used to restore settings at /settings/restore
         """
-        fields_dict = dataclasses.asdict(self)
-        self.convert_value_to_string(fields_dict)
-
-        return urllib.parse.urlencode(fields_dict)
-
-    def convert_value_to_string(self, fields_dict):
-        """Processes fields_dict attribute values to strings based on corresponding types
-
-        Examines PEP 526 __annotations__ to do so.
-
-        Example: Convert something with a Python bool value to on/off for HTML forms.
-        """
-        for attribute, type_ in self.__annotations__.items():
-            if type_ is bool:
-                fields_dict[attribute] = "on" if getattr(self, attribute) else "off"
-
-    def convert_value_to_python(self, fields_dict):
-        """Processes fields_dict attribute values to python datatypes based on corresponding types
-
-        Examines PEP 526 __annotations__ to do so.
-
-        Example: Convert "on"/"off" strings to Python bools
-        """
-        for attribute, type_ in self.__annotations__.items():
-            if type_ is bool and attribute in fields_dict:
-                fields_dict[attribute] = fields_dict[attribute] == "on"
+        return urllib.parse.urlencode({"expand_posts": "on" if self.expand_posts else "off"})
 
     def construct_cookie(self, request):
         """Serializes user preferences into a cookie"""
-        if request.app.ctx.OPENBLUR_CONFIG.deployment.https is True:
-            secure = True
-        else:
-            secure = False
+        deployment = request.app.ctx.OPENBLUR_CONFIG.deployment
 
         cookie = {
             "key": "settings",
             "value": self.to_url_encoded(),
-            "secure": secure,
+            "secure": deployment.https,
             "max_age": 31540000,
         }
 
-        if request.app.ctx.OPENBLUR_CONFIG.deployment.domain:
-            cookie["domain"] = request.app.ctx.OPENBLUR_CONFIG.deployment.domain
+        if deployment.domain:
+            cookie["domain"] = deployment.domain
 
         return cookie

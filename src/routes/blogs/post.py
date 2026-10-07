@@ -97,16 +97,6 @@ async def _blog_post(request: sanic.Request, **kwargs):
         request.ctx.parsed_post.blog, (), None, None
     )
 
-    if note_type := request.args.get("note_viewer"):
-        note_type = getattr(PostNoteTypes, note_type.upper(), None)
-        match note_type:
-            case PostNoteTypes.REPLIES:
-                return await _blog_post_replies(request, **kwargs)
-            case PostNoteTypes.REBLOGS:
-                return await blog_post_reblog_notes(request, **kwargs)
-            case PostNoteTypes.LIKES:
-                return await blog_post_like_notes(request, **kwargs)
-
     return await request.app.ctx.render(
         "blog/blog_post",
         context={

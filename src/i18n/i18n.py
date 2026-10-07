@@ -1,80 +1,30 @@
-import sys
-import gettext
-import typing
-
-import sanic
-
-from .i18n_data import LOCALE_DATA
 from .npf_renderer_localizer import NPFRendererLocalizer
+from .strings import PLURALS, STRINGS
+
+
+def translate(id, number=None, substitution=None):
+    if number is not None and id in PLURALS:
+        singular, plural = PLURALS[id]
+        text = singular if number == 1 else plural
+    else:
+        text = STRINGS.get(id, id)
+
+    if isinstance(substitution, str):
+        text = text.format(substitution)
+    elif isinstance(substitution, dict):
+        text = text.format(**substitution)
+
+    return text
 
 
 class Language:
-    """Stores metadata about supported translations"""
+    """Holds the localized helpers for a locale"""
 
-    def __init__(self, locale, openblur_gettext) -> None:
+    def __init__(self, locale) -> None:
         self.locale = locale
-
-        self.openblur_translations = openblur_gettext
-
         self.npf_renderer_localizer = NPFRendererLocalizer(locale, translate)
 
-        self.name, self.translation_percentage = LOCALE_DATA[locale]
 
-
-SUPPORTED_LANGUAGES = [
-    "en_US",
-]
-
-SUPPORTED_LANGUAGES.sort()
-
-
-def initialize_locales() -> typing.Mapping[str, Language]:
-    """Initializes locales into GNUTranslations instances"""
-    try:
-        # Initialize english locale first so that we may use it as a fallback
-
-        openblur_english_instance = gettext.translation(
-            "openblur", localedir="locales", languages=("en_US",)
-        )
-
-        languages = {"en_US": Language("en_US", openblur_english_instance)}
-
-        for locale in SUPPORTED_LANGUAGES:
-            if locale == "en_US":
-                continue
-
-            instance = gettext.translation("openblur", localedir="locales", languages=(locale,))
-            instance.add_fallback(openblur_english_instance)
-
-            languages[locale] = Language(locale, instance)
-    except FileNotFoundError:
-        print("Error: Unable to find locale files. Did you forget to compile them?")
-
-        sys.exit()
-    except Exception as e:
-        raise e
-
-    return languages
-
-
-def translate(
-    language: str,
-    id: str,
-    number: int | float | None = None,
-    substitution: str | dict | None = None,
-) -> str:
-    app = sanic.Sanic.get_app("openblur")
-
-    gettext_instance = app.ctx.LANGUAGES[language].openblur_translations
-
-    if number is not None:
-        translated = gettext_instance.ngettext(id, f"{id}_plural", number)
-    else:
-        translated = gettext_instance.gettext(id)
-
-    if isinstance(substitution, str):
-        translated = translated.format(substitution)
-    elif isinstance(substitution, dict):
-        translated = translated.format(**substitution)
-
-    return translated
+def initialize_locales() -> dict:
+    """openblur only ships an English locale"""
+    return {"en_US": Language("en_US")}

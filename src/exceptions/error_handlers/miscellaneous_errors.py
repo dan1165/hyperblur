@@ -4,13 +4,10 @@ import aiohttp
 import sanic
 import sanic.exceptions
 
-from src.exceptions import exceptions
+from src.exceptions import TumblrInvalidRedirect
 from src.exceptions.error_handlers import base
 
-miscellaneous_errors = base.ErrorHandlerGroup()
 
-
-@miscellaneous_errors.register(asyncio.TimeoutError)
 async def request_timeout(request, exception):
     return await request.app.ctx.render(
         "misc/msg_error",
@@ -18,17 +15,16 @@ async def request_timeout(request, exception):
             "app": request.app,
             "exception": exception,
             "error_heading": request.app.ctx.translate(
-                request.ctx.language, "openblur_error_request_to_tumblr_timed_out_heading"
+                "openblur_error_request_to_tumblr_timed_out_heading"
             ),
             "error_description": request.app.ctx.translate(
-                request.ctx.language, "openblur_error_request_to_tumblr_timed_out_description"
+                "openblur_error_request_to_tumblr_timed_out_description"
             ),
         },
         status=504,
     )
 
 
-@miscellaneous_errors.register(aiohttp.ClientError)
 async def tumblr_connection_error(request, exception):
     return await request.app.ctx.render(
         "misc/msg_error",
@@ -44,7 +40,6 @@ async def tumblr_connection_error(request, exception):
     )
 
 
-@miscellaneous_errors.register(sanic.exceptions.NotFound, IsADirectoryError)
 async def error_404(request, exception):
     return await request.app.ctx.render(
         "misc/msg_error",
@@ -58,7 +53,6 @@ async def error_404(request, exception):
     )
 
 
-@miscellaneous_errors.register(exceptions.TumblrInvalidRedirect)
 async def invalid_redirect(request, exception):
     return await request.app.ctx.render(
         "misc/msg_error",
@@ -66,14 +60,13 @@ async def invalid_redirect(request, exception):
             "app": request.app,
             "exception": exception,
             "error_heading": request.app.ctx.translate(
-                request.ctx.language, "openblur_error_invalid_internal_tumblr_redirect"
+                "openblur_error_invalid_internal_tumblr_redirect"
             ),
         },
         status=502,
     )
 
 
-@miscellaneous_errors.register(Exception)
 async def generic_error(request, exception):
     name, message, context = base.create_user_friendly_error_message(request, exception)
 
@@ -88,3 +81,13 @@ async def generic_error(request, exception):
         },
         status=500,
     )
+
+
+MISCELLANEOUS_ERROR_HANDLERS = {
+    asyncio.TimeoutError: request_timeout,
+    aiohttp.ClientError: tumblr_connection_error,
+    sanic.exceptions.NotFound: error_404,
+    IsADirectoryError: error_404,
+    TumblrInvalidRedirect: invalid_redirect,
+    Exception: generic_error,
+}
