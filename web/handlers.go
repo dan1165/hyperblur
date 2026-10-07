@@ -61,11 +61,6 @@ func (a *App) handleExplore(w http.ResponseWriter, r *http.Request, target explo
 		return
 	}
 
-	if data.RSS {
-		a.writeRSS(w, a.renderTimelineRSS(data))
-		return
-	}
-
 	html := a.renderPage(data, func(v *view) {
 		a.renderTimelineCenter(v, data, nil, func(v *view) {
 			a.renderNextPagePaging(v, data)
@@ -188,11 +183,6 @@ func (a *App) renderSearch(w http.ResponseWriter, r *http.Request, timeline *tum
 	data.TimeFilter = timeFilter
 	data.QueryArgs = r.URL.Query()
 
-	if data.RSS {
-		a.writeRSS(w, a.renderTimelineRSS(data))
-		return
-	}
-
 	html := a.renderPage(data, func(v *view) {
 		a.renderTimelineCenter(v, data, func(v *view) {
 			a.renderSearchControlBar(v, data)
@@ -231,11 +221,6 @@ func (a *App) handleTagged(w http.ResponseWriter, r *http.Request) {
 	data.SortBy = sortBy
 	data.Timeline = tumblr.ParseTimeline(responseOf(raw))
 	data.QueryArgs = r.URL.Query()
-
-	if data.RSS {
-		a.writeRSS(w, a.renderTimelineRSS(data))
-		return
-	}
 
 	html := a.renderPage(data, func(v *view) {
 		a.renderTimelineCenter(v, data, func(v *view) {
@@ -408,20 +393,6 @@ func (a *App) serveBlogPost(w http.ResponseWriter, r *http.Request, slug string)
 		return
 	}
 
-	if truthyQuery(r.URL.Query().Get("rss_feed")) {
-		data := a.newPageData(r)
-		data.RSS = true
-		data.Title = post.Blog.Title
-		if data.Title == "" {
-			data.Title = post.Blog.Name
-		}
-		data.Post = post
-		data.PostURL = strings.TrimPrefix(r.URL.Path, "/")
-		data.PageURL = r.URL.Path
-		a.writeRSS(w, a.renderBlogPostRSS(data))
-		return
-	}
-
 	data := a.newPageData(r)
 	data.ExtraCSS = []string{"/assets/css/blog.css"}
 	data.Title = post.Blog.Title
@@ -540,11 +511,6 @@ func (a *App) renderBlogPage(w http.ResponseWriter, r *http.Request, br blogRend
 	data.BlogSearchQuery = br.searchQuery
 	data.Page = br.page
 	data.PageNumbers = br.pageNumbers
-
-	if data.RSS {
-		a.writeRSS(w, a.renderBlogRSS(data))
-		return
-	}
 
 	html := a.renderPage(data, func(v *view) {
 		a.renderBlogHeader(v, data)

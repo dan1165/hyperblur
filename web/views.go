@@ -99,11 +99,6 @@ type PageData struct {
 	Latest       bool
 	ReblogFilter string
 
-	// RSS.
-	RSS     bool
-	PageURL string
-	Updated time.Time
-
 	ErrorHeading     string
 	ErrorDescription string
 

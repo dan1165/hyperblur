@@ -11,7 +11,6 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/dan1165/openblur/assets"
 	"github.com/dan1165/openblur/tumblr"
@@ -96,11 +95,6 @@ func (a *App) handleFallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	segments := strings.Split(trimmed, "/")
-
-	// A trailing /rss marks an RSS feed; strip it before dispatching.
-	if len(segments) > 1 && segments[len(segments)-1] == "rss" {
-		segments = segments[:len(segments)-1]
-	}
 
 	switch segments[0] {
 	case "explore":
@@ -274,12 +268,6 @@ func (a *App) writePage(w http.ResponseWriter, status int, html string) {
 	_, _ = w.Write([]byte(html))
 }
 
-func (a *App) writeRSS(w http.ResponseWriter, body string) {
-	w.Header().Set("content-type", "application/rss+xml")
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(body))
-}
-
 func (a *App) messageError(w http.ResponseWriter, r *http.Request, status int, heading, description string) {
 	data := a.newPageData(r)
 	data.Title = a.translate("openblur_error_page_title")
@@ -352,21 +340,10 @@ func (a *App) fail(w http.ResponseWriter, r *http.Request, err error) {
 // newPageData builds page data with request-level fields populated.
 func (a *App) newPageData(r *http.Request) *PageData {
 	prefs := preferencesFrom(r)
-
-	path := strings.TrimSuffix(r.URL.Path, "/rss")
-	isRSS := path != r.URL.Path
-	pageURL := path
-	if r.URL.RawQuery != "" {
-		pageURL += "?" + r.URL.RawQuery
-	}
-
 	return &PageData{
 		Lang:        "en_US",
-		Path:        path,
+		Path:        r.URL.Path,
 		QueryString: r.URL.RawQuery,
 		ExpandPosts: prefs.ExpandPosts,
-		RSS:         isRSS,
-		PageURL:     pageURL,
-		Updated:     time.Now().UTC(),
 	}
 }
