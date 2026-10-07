@@ -242,3 +242,37 @@ a.toggle-poll-results {
   font-weight: bold;
   list-style: none;
 }
+
+/* Download button overlaid on images and videos */
+.media-download {
+  position: absolute;
+  z-index: 3;
+  top: 10px;
+  right: 10px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+
+  background: var(--color-post-img-alt-text-widget-bg);
+  opacity: 75%;
+
+  transition: opacity 100ms ease-in-out;
+}
+
+.media-download:hover {
+  opacity: 100%;
+}
+
+.media-download svg {
+  width: 20px;
+  height: 20px;
+}
+
+.media-download svg path {
+  fill: var(--color-post-img-alt-text-widget-text);
+}

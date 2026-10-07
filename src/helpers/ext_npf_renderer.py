@@ -1,9 +1,19 @@
 """Extensions to npf-renderer to allow asynchronous code and some other custom styling"""
 
 import dominate
+import dominate.util
 import npf_renderer
 
 from .helpers import url_handler
+
+
+# Icon shown on top of every downloadable media element
+DOWNLOAD_ICON = (
+    '<svg class="icon" xmlns="http://www.w3.org/2000/svg" height="20" width="20" '
+    'viewBox="0 -960 960 960"><path d="M480-320 280-520l56-58 104 104v-326h80v326l104-104 '
+    "56 58-200 200ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 "
+    '56.5T720-160H240Z"/></svg>'
+)
 
 
 class NPFParser(npf_renderer.parse.Parser):
@@ -174,10 +184,28 @@ class NPFFormatter(npf_renderer.format.Formatter):
 
             self._add_alt_text_element(block, image_container)
             self._linkify_images(image_container, image_element)
+            self._add_download_button(image_container, image_element.src)
         except (ValueError, IndexError):
             pass
 
         return image_html
+
+    def _format_video(self, block):
+        """Renders a video block and adds a download button to native media players"""
+        video_html = super()._format_video(block)
+
+        try:
+            video_element = video_html.getElementsByTagName("video")
+            video_container = video_html.get(cls="video-container")
+
+            if not (video_element and video_container) or not block.media:
+                return video_html
+
+            self._add_download_button(video_container[0], self.url_handler(block.media[0].url))
+        except (ValueError, IndexError):
+            pass
+
+        return video_html
 
     def _linkify_images(self, image_container, image_element):
         """Wraps the given image element in a link"""
@@ -196,6 +224,26 @@ class NPFFormatter(npf_renderer.format.Formatter):
                     cls="img-alt-text",
                 )
             )
+
+    def _add_download_button(self, media_container, media_url):
+        """Adds a download button overlay to the given media container
+
+        Links directly to the proxied media so that it may be downloaded
+        without leaving Priviblur.
+        """
+        if not media_url:
+            return
+
+        media_container.add(
+            dominate.tags.a(
+                dominate.util.raw(DOWNLOAD_ICON),
+                href=media_url,
+                download="",
+                cls="media-download",
+                title="Download",
+                aria_label="Download media",
+            )
+        )
 
 
 async def format_npf(
