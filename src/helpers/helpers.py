@@ -6,7 +6,7 @@ from typing import Sequence
 import dominate.tags
 import sanic.utils
 
-from ..cache import get_poll_results
+from ..fetch import get_poll_results
 
 
 def to_bool(value, default=False):

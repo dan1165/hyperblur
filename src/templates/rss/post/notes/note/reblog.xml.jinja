@@ -7,7 +7,7 @@
         {%- if element.blog.active -%}
             <a href="/{{element.blog.name}}"><img src="{{url_handler(element.blog.avatar[-1].url)}}"></a>
         {%- else -%}
-            <img src="/assets/images/anon_96px.png?v=1">
+            <img src="/assets/images/anon_96px.png">
         {% endif %}
 
         {% filter escape %}

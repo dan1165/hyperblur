@@ -2,7 +2,7 @@ import urllib.parse
 
 import sanic
 
-from ..cache import get_tag_browse_results
+from ..fetch import get_tag_browse_results
 
 tagged = sanic.Blueprint("tagged", url_prefix="/tagged")
 

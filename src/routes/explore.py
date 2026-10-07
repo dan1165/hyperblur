@@ -2,7 +2,7 @@ import urllib.parse
 
 import sanic
 
-from ..cache import get_explore_results
+from ..fetch import get_explore_results
 
 explore = sanic.Blueprint("explore", url_prefix="/explore")
 

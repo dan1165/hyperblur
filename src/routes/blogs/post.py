@@ -3,7 +3,7 @@ import urllib.parse
 
 import sanic
 
-from ... import cache, openblur_extractor
+from ... import fetch, openblur_extractor
 from ...helpers.helpers import to_bool
 
 blog_post_bp = sanic.Blueprint("blog_post", url_prefix="/<post_id:int>")
@@ -36,7 +36,7 @@ async def handle_post_slug(request):
     blog = urllib.parse.unquote(request.match_info["blog"])
     post_id = request.match_info["post_id"]
 
-    post = (await cache.get_blog_post(request.app.ctx, blog, post_id)).elements[0]
+    post = (await fetch.get_blog_post(request.app.ctx, blog, post_id)).elements[0]
 
     # Check if slug is passed
     if slug := request.match_info.get("slug"):
@@ -117,7 +117,7 @@ async def _blog_post_replies(request: sanic.Request, blog: str, post_id: str, **
     latest = True if "latest" in args else False
 
     if after_id := args.get("after"):
-        parsed_notes = await cache.get_post_notes(
+        parsed_notes = await fetch.get_post_notes(
             request.app.ctx,
             blog,
             post_id,
@@ -127,7 +127,7 @@ async def _blog_post_replies(request: sanic.Request, blog: str, post_id: str, **
             latest=latest,
         )
     else:
-        parsed_notes = await cache.get_post_notes(
+        parsed_notes = await fetch.get_post_notes(
             request.app.ctx,
             blog,
             post_id,
@@ -181,7 +181,7 @@ async def blog_post_reblog_notes(request: sanic.Request, blog: str, post_id: str
         args_to_tumblr_api_wrapper["before_timestamp"] = before_timestamp
 
     if mode == reblog_note_types.REBLOGS_ONLY:
-        parsed_notes = await cache.get_post_notes(
+        parsed_notes = await fetch.get_post_notes(
             request.app.ctx,
             blog,
             post_id,
@@ -190,7 +190,7 @@ async def blog_post_reblog_notes(request: sanic.Request, blog: str, post_id: str
             **args_to_tumblr_api_wrapper,
         )
     else:
-        parsed_notes = await cache.get_post_notes(
+        parsed_notes = await fetch.get_post_notes(
             request.app.ctx,
             blog,
             post_id,
@@ -217,7 +217,7 @@ async def blog_post_like_notes(request: sanic.Request, blog: str, post_id: str, 
     if slug := kwargs.get("slug"):
         slug = urllib.parse.unquote(slug)
 
-    parsed_notes = await cache.get_post_notes(
+    parsed_notes = await fetch.get_post_notes(
         request.app.ctx,
         blog,
         post_id,

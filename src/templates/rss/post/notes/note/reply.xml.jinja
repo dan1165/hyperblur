@@ -6,7 +6,7 @@
             {%- if note.blog.active -%}
                 <a href="/{{note.blog.name}}"><img class="avatar" alt="{{translate("blog_avatar_alt")}}" loading="lazy" src="{{url_handler(note.blog.avatar[-1].url)}}"></a>
             {%- else -%}
-                <img class="avatar" alt="{{translate("blog_avatar_alt")}}" loading="lazy" src="/assets/images/anon_96px.png?v=1">
+                <img class="avatar" alt="{{translate("blog_avatar_alt")}}" loading="lazy" src="/assets/images/anon_96px.png">
             {% endif %}
 
             {%- set contains_errors, content_tag = format_npf(

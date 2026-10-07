@@ -1,0 +1,15 @@
+.git
+.github
+.gitignore
+.dockerignore
+.ruff_cache
+__pycache__
+*.pyc
+*.pyo
+*.mo
+venv
+.env
+config.toml
+*.md
+instances.md
+docker-compose*.yml
