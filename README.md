@@ -1,8 +1,7 @@
 # openblur
 
 An alternative frontend to Tumblr. No account, no JavaScript, no tracking, no
-caching — and no configuration beyond an optional `.env` for a custom Tumblr
-token.
+caching — and no configuration beyond an optional Tumblr token.
 
 ## Features
 
@@ -19,10 +18,8 @@ token.
 ### Docker
 
 ```bash
-docker compose -f docker-compose.dev.yml up -d --build
+docker compose up -d --build
 ```
-
-To run the published image instead: `docker compose up -d`.
 
 ### Manual (Python 3.11+)
 
@@ -34,24 +31,29 @@ pip install -r requirements.txt
 python -m src.server
 ```
 
+## Custom Tumblr token (optional)
+
+openblur ships a default Tumblr API token. To use your own — for example, to
+open blogs that require logging in — set `OPENBLUR_TUMBLR_API_TOKEN`.
+
+With Docker, edit it in `docker-compose.yml`:
+
+```yaml
+environment:
+  OPENBLUR_TUMBLR_API_TOKEN: "your-token-here"
+```
+
+Manually:
+
+```bash
+OPENBLUR_TUMBLR_API_TOKEN=your-token-here python -m src.server
+```
+
 ## Performance
 
 Runs on Sanic with uvloop and httptools, one worker per CPU core, keep-alive
 and pooled connections, and orjson. Every request is fetched fresh from Tumblr
 (no caching).
-
-## Custom Tumblr token (optional)
-
-openblur ships a default Tumblr API token. To use your own (for example, to
-open blogs that require logging in), put it in `.env`:
-
-```bash
-cp .env.example .env
-```
-
-| Variable | Purpose |
-| --- | --- |
-| `OPENBLUR_TUMBLR_API_TOKEN` | Custom Tumblr API token. Empty uses the bundled default. |
 
 ## License
 

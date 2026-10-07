@@ -12,19 +12,16 @@ import babel.lists
 
 from . import routes, openblur_extractor, preferences, i18n
 from .exceptions import error_handlers
-from .dotenv import load_dotenv
 from .helpers import setup_logging, helpers, render, ext_npf_renderer
 
 
 # openblur is configless: everything is fixed here, and the only thing read
-# from the environment (or a .env file) is the optional Tumblr API token.
+# from the environment is the optional Tumblr API token.
 HOST = "0.0.0.0"
 PORT = 8000
 DOMAIN = None
 MAIN_REQUEST_TIMEOUT = 10
 IMAGE_REQUEST_TIMEOUT = 30
-
-load_dotenv()
 
 app = sanic.Sanic(
     "openblur",

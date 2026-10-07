@@ -1,10 +1,13 @@
 services:
   openblur:
-    image: quay.io/syeopite/openblur:latest
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: openblur:latest
     container_name: openblur
     restart: unless-stopped
-    env_file:
-      - path: .env
-        required: false
+    environment:
+      # Optional: your own Tumblr API token. Leave empty to use the bundled one.
+      OPENBLUR_TUMBLR_API_TOKEN: ""
     ports:
-      - "127.0.0.1:8000:8000" # Replace with "8000:8000" if you don't use a reverse proxy
+      - "8000:8000"
