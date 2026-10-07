@@ -17,7 +17,7 @@ class NPFRendererGettextFallback(gettext.NullTranslations):
 class NPFRendererLocalizer:
     """Localizes strings and provide formatting functions based on the given locale
 
-    This class serves as a bridge to translate Priviblur's Gettext based translation system to npf-renderer's
+    This class serves as a bridge to translate openblur's Gettext based translation system to npf-renderer's
     dict based api
     """
 

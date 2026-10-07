@@ -62,7 +62,7 @@ a.inline-link, a.inline-mention {
 }
 
 .link-block {
-  border-radius: 20px;
+  border-radius: 0;
   margin-bottom: 15px;
   color: var(--color-text);
   white-space: normal;
@@ -149,7 +149,7 @@ a.inline-link, a.inline-mention {
 
 .poll-choice {
   border: 0;
-  border-radius: 10px;
+  border-radius: 0;
   color: var(--color-poll-text-color);
   background: var(--color-poll-choice-bg);
   padding: 8px 18px;
@@ -162,7 +162,7 @@ a.inline-link, a.inline-mention {
 
 .vote-proportion {
   background: var(--color-poll-proportion-bar-bg);
-  border-radius: 10px 0px 0px 10px;
+  border-radius: 0;
 }
 
 .poll-winner {
@@ -215,7 +215,7 @@ a.toggle-poll-results {
   }
 }
 
-/* Priviblur extensions */
+/* openblur extensions */
 .img-alt-text {
   position: absolute;
   z-index: 3;
@@ -233,12 +233,12 @@ a.toggle-poll-results {
 .img-alt-text details {
   color: var(--color-post-img-alt-text-widget-text);
   background: var(--color-post-img-alt-text-widget-bg);
-  border-radius: 10px;
+  border-radius: 0;
   padding: 5px 10px;
 }
 
 .img-alt-text summary {
-  border-radius: 10px;
+  border-radius: 0;
   font-weight: bold;
   list-style: none;
 }
@@ -256,7 +256,7 @@ a.toggle-poll-results {
 
   width: 34px;
   height: 34px;
-  border-radius: 50%;
+  border-radius: 0;
 
   background: var(--color-post-img-alt-text-widget-bg);
   opacity: 75%;
@@ -275,4 +275,25 @@ a.toggle-poll-results {
 
 .media-download svg path {
   fill: var(--color-post-img-alt-text-widget-text);
+}
+
+/* Dark overrides for npf-renderer's base layout, whose borders/assets assume
+   a light background. Keeps every surface monochrome and visible. */
+.poll-block,
+.ap-container,
+.unsupported-content-block,
+.link-block {
+  border-color: var(--color-dt-gray-400);
+}
+
+.poll-choice {
+  border-color: var(--color-dt-gray-450);
+}
+
+.indented {
+  border-left-color: var(--color-dt-gray-400);
+}
+
+.asker-avatar {
+  border-radius: 0;
 }

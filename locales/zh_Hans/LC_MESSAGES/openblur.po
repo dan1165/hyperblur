@@ -1,15 +1,15 @@
 # Copyright (C) 2023 Syeopite
-# This file is distributed under the same license as the Priviblur project.
+# This file is distributed under the same license as the openblur project.
 # syeopite <syeopite@syeopite.dev>, 2023
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Priviblur v0.4.0-dev\n"
-"Report-Msgid-Bugs-To: https://github.com/syeopite/priviblur/issues\n"
+"Project-Id-Version: openblur v0.4.0-dev\n"
+"Report-Msgid-Bugs-To: https://github.com/syeopite/openblur/issues\n"
 "POT-Creation-Date: 2023-11-16 00:07-0800\n"
 "PO-Revision-Date: 2025-01-18 16:00+0000\n"
 "Last-Translator: Poesty Li <poesty7450@gmail.com>\n"
-"Language-Team: Chinese (Simplified Han script) <https://hosted.weblate.org/projects/priviblur/translations/zh_Hans/>\n"
+"Language-Team: Chinese (Simplified Han script) <https://hosted.weblate.org/projects/openblur/translations/zh_Hans/>\n"
 "Language: zh_Hans\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
@@ -18,10 +18,10 @@ msgstr ""
 "X-Generator: Weblate 5.10-dev\n"
 
 msgid "project_title"
-msgstr "Priviblur"
+msgstr "openblur"
 
 msgid "page_title_suffix"
-msgstr "- Priviblur"
+msgstr "- openblur"
 
 msgid "post_note_count"
 msgid_plural "post_note_count_plural"
@@ -129,31 +129,31 @@ msgstr "无法找到请求的博客"
 msgid "tumblr_error_blog_not_found_error_description"
 msgstr "博客可能被删除了或者没有存在过"
 
-msgid "priviblur_error_request_to_tumblr_timed_out_heading"
+msgid "openblur_error_request_to_tumblr_timed_out_heading"
 msgstr "错误：对 Tumblr 的请求超时"
 
-msgid "priviblur_error_request_to_tumblr_timed_out_description"
-msgstr "Priviblur 在超时前无法完成对 Tumblr 的请求"
+msgid "openblur_error_request_to_tumblr_timed_out_description"
+msgstr "openblur 在超时前无法完成对 Tumblr 的请求"
 
-msgid "priviblur_error_invalid_internal_tumblr_redirect"
+msgid "openblur_error_invalid_internal_tumblr_redirect"
 msgstr "错误：Tumblr HTTP 301 重定向指向外部 URL"
 
-msgid "priviblur_error_generic"
+msgid "openblur_error_generic"
 msgstr "出现了未知错误!"
 
-msgid "priviblur_error_generic_description"
-msgstr "看来您发现了 Priviblur 中的一个错误。"
+msgid "openblur_error_generic_description"
+msgstr "看来您发现了 openblur 中的一个错误。"
 
-msgid "priviblur_error_generic_description_2"
+msgid "openblur_error_generic_description_2"
 msgstr "请在 GitHub 上报告"
 
-msgid "priviblur_error_generic_technical_details_error_name"
+msgid "openblur_error_generic_technical_details_error_name"
 msgstr "错误：{0}"
 
-msgid "priviblur_error_generic_technical_details_error_message"
+msgid "openblur_error_generic_technical_details_error_message"
 msgstr "消息：{0}"
 
-msgid "priviblur_error_generic_technical_details_error_context"
+msgid "openblur_error_generic_technical_details_error_context"
 msgstr "上下文："
 
 msgid "post_community_label_mature_heading"
@@ -187,7 +187,7 @@ msgid "settings_language_selector"
 msgstr "语言"
 
 msgid "settings_language_selector_desc"
-msgstr "选择 Priviblur 应该使用的语言"
+msgstr "选择 openblur 应该使用的语言"
 
 msgid "settings_theme_selector"
 msgstr "主题"
@@ -246,7 +246,7 @@ msgstr "今日Tumblr"
 msgid "footer_version_text"
 msgstr "版本 {0}"
 
-msgid "priviblur_error_page_title"
+msgid "openblur_error_page_title"
 msgstr "错误"
 
 msgid "blog_banner_alt"
@@ -264,7 +264,7 @@ msgstr "在 Tumblr 上查看"
 msgid "blog_avatar_alt"
 msgstr "博客头像"
 
-msgid "priviblur_licences_page_title"
+msgid "openblur_licences_page_title"
 msgstr "许可证"
 
 msgid "post_note_viewer_view_replies_tab_title"

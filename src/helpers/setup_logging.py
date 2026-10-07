@@ -10,35 +10,35 @@ def setup_logging(logging_config):
         logger["level"] = logging_config.sanic_logging_level
 
     # Define new handler and formatter
-    # Defines generic "priviblur_generic_console" handler
+    # Defines generic "openblur_generic_console" handler
     _define_generic_handler_and_formatter(sanic_logging_config)
 
-    sanic_logging_config["loggers"]["priviblur"] = {
-        "level": logging_config.priviblur_logging_level,
-        "handlers": ["priviblur_generic_console"],
+    sanic_logging_config["loggers"]["openblur"] = {
+        "level": logging_config.openblur_logging_level,
+        "handlers": ["openblur_generic_console"],
         "propagate": True,
-        "qualname": "priviblur",
+        "qualname": "openblur",
     }
 
-    sanic_logging_config["loggers"]["priviblur-extractor"] = {
-        "level": logging_config.priviblur_extractor_logging_level,
-        "handlers": ["priviblur_generic_console"],
+    sanic_logging_config["loggers"]["openblur-extractor"] = {
+        "level": logging_config.openblur_extractor_logging_level,
+        "handlers": ["openblur_generic_console"],
         "propagate": True,
-        "qualname": "priviblur-extractor",
+        "qualname": "openblur-extractor",
     }
 
     return sanic_logging_config
 
 
 def _define_generic_handler_and_formatter(sanic_logging_config):
-    priviblur_generic_handler = sanic_logging_config["handlers"]["console"].copy()
+    openblur_generic_handler = sanic_logging_config["handlers"]["console"].copy()
 
     # Add handler and format to config
     formatter = _define_generic_formatter(sanic_logging_config)
-    sanic_logging_config["formatters"]["priviblur_generic"] = formatter
+    sanic_logging_config["formatters"]["openblur_generic"] = formatter
 
-    sanic_logging_config["handlers"]["priviblur_generic_console"] = priviblur_generic_handler
-    sanic_logging_config["handlers"]["priviblur_generic_console"]["formatter"] = "priviblur_generic"
+    sanic_logging_config["handlers"]["openblur_generic_console"] = openblur_generic_handler
+    sanic_logging_config["handlers"]["openblur_generic_console"]["formatter"] = "openblur_generic"
 
 
 def _define_generic_formatter(sanic_logging_config):

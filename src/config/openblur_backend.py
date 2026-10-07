@@ -1,8 +1,8 @@
 from typing import NamedTuple
 
 
-class PriviblurBackendConfig(NamedTuple):
-    """NamedTuple that stores configuration values relating to Priviblur Extractor
+class openblurBackendConfig(NamedTuple):
+    """NamedTuple that stores configuration values relating to openblur Extractor
 
     Attributes:
         main_response_timeout: Timeout for API requests to Tumblr

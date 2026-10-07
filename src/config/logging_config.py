@@ -7,12 +7,12 @@ class LoggingConfig(NamedTuple):
     Attributes:
         sanic_logging_level:
             Numerical log level for the underlying server framework (Sanic)
-        priviblur_logging_level:
-            Numerical log level for priviblur
-        priviblur_extractor_logging_level:
-            Numerical log level for priviblur's extractor backend
+        openblur_logging_level:
+            Numerical log level for openblur
+        openblur_extractor_logging_level:
+            Numerical log level for openblur's extractor backend
     """
 
     sanic_logging_level: int = 50
-    priviblur_logging_level: int = 30
-    priviblur_extractor_logging_level: int = 30
+    openblur_logging_level: int = 30
+    openblur_extractor_logging_level: int = 30

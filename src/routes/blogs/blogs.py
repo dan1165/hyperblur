@@ -2,7 +2,7 @@ import urllib.parse
 
 import sanic
 
-from ... import priviblur_extractor
+from ... import openblur_extractor
 from ...cache import get_blog_posts, get_blog_search_results
 
 blogs = sanic.Blueprint("blogs", url_prefix="/")
@@ -73,7 +73,7 @@ async def _blog_search(request: sanic.Request, blog: str, query: str):
             request.app.ctx, blog, query, continuation=continuation
         )
     except IndexError:
-        blog_timeline = priviblur_extractor.models.timelines.BlogTimeline(
+        blog_timeline = openblur_extractor.models.timelines.BlogTimeline(
             blog_info=(await get_blog_posts(request.app.ctx, blog)).blog_info,
             posts=[],
             total_posts=0,

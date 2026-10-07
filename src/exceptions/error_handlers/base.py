@@ -48,8 +48,8 @@ def create_user_friendly_error_message(request, exception):
     context = []
 
     for trace in reversed(frame):
-        if trace.filename.startswith(request.app.ctx.PRIVIBLUR_PARENT_DIR_PATH):
-            local_path = trace.filename[len(request.app.ctx.PRIVIBLUR_PARENT_DIR_PATH) + 1 :]
+        if trace.filename.startswith(request.app.ctx.OPENBLUR_PARENT_DIR_PATH):
+            local_path = trace.filename[len(request.app.ctx.OPENBLUR_PARENT_DIR_PATH) + 1 :]
         else:
             local_path = trace.filename
         occurrence = f'File "{local_path}" line {trace.lineno}: in {trace.function}'

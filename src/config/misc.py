@@ -2,7 +2,7 @@ from typing import NamedTuple
 
 
 class MiscellaneousConfig(NamedTuple):
-    """NamedTuple that stores configuration values relating to Priviblur Extractor
+    """NamedTuple that stores configuration values relating to openblur Extractor
 
     Attributes:
         main_response_timeout: Timeout for API requests to Tumblr

@@ -1,4 +1,4 @@
-name: Priviblur CI
+name: openblur CI
 
 on:
   schedule:
@@ -55,9 +55,9 @@ jobs:
       run: cp config.example.toml config.toml
 
     - name: Compile locales
-      run: pybabel compile -d locales -D priviblur
+      run: pybabel compile -d locales -D openblur
       
-    - name: Run Priviblur
+    - name: Run openblur
       run : |
         python -m src.server &
 

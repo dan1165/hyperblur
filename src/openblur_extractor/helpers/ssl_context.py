@@ -23,5 +23,5 @@ def create_ssl_context() -> ssl.SSLContext:
 
 
 def create_connector() -> aiohttp.TCPConnector:
-    """Creates an aiohttp connector configured with Priviblur's SSL context"""
+    """Creates an aiohttp connector configured with openblur's SSL context"""
     return aiohttp.TCPConnector(ssl=create_ssl_context())

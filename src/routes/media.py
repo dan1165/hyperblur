@@ -11,10 +11,6 @@ media = sanic.Blueprint("TumblrMedia", url_prefix="/tblr")
 # it keeps crafted requests from ever pointing the redirect/proxy elsewhere.
 _CDN_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9-]{1,63}$")
 
-# Media on Tumblr's CDN is immutable, so redirects to it can be cached for a
-# long time. This lets repeat visits skip Priviblur entirely.
-_MEDIA_CACHE_CONTROL = "public, max-age=2629800, immutable"
-
 # Headers that must never be forwarded verbatim from the client to Tumblr.
 _FORWARDED_REQUEST_HEADERS = ("range", "if-range", "if-none-match", "if-modified-since")
 
@@ -41,9 +37,7 @@ def _validate_path(path: str):
 
 
 def _redirect_to_origin(origin_url: str) -> sanic.HTTPResponse:
-    response = sanic.redirect(origin_url, status=302)
-    response.headers["Cache-Control"] = _MEDIA_CACHE_CONTROL
-    return response
+    return sanic.redirect(origin_url, status=302)
 
 
 def _build_content_disposition(path: str) -> str:
@@ -68,7 +62,7 @@ async def stream_media(
     base_url: str = "",
     download_filename: str | None = None,
 ):
-    """Streams media from Tumblr through Priviblur
+    """Streams media from Tumblr through openblur
 
     This is only used when a forced download is requested. Normal media loads
     are redirected straight to Tumblr's CDN (see `_media_cdn` and friends).

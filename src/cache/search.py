@@ -1,16 +1,10 @@
 from .base import AccessCache
-from .. import priviblur_extractor
+from .. import openblur_extractor
 
 
 class SearchCache(AccessCache):
     def __init__(self, ctx, query, continuation, **kwargs):
-        super().__init__(
-            ctx=ctx,
-            prefix="search",
-            cache_ttl=ctx.PRIVIBLUR_CONFIG.cache.cache_feed_for,
-            continuation=continuation,
-            **kwargs,
-        )
+        super().__init__(ctx=ctx, continuation=continuation, **kwargs)
 
         self.query = query
 
@@ -24,24 +18,7 @@ class SearchCache(AccessCache):
         )
 
     def parse(self, initial_results):
-        return priviblur_extractor.parse_timeline(initial_results)
-
-    def build_key(self):
-        # search:<query>:<latest>:<post_filter>:<time_filter>:<continuation>
-        path_to_cached_results = [
-            self.query,
-        ]
-
-        if self.kwargs.get("latest") is True:
-            path_to_cached_results.append("latest")
-
-        if post_filter := self.kwargs.get("post_type_filter"):
-            path_to_cached_results.append(post_filter.name.lower())
-
-        if days := self.kwargs.get("days"):
-            path_to_cached_results.append(days)
-
-        return f"{self.prefix}:{':'.join(path_to_cached_results)}"
+        return openblur_extractor.parse_timeline(initial_results)
 
 
 async def get_search_results(ctx, query, continuation=None, **kwargs):

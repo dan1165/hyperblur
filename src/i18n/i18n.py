@@ -11,10 +11,10 @@ from .npf_renderer_localizer import NPFRendererLocalizer
 class Language:
     """Stores metadata about supported translations"""
 
-    def __init__(self, locale, priviblur_gettext) -> None:
+    def __init__(self, locale, openblur_gettext) -> None:
         self.locale = locale
 
-        self.priviblur_translations = priviblur_gettext
+        self.openblur_translations = openblur_gettext
 
         self.npf_renderer_localizer = NPFRendererLocalizer(locale, translate)
 
@@ -33,18 +33,18 @@ def initialize_locales() -> typing.Mapping[str, Language]:
     try:
         # Initialize english locale first so that we may use it as a fallback
 
-        priviblur_english_instance = gettext.translation(
-            "priviblur", localedir="locales", languages=("en_US",)
+        openblur_english_instance = gettext.translation(
+            "openblur", localedir="locales", languages=("en_US",)
         )
 
-        languages = {"en_US": Language("en_US", priviblur_english_instance)}
+        languages = {"en_US": Language("en_US", openblur_english_instance)}
 
         for locale in SUPPORTED_LANGUAGES:
             if locale == "en_US":
                 continue
 
-            instance = gettext.translation("priviblur", localedir="locales", languages=(locale,))
-            instance.add_fallback(priviblur_english_instance)
+            instance = gettext.translation("openblur", localedir="locales", languages=(locale,))
+            instance.add_fallback(openblur_english_instance)
 
             languages[locale] = Language(locale, instance)
     except FileNotFoundError:
@@ -63,9 +63,9 @@ def translate(
     number: int | float | None = None,
     substitution: str | dict | None = None,
 ) -> str:
-    app = sanic.Sanic.get_app("Priviblur")
+    app = sanic.Sanic.get_app("openblur")
 
-    gettext_instance = app.ctx.LANGUAGES[language].priviblur_translations
+    gettext_instance = app.ctx.LANGUAGES[language].openblur_translations
 
     if number is not None:
         translated = gettext_instance.ngettext(id, f"{id}_plural", number)

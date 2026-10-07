@@ -3,7 +3,7 @@ import urllib.parse
 
 import sanic
 
-from ... import cache, priviblur_extractor
+from ... import cache, openblur_extractor
 from ...helpers.helpers import to_bool
 
 blog_post_bp = sanic.Blueprint("blog_post", url_prefix="/<post_id:int>")
@@ -75,7 +75,7 @@ async def handle_post_args(request):
     if (rss_feed := args.get("rss_feed")) and to_bool(rss_feed):
         request.ctx.rss = True
         request.ctx.page_url = (
-            f"{request.app.ctx.PRIVIBLUR_CONFIG.deployment.domain or ''}{request.ctx.post_path}"
+            f"{request.app.ctx.OPENBLUR_CONFIG.deployment.domain or ''}{request.ctx.post_path}"
         )
 
     # Requesting post notes?
@@ -93,7 +93,7 @@ async def handle_post_args(request):
 @blog_post_bp.get("/")
 @blog_post_bp.get("/<slug:str>", name="_blog_post_with_slug")
 async def _blog_post(request: sanic.Request, **kwargs):
-    blog_info = priviblur_extractor.models.timelines.BlogTimeline(
+    blog_info = openblur_extractor.models.timelines.BlogTimeline(
         request.ctx.parsed_post.blog, (), None, None
     )
 

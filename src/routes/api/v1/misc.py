@@ -20,4 +20,4 @@ async def poll_results(request, blog: str, post_id: int, poll_id: int):
         ctx=request.app.ctx, blog=blog, post_id=post_id, poll_id=poll_id, expired=bool(expired)
     )
 
-    return sanic.response.json(initial_results, headers={"Cache-Control": "max-age=600, immutable"})
+    return sanic.response.json(initial_results)

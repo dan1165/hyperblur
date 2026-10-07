@@ -1,17 +1,11 @@
 import dataclasses
 import urllib.parse
 
-VERSION = 1
-
 
 @dataclasses.dataclass
 class UserPreferences:
     # See DefaultUserPreferences in config/user_preferences.py
     expand_posts: bool
-
-    # Tracks major revisions of the settings cookie
-    # Only bump in case of breaking changes.
-    version: int = 1
 
     def replace_from_forms(self, request) -> "UserPreferences":
         """Returns updated UserPreferences class from POST form data"""
@@ -28,12 +22,7 @@ class UserPreferences:
         try:
             if raw_prefs := request.cookies.get("settings"):
                 raw_prefs = urllib.parse.parse_qs(raw_prefs)
-                version = raw_prefs["version"][0]
-
-                if int(version) == VERSION:
-                    return self._replace(request, raw_prefs)
-                else:
-                    request.ctx.invalid_settings_cookie = True
+                return self._replace(request, raw_prefs)
         except (TypeError, KeyError, ValueError):
             request.ctx.invalid_settings_cookie = True
 
@@ -92,7 +81,7 @@ class UserPreferences:
 
     def construct_cookie(self, request):
         """Serializes user preferences into a cookie"""
-        if request.app.ctx.PRIVIBLUR_CONFIG.deployment.https is True:
+        if request.app.ctx.OPENBLUR_CONFIG.deployment.https is True:
             secure = True
         else:
             secure = False
@@ -104,7 +93,7 @@ class UserPreferences:
             "max_age": 31540000,
         }
 
-        if request.app.ctx.PRIVIBLUR_CONFIG.deployment.domain:
-            cookie["domain"] = request.app.ctx.PRIVIBLUR_CONFIG.deployment.domain
+        if request.app.ctx.OPENBLUR_CONFIG.deployment.domain:
+            cookie["domain"] = request.app.ctx.OPENBLUR_CONFIG.deployment.domain
 
         return cookie

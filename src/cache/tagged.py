@@ -1,16 +1,10 @@
 from .base import AccessCache
-from .. import priviblur_extractor
+from .. import openblur_extractor
 
 
 class TagBrowseCache(AccessCache):
     def __init__(self, ctx, tag, latest, continuation, **kwargs):
-        super().__init__(
-            ctx=ctx,
-            prefix="tagged",
-            cache_ttl=ctx.PRIVIBLUR_CONFIG.cache.cache_feed_for,
-            continuation=continuation,
-            **kwargs,
-        )
+        super().__init__(ctx=ctx, continuation=continuation, **kwargs)
 
         self.tag = tag
         self.latest = latest
@@ -22,16 +16,7 @@ class TagBrowseCache(AccessCache):
         )
 
     def parse(self, initial_results):
-        return priviblur_extractor.parse_timeline(initial_results)
-
-    def build_key(self):
-        # tagged:<tag>:<latest>:<continuation>
-        path_to_cached_results = [self.prefix, self.tag]
-
-        if self.latest is True:
-            path_to_cached_results.append("latest")
-
-        return ":".join(path_to_cached_results)
+        return openblur_extractor.parse_timeline(initial_results)
 
 
 async def get_tag_browse_results(ctx, tag, latest=False, continuation=None):

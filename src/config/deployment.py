@@ -9,9 +9,9 @@ class DeploymentConfig(NamedTuple):
         port: Port to listen for connections.
         domain: Domain name under which this instance is hosted.
 
-        https: Enables secure cookies and forces all links to priviblur to use the `https://` scheme
+        https: Enables secure cookies and forces all links to openblur to use the `https://` scheme
 
-        workers: Amount of worker Priviblur instances to spawn.
+        workers: Amount of worker openblur instances to spawn.
             Increases speed significantly
     """
 

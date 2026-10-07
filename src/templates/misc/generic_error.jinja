@@ -4,30 +4,30 @@
 {% from 'macros/render_error_details.jinja' import render_error_details with context  %}
 {% block head %}
 <style>
-#priviblur-error > div {
+#openblur-error > div {
     background-color: var(--color-top-level-card-bg);
-    border-radius: 25px;
+    border-radius: 0;
     padding: 25px;
     max-width: 100%;
 }
 
-#priviblur-error h2 {
+#openblur-error h2 {
     margin: 0;
 }
 
-#priviblur-error {
+#openblur-error {
     color: var(--color-text);
 }
 
-#priviblur-error details {
+#openblur-error details {
     margin-top: 20px;
 }
 
-#priviblur-error pre {
+#openblur-error pre {
     text-wrap: wrap;
 }
 
-#priviblur-error a {
+#openblur-error a {
     text-decoration: underline;
 }
 
@@ -41,11 +41,11 @@
 }
 
 @media screen and (min-width: 768px) {
-    #priviblur-error pre {
+    #openblur-error pre {
         text-wrap: nowrap;
     }
 
-    #priviblur-error > div {
+    #openblur-error > div {
         max-width: unset;
         width: fit-content;
     }
@@ -55,15 +55,15 @@
 </style>
 
 {% endblock %}
-{% block title %}{{translate(request.ctx.language, "priviblur_error_page_title")}}{% endblock %}
+{% block title %}{{translate(request.ctx.language, "openblur_error_page_title")}}{% endblock %}
 
 {% block center %}
-<section id="priviblur-error">
+<section id="openblur-error">
     <div class="card">
         <div id="error-header">
-            <h2>{{translate(request.ctx.language, "priviblur_error_generic")}}</h2>
-            <p>{{translate(request.ctx.language, "priviblur_error_generic_description")}}</p>
-            <a href="https://github.com/syeopite/priviblur/issues/new">{{translate(request.ctx.language, "priviblur_error_generic_description_2")}}</a>
+            <h2>{{translate(request.ctx.language, "openblur_error_generic")}}</h2>
+            <p>{{translate(request.ctx.language, "openblur_error_generic_description")}}</p>
+            <p>{{translate(request.ctx.language, "openblur_error_generic_description_2")}}</p>
         </div>
 
         {{render_error_details(exception_name, exception_message, exception_context)}}

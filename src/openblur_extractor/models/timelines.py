@@ -19,7 +19,6 @@ class BlogTimeline(NamedTuple):
 
     def to_json_serialisable(self):
         json_serializable = {
-            "version": base.VERSION,
             "blog_info": self.blog_info.to_json_serialisable(),
         }
         json_serializable["posts"] = [post.to_json_serialisable() for post in self.posts]
@@ -44,8 +43,6 @@ class BlogTimeline(NamedTuple):
         if json["next"]:
             json["next"] = base.Cursor.from_json(json["next"])
 
-        del json["version"]
-
         return cls(**json)
 
 
@@ -67,8 +64,6 @@ class NoteTimeline(NamedTuple):
     def to_json_serialisable(self):
         json_serializable = self._asdict()
 
-        json_serializable["version"] = base.VERSION
-
         json_serializable["notes"] = [note.to_json_serialisable() for note in self.notes]
 
         return json_serializable
@@ -86,8 +81,6 @@ class NoteTimeline(NamedTuple):
                     notes.append(LikeNote.from_json(note))
 
         json["notes"] = notes
-
-        del json["version"]
 
         return cls(**json)
 
@@ -119,7 +112,6 @@ class Timeline(NamedTuple):
             next_ = next_.to_json_serialisable()
 
         return {
-            "version": base.VERSION,
             "elements": elements,
             "signposts": signposts,
             "next": next_,
@@ -142,7 +134,5 @@ class Timeline(NamedTuple):
 
         if json["next"]:
             json["next"] = base.Cursor.from_json(json["next"])
-
-        del json["version"]
 
         return cls(**json)

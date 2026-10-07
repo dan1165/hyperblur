@@ -22,7 +22,7 @@ def as_download_url(url: str) -> str:
     """Marks a proxied media URL so that it is served as a forced download
 
     Media is normally redirected straight to Tumblr's CDN. The download button
-    instead asks Priviblur to proxy the media as an attachment.
+    instead asks openblur to proxy the media as an attachment.
     """
     parsed = urllib.parse.urlsplit(url)
     query = [
@@ -246,7 +246,7 @@ class NPFFormatter(npf_renderer.format.Formatter):
         """Adds a download button overlay to the given media container
 
         Links directly to the proxied media so that it may be downloaded
-        without leaving Priviblur.
+        without leaving openblur.
         """
         if not media_url:
             return
@@ -270,7 +270,7 @@ async def format_npf(
 
     - Replaces internal Parser and Formatter with the modified variants above
     - Accepts extra arguments to add additional details to formatted results
-    - Automatically sets Priviblur-specific rendering arguments
+    - Automatically sets openblur-specific rendering arguments
 
     Arguments (new):
         blog_name:

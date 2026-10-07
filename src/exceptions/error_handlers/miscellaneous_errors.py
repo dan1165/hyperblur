@@ -18,10 +18,10 @@ async def request_timeout(request, exception):
             "app": request.app,
             "exception": exception,
             "error_heading": request.app.ctx.translate(
-                request.ctx.language, "priviblur_error_request_to_tumblr_timed_out_heading"
+                request.ctx.language, "openblur_error_request_to_tumblr_timed_out_heading"
             ),
             "error_description": request.app.ctx.translate(
-                request.ctx.language, "priviblur_error_request_to_tumblr_timed_out_description"
+                request.ctx.language, "openblur_error_request_to_tumblr_timed_out_description"
             ),
         },
         status=504,
@@ -37,7 +37,7 @@ async def tumblr_connection_error(request, exception):
             "exception": exception,
             "error_heading": "Unable to reach Tumblr",
             "error_description": (
-                "Priviblur was unable to connect to Tumblr. Please try again in a moment."
+                "openblur was unable to connect to Tumblr. Please try again in a moment."
             ),
         },
         status=502,
@@ -66,7 +66,7 @@ async def invalid_redirect(request, exception):
             "app": request.app,
             "exception": exception,
             "error_heading": request.app.ctx.translate(
-                request.ctx.language, "priviblur_error_invalid_internal_tumblr_redirect"
+                request.ctx.language, "openblur_error_invalid_internal_tumblr_redirect"
             ),
         },
         status=502,

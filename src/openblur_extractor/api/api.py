@@ -28,9 +28,9 @@ class TumblrAPI:
     RETRY_BACKOFF = 0.5
 
     # Environment variable that can be used to supply a custom API token.
-    # A token tied to a logged-in account lets Priviblur access blogs that
+    # A token tied to a logged-in account lets openblur access blogs that
     # require logging in. When unset, the default public token is used.
-    AUTHORIZATION_TOKEN_ENVIRONMENT_VARIABLE = "PRIVIBLUR_TUMBLR_API_TOKEN"
+    AUTHORIZATION_TOKEN_ENVIRONMENT_VARIABLE = "OPENBLUR_TUMBLR_API_TOKEN"
 
     DEFAULT_AUTHORIZATION_TOKEN = "aIcXSOoTtqrzR8L8YEIOmBeW94c3FmbSNSWAUbxsny9KKx5VFh"
 

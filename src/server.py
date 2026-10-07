@@ -9,26 +9,23 @@ import orjson
 import babel.numbers
 import babel.dates
 import babel.lists
-import redis.asyncio
-from npf_renderer import VERSION as NPF_RENDERER_VERSION
 
-from . import routes, priviblur_extractor, preferences, i18n
+from . import routes, openblur_extractor, preferences, i18n
 from .exceptions import error_handlers
 from .config import load_config
 from .helpers import setup_logging, helpers, render, ext_npf_renderer
-from .version import VERSION, CURRENT_COMMIT
 
 
 # Load configuration file
 
-config = load_config(os.environ.get("PRIVIBLUR_CONFIG_LOCATION", "./config.toml"))
+config = load_config(os.environ.get("OPENBLUR_CONFIG_LOCATION", "./config.toml"))
 
 LOG_CONFIG = setup_logging.setup_logging(config.logging)
 app = sanic.Sanic(
-    "Priviblur",
+    "openblur",
     loads=orjson.loads,
     dumps=orjson.dumps,
-    env_prefix="PRIVIBLUR_",
+    env_prefix="OPENBLUR_",
     log_config=LOG_CONFIG,
 )
 app.config.OAS = False
@@ -40,32 +37,28 @@ app.ctx.SUPPORTED_LANGUAGES = i18n.SUPPORTED_LANGUAGES
 
 app.config.TEMPLATING_PATH_TO_TEMPLATES = "src/templates"
 
-app.ctx.LOGGER = logging.getLogger("priviblur")
-
-app.ctx.CURRENT_COMMIT = CURRENT_COMMIT  # Used for cache busting
-app.ctx.NPF_RENDERER_VERSION = NPF_RENDERER_VERSION
-app.ctx.VERSION = VERSION
+app.ctx.LOGGER = logging.getLogger("openblur")
 
 app.ctx.URL_HANDLER = helpers.url_handler
 app.ctx.BLACKLIST_RESPONSE_HEADERS = ("access-control-allow-origin", "alt-svc", "server")
 
-app.ctx.PRIVIBLUR_CONFIG = config
+app.ctx.OPENBLUR_CONFIG = config
 app.ctx.translate = i18n.translate
 
-app.ctx.PRIVIBLUR_PARENT_DIR_PATH = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+app.ctx.OPENBLUR_PARENT_DIR_PATH = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 app.ctx.create_user_friendly_error_message = error_handlers.create_user_friendly_error_message
 
 
 @app.listener("before_server_start")
 async def initialize(app):
-    priviblur_backend = app.ctx.PRIVIBLUR_CONFIG.backend
+    openblur_backend = app.ctx.OPENBLUR_CONFIG.backend
 
-    app.ctx.TumblrAPI = await priviblur_extractor.TumblrAPI.create(
-        main_request_timeout=priviblur_backend.main_response_timeout, json_loads=orjson.loads
+    app.ctx.TumblrAPI = await openblur_extractor.TumblrAPI.create(
+        main_request_timeout=openblur_backend.main_response_timeout, json_loads=orjson.loads
     )
 
     media_request_headers = {
-        "user-agent": priviblur_extractor.TumblrAPI.DEFAULT_HEADERS["user-agent"],
+        "user-agent": openblur_extractor.TumblrAPI.DEFAULT_HEADERS["user-agent"],
         "accept-encoding": "gzip, deflate",
         "accept": "image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8,*/*;q=0.5",
         "accept-language": "en-US,en;q=0.5",
@@ -76,13 +69,13 @@ async def initialize(app):
 
     # TODO set pool size for image requests
 
-    def create_image_client(url, timeout=priviblur_backend.image_response_timeout):
+    def create_image_client(url, timeout=openblur_backend.image_response_timeout):
         timeout = aiohttp.ClientTimeout(timeout)
         return aiohttp.ClientSession(
             url,
             headers=media_request_headers,
             timeout=timeout,
-            connector=priviblur_extractor.helpers.create_connector(),
+            connector=openblur_extractor.helpers.create_connector(),
         )
 
     app.ctx.Media64Client = create_image_client("https://64.media.tumblr.com")
@@ -97,8 +90,8 @@ async def initialize(app):
 
     app.ctx.MediaGenericClient = aiohttp.ClientSession(
         headers=media_request_headers,
-        timeout=aiohttp.ClientTimeout(priviblur_backend.image_response_timeout),
-        connector=priviblur_extractor.helpers.create_connector(),
+        timeout=aiohttp.ClientTimeout(openblur_backend.image_response_timeout),
+        connector=openblur_extractor.helpers.create_connector(),
     )
 
     app.ctx.AudioClient = create_image_client("https://a.tumblr.com")
@@ -109,23 +102,10 @@ async def initialize(app):
 
     app.ctx.TumblrAtClient = aiohttp.ClientSession(
         "https://at.tumblr.com",
-        headers={"user-agent": priviblur_extractor.TumblrAPI.DEFAULT_HEADERS["user-agent"]},
-        timeout=aiohttp.ClientTimeout(priviblur_backend.main_response_timeout),
-        connector=priviblur_extractor.helpers.create_connector(),
+        headers={"user-agent": openblur_extractor.TumblrAPI.DEFAULT_HEADERS["user-agent"]},
+        timeout=aiohttp.ClientTimeout(openblur_backend.main_response_timeout),
+        connector=openblur_extractor.helpers.create_connector(),
     )
-
-    # Initialize database
-    if cache_url := app.ctx.PRIVIBLUR_CONFIG.cache.url:
-        try:
-            app.ctx.CacheDb = redis.asyncio.from_url(cache_url, protocol=3, decode_responses=True)
-            await app.ctx.CacheDb.ping()
-        except redis.exceptions.ConnectionError:
-            app.ctx.LOGGER.error(
-                "Error: Unable to connect to Redis! Disabling cache until the problem can be fixed. Please check your configuration file and the Redis server."
-            )
-            app.ctx.CacheDb = None
-    else:
-        app.ctx.CacheDb = None
 
     app.ctx.render = render.render_template
 
@@ -159,14 +139,14 @@ async def initialize(app):
     )
 
     app.ext.environment.tests["a_post"] = lambda element: isinstance(
-        element, priviblur_extractor.models.post.Post
+        element, openblur_extractor.models.post.Post
     )
 
 
 @app.listener("main_process_start")
 async def main_startup_listener(app):
-    """Startup listener to notify of priviblur startup"""
-    print(f"Starting up Priviblur version {VERSION}")
+    """Startup listener to notify of openblur startup"""
+    print("Starting up openblur")
 
 
 @app.get("/")
@@ -181,7 +161,7 @@ async def robotstxt_route(request):
 
 @app.middleware("request", priority=1)
 async def before_all_routes(request):
-    # Priviblur is English-only and always uses its dark theme.
+    # openblur is English-only and always uses its dark theme.
     request.ctx.language = "en_US"
 
     request.ctx.preferences = preferences.UserPreferences(
@@ -197,6 +177,11 @@ async def after_all_routes(request, response):
     response.headers["x-xss-protection"] = "1; mode=block"
     response.headers["x-content-type-options"] = "nosniff"
     response.headers["referrer-policy"] = "same-origin"
+
+    # Never cache anything: every request is served fresh from the origin.
+    response.headers["cache-control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["pragma"] = "no-cache"
+    response.headers["expires"] = "0"
 
     # Media is loaded directly from Tumblr's CDN (see src/routes/media.py), so
     # images and audio/video must be allowed to load from *.tumblr.com.
@@ -219,7 +204,7 @@ async def after_all_routes(request, response):
 for route in routes.BLUEPRINTS:
     app.blueprint(route)
 
-# Register error handlers into Priviblur
+# Register error handlers into openblur
 error_handlers.register(app)
 
 if __name__ == "__main__":
