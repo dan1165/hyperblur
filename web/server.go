@@ -4,16 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"net/http"
 	"net/url"
-	"os"
-	"path/filepath"
 	"regexp"
 	"runtime/debug"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/dan1165/openblur/assets"
 	"github.com/dan1165/openblur/tumblr"
 )
 
@@ -52,11 +52,11 @@ func preferencesFrom(r *http.Request) Preferences {
 }
 
 // Handler builds the HTTP handler for the application.
-func (a *App) Handler(assetsDir string) http.Handler {
+func (a *App) Handler() http.Handler {
 	mux := http.NewServeMux()
 
-	assets := http.StripPrefix("/assets/", http.FileServer(http.Dir(assetsDir)))
-	mux.Handle("GET /assets/", assets)
+	assetServer := http.StripPrefix("/assets/", http.FileServer(http.FS(assets.FS)))
+	mux.Handle("GET /assets/", assetServer)
 
 	mux.HandleFunc("GET /{$}", a.handleRoot)
 	mux.HandleFunc("GET /robots.txt", a.handleRobots)
@@ -256,14 +256,13 @@ func (a *App) handleRoot(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) handleRobots(w http.ResponseWriter, r *http.Request) {
-	path := filepath.Join("assets", "robots.txt")
-	data, err := os.ReadFile(path)
+	data, err := fs.ReadFile(assets.FS, "robots.txt")
 	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
 	w.Header().Set("content-type", "text/plain; charset=utf-8")
-	w.Write(data)
+	_, _ = w.Write(data)
 }
 
 // ---------------------------------------------------------------------------

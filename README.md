@@ -28,9 +28,8 @@ go build -o openblur ./cmd/openblur
 ./openblur
 ```
 
-openblur listens on `:8000`; set `OPENBLUR_PORT` to change it, and
-`OPENBLUR_ASSETS_DIR` to point at the `assets/` directory when running the
-binary from elsewhere.
+openblur listens on `:8000`; set `OPENBLUR_PORT` to change it. The stylesheets,
+scripts, fonts and images are embedded in the binary, so it runs from anywhere.
 
 ## Custom Tumblr token (optional)
 

@@ -13,7 +13,6 @@ FROM alpine:3.21
 WORKDIR /openblur
 
 COPY --from=build /openblur /openblur/openblur
-COPY assets ./assets
 
 RUN addgroup -g 1000 -S openblur && \
     adduser -u 1000 -S openblur -G openblur && \
