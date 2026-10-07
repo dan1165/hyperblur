@@ -376,6 +376,27 @@ a.logo {
     border-radius: 0;
 }
 
+.paging .page-link {
+    display: inline-block;
+    padding: 6px 10px;
+    margin: 2px;
+    font-weight: 550;
+    color: var(--color-text);
+}
+
+.paging .page-link:hover {
+    background: var(--color-nav-bar-icon-hover);
+}
+
+.paging .page-link.current {
+    background: var(--color-primary-button-bg);
+    color: var(--color-primary-button-text);
+}
+
+.paging .ellipsis {
+    color: var(--color-post-footer);
+}
+
 @media screen and (min-width: 768px) {
     .paging {
         padding: 0 0;

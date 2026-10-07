@@ -318,7 +318,14 @@ class TumblrAPI:
         )
 
     async def blog_posts(
-        self, blog_name, continuation=None, tag=None, post_type=None, before_id=None
+        self,
+        blog_name,
+        continuation=None,
+        tag=None,
+        post_type=None,
+        before_id=None,
+        offset=None,
+        limit=None,
     ):
         """Requests the /blog/<blog name>/posts endpoint
 
@@ -329,6 +336,8 @@ class TumblrAPI:
             tag: Search posts tagged with a tag within the blog
             post_type: Filter by post type when browsing tags or searching
             before_id: Returns posts before the given ID
+            offset: Number of posts to skip (used for numbered pagination)
+            limit: Maximum number of posts to return
         """
 
         url_parameters = {
@@ -346,6 +355,12 @@ class TumblrAPI:
 
         if before_id:
             url_parameters["before_id"] = before_id
+
+        if offset:
+            url_parameters["offset"] = offset
+
+        if limit:
+            url_parameters["limit"] = limit
 
         if continuation:
             url_parameters["tumblelog"] = blog_name

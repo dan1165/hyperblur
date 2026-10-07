@@ -7,27 +7,43 @@ from ...fetch import get_blog_posts, get_blog_search_results
 
 blogs = sanic.Blueprint("blogs", url_prefix="/")
 
+POSTS_PER_PAGE = 20
+
 
 @blogs.get("/")
 @blogs.get("rss", name="_blog_posts_rss", ctx_rss=True)
 async def _blog_posts(request: sanic.Request, blog: str):
     blog = urllib.parse.unquote(blog)
 
-    if continuation := request.args.get("continuation"):
-        continuation = urllib.parse.unquote(continuation)
+    try:
+        page = max(1, int(request.args.get("page", 1)))
+    except (TypeError, ValueError):
+        page = 1
 
-    if before_id := request.args.get("before_id"):
-        before_id = urllib.parse.unquote(before_id)
-
-    blog = await get_blog_posts(
-        request.app.ctx, blog, continuation=continuation, before_id=before_id
+    timeline = await get_blog_posts(
+        request.app.ctx, blog, offset=(page - 1) * POSTS_PER_PAGE, limit=POSTS_PER_PAGE
     )
+
+    # Tumblr's blog endpoint has no page-number pagination, so we page by
+    # offset and derive the page count from the total it reports.
+    total_pages = max(1, -(-(timeline.total_posts or 0) // POSTS_PER_PAGE))
+
+    visible = {1, total_pages} | {p for p in range(page - 2, page + 3) if 1 <= p <= total_pages}
+    page_numbers = []
+    previous = 0
+    for p in sorted(visible):
+        if previous and p - previous > 1:
+            page_numbers.append(None)  # ellipsis
+        page_numbers.append(p)
+        previous = p
 
     return await request.app.ctx.render(
         "blog/blog",
         context={
             "app": request.app,
-            "blog": blog,
+            "blog": timeline,
+            "page": page,
+            "page_numbers": page_numbers,
         },
     )
 
