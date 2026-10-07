@@ -41,6 +41,7 @@ class TumblrAPI:
                 "https://www.tumblr.com",
                 headers=cls.DEFAULT_HEADERS,
                 timeout=main_request_timeout,  # TODO allow fine-tuning the different types of timeouts
+                connector=helpers.create_connector(),
             )
 
         return cls(client, json_loads)

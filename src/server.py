@@ -78,7 +78,12 @@ async def initialize(app):
 
     def create_image_client(url, timeout=priviblur_backend.image_response_timeout):
         timeout = aiohttp.ClientTimeout(timeout)
-        return aiohttp.ClientSession(url, headers=media_request_headers, timeout=timeout)
+        return aiohttp.ClientSession(
+            url,
+            headers=media_request_headers,
+            timeout=timeout,
+            connector=priviblur_extractor.helpers.create_connector(),
+        )
 
     app.ctx.Media64Client = create_image_client("https://64.media.tumblr.com")
 
@@ -93,6 +98,7 @@ async def initialize(app):
     app.ctx.MediaGenericClient = aiohttp.ClientSession(
         headers=media_request_headers,
         timeout=aiohttp.ClientTimeout(priviblur_backend.image_response_timeout),
+        connector=priviblur_extractor.helpers.create_connector(),
     )
 
     app.ctx.AudioClient = create_image_client("https://a.tumblr.com")
@@ -105,6 +111,7 @@ async def initialize(app):
         "https://at.tumblr.com",
         headers={"user-agent": priviblur_extractor.TumblrAPI.DEFAULT_HEADERS["user-agent"]},
         timeout=aiohttp.ClientTimeout(priviblur_backend.main_response_timeout),
+        connector=priviblur_extractor.helpers.create_connector(),
     )
 
     # Initialize database
