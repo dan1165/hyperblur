@@ -228,17 +228,21 @@ func (a *App) writePage(w http.ResponseWriter, status int, html string) {
 }
 
 func (a *App) messageError(w http.ResponseWriter, r *http.Request, status int, heading, description string) {
-	data := a.newPageData(r)
-	data.Title = "Error"
-	data.InlineStyle = "#hyperblur-error { color: var(--color-text); text-align: center; }"
-	html := a.renderPage(data, func(v *view) {
+	a.renderErrorPage(w, r, status, "#hyperblur-error { color: var(--color-text); text-align: center; }", func(v *view) {
 		v.raw(`<section id="hyperblur-error"><div><h1 aria-label="Error explanation heading">`)
 		v.esc(heading)
 		v.raw(`</h1><p aria-label="Error explanation">`)
 		v.esc(description)
 		v.raw(`</p></div></section>`)
 	})
-	a.writePage(w, status, html)
+}
+
+// renderErrorPage renders the shared error-page chrome around center.
+func (a *App) renderErrorPage(w http.ResponseWriter, r *http.Request, status int, style string, center func(v *view)) {
+	data := a.newPageData(r)
+	data.Title = "Error"
+	data.InlineStyle = style
+	a.writePage(w, status, a.renderPage(data, center))
 }
 
 func (a *App) genericError(w http.ResponseWriter, r *http.Request, err error) {
@@ -247,10 +251,7 @@ func (a *App) genericError(w http.ResponseWriter, r *http.Request, err error) {
 	name, message, contextText := errorMessage(err)
 	contextText = fmt.Sprintf("Request: %s %s\n\n%s", r.Method, r.URL.RequestURI(), contextText)
 
-	data := a.newPageData(r)
-	data.Title = "Error"
-	data.InlineStyle = "#hyperblur-error > div { background-color: var(--color-top-level-card-bg); border-radius: 0; padding: 25px; max-width: 100%; } #hyperblur-error { color: var(--color-text); } #hyperblur-error details { margin-top: 20px; } #hyperblur-error pre { text-wrap: wrap; } #hyperblur-error a { text-decoration: underline; } #error-header { font-size: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }"
-	html := a.renderPage(data, func(v *view) {
+	a.renderErrorPage(w, r, http.StatusInternalServerError, "#hyperblur-error > div { background-color: var(--color-top-level-card-bg); border-radius: 0; padding: 25px; max-width: 100%; } #hyperblur-error { color: var(--color-text); } #hyperblur-error details { margin-top: 20px; } #hyperblur-error pre { text-wrap: wrap; } #hyperblur-error a { text-decoration: underline; } #error-header { font-size: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }", func(v *view) {
 		v.raw(`<section id="hyperblur-error"><div class="card"><div id="error-header"><h2>`)
 		v.esc("An unknown exception has occured!")
 		v.raw(`</h2><p>`)
@@ -261,7 +262,6 @@ func (a *App) genericError(w http.ResponseWriter, r *http.Request, err error) {
 		a.renderErrorDetails(v, name, message, contextText, true)
 		v.raw(`</div></section>`)
 	})
-	a.writePage(w, http.StatusInternalServerError, html)
 }
 
 func errorMessage(err error) (string, string, string) {

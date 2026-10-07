@@ -31,7 +31,6 @@ func (a *App) handleExploreIndex(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) handleExplore(w http.ResponseWriter, r *http.Request, target exploreTarget, postType tumblr.ExplorePostType) {
 	data := a.newPageData(r)
-	data.ExtraCSS = []string{"/assets/css/timeline.css"}
 
 	continuation := unquoteQuery(r.URL.Query().Get("continuation"))
 
@@ -179,7 +178,6 @@ func (a *App) querySearch(r *http.Request, query, timeFilter string, filter *tum
 
 func (a *App) renderSearch(w http.ResponseWriter, r *http.Request, timeline *tumblr.Timeline, query, sortBy, postFilter, timeFilter string) {
 	data := a.newPageData(r)
-	data.ExtraCSS = []string{"/assets/css/timeline.css"}
 	data.Title = query
 	data.Query = query
 	data.Timeline = timeline
@@ -217,7 +215,6 @@ func (a *App) handleTagged(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := a.newPageData(r)
-	data.ExtraCSS = []string{"/assets/css/timeline.css"}
 	data.Title = tag
 	data.Tag = tag
 	data.SortBy = sortBy

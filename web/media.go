@@ -1,7 +1,6 @@
 package web
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -188,17 +187,7 @@ func downloadRequested(r *http.Request) bool {
 
 // quotePath percent-encodes a path, keeping "/" separators.
 func quotePath(path string) string {
-	const unreserved = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~/"
-	var b strings.Builder
-	for i := 0; i < len(path); i++ {
-		c := path[i]
-		if strings.IndexByte(unreserved, c) >= 0 {
-			b.WriteByte(c)
-		} else {
-			fmt.Fprintf(&b, "%%%02X", c)
-		}
-	}
-	return b.String()
+	return percentEncode(path, "/")
 }
 
 func buildContentDisposition(path string) string {

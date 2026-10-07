@@ -96,9 +96,6 @@ body {
     --color-poll-proportion-bar-bg: var(--color-dt-gray-300);
     --color-poll-choice-bg: var(--color-dt-gray-500);
 
-    --color-post-reveal-truncated-content-button: var(--color-gray-100);
-    --color-post-reveal-truncated-content-button-hover: var(--color-gray-250);
-
     --color-post-footer: var(--color-dt-gray-250);
     --color-post-footer-post-interaction: var(--color-dt-gray-225);
     --color-post-tag-bg: var(--color-dt-gray-575);

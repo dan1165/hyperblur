@@ -41,7 +41,7 @@ func (a *App) renderSearchControlBar(v *view, data *PageData) {
 	b.WriteString(`<li class="control-bar-action no-js" id="sort-by-filter" title="`)
 	b.WriteString(htmlEscape("Sort by"))
 	b.WriteString(`"><span>`)
-	b.WriteString(htmlEscape(searchSortLabel(data.SortBy)))
+	b.WriteString(htmlEscape(sortLabel(data.SortBy, "Popular")))
 	b.WriteString(dropdownIcon)
 	b.WriteString(`</span><ul class="control-bar-dropdown-menu">`)
 	if data.PostFilter != "" {
@@ -106,18 +106,12 @@ func searchFilterItem(selected bool, href, label string) string {
 	return `<li` + class + `><a href="` + href + `">` + htmlEscape(label) + `</a></li>`
 }
 
-func searchSortLabel(sortBy string) string {
+// sortLabel returns "Latest" for recency sorting, otherwise topLabel.
+func sortLabel(sortBy, topLabel string) string {
 	if sortBy == "recent" {
 		return "Latest"
 	}
-	return "Popular"
-}
-
-func taggedSortLabel(sortBy string) string {
-	if sortBy == "recent" {
-		return "Latest"
-	}
-	return "Top"
+	return topLabel
 }
 
 func dateFilterLabel(filter string) string {
@@ -169,7 +163,7 @@ func (a *App) renderTaggedControlBar(v *view, data *PageData) {
 	v.raw(`<li class="control-bar-action no-js" id="sort-by-filter" title="`)
 	v.esc("Sort by")
 	v.raw(`"><span>`)
-	v.esc(taggedSortLabel(data.SortBy))
+	v.esc(sortLabel(data.SortBy, "Top"))
 	v.raw(dropdownIcon)
 	v.raw(`</span><ul class="control-bar-dropdown-menu">`)
 	v.raw(searchFilterItem(data.SortBy == "top", "/tagged/"+tag+addQuery(updateQuery(base, "sort", "top")), "Top"))

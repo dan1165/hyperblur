@@ -278,16 +278,23 @@ func noteCountLabel(n int) string {
 	return formatDecimal(n) + " notes"
 }
 
-func urlEscape(s string) string {
+// percentEncode percent-encodes s, leaving unreserved characters and any
+// characters in safe untouched.
+func percentEncode(s, safe string) string {
 	const unreserved = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
 	var b strings.Builder
 	for i := 0; i < len(s); i++ {
 		c := s[i]
-		if strings.IndexByte(unreserved, c) >= 0 {
+		if strings.IndexByte(unreserved, c) >= 0 || strings.IndexByte(safe, c) >= 0 {
 			b.WriteByte(c)
 		} else {
 			fmt.Fprintf(&b, "%%%02X", c)
 		}
 	}
 	return b.String()
+}
+
+// urlEscape percent-encodes a single path segment.
+func urlEscape(s string) string {
+	return percentEncode(s, "")
 }
