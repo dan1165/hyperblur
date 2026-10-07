@@ -4,8 +4,21 @@ import urllib.parse
 from typing import Sequence
 
 import dominate.tags
+import sanic.utils
 
 from ..cache import get_poll_results
+
+
+def to_bool(value, default=False):
+    """Safely interprets a query string value as a boolean
+
+    Unlike `sanic.utils.str_to_bool`, malformed values fall back to the given
+    default instead of raising.
+    """
+    try:
+        return sanic.utils.str_to_bool(value)
+    except (ValueError, AttributeError):
+        return default
 
 
 def is_tumblr_url(url: str | urllib.parse.ParseResult):
@@ -48,7 +61,7 @@ def url_handler(url: str | urllib.parse.ParseResult):
     except AttributeError:
         pass
 
-    if hostname.endswith("tumblr.com"):
+    if hostname and hostname.endswith("tumblr.com"):
         if hostname.endswith(".media.tumblr.com"):
             sub_domains = hostname.split(".")
             if sub_domains[1] == "media":

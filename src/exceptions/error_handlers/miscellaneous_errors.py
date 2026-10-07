@@ -1,5 +1,6 @@
 import asyncio
 
+import aiohttp
 import sanic
 import sanic.exceptions
 
@@ -24,6 +25,22 @@ async def request_timeout(request, exception):
             ),
         },
         status=504,
+    )
+
+
+@miscellaneous_errors.register(aiohttp.ClientError)
+async def tumblr_connection_error(request, exception):
+    return await request.app.ctx.render(
+        "misc/msg_error",
+        context={
+            "app": request.app,
+            "exception": exception,
+            "error_heading": "Unable to reach Tumblr",
+            "error_description": (
+                "Priviblur was unable to connect to Tumblr. Please try again in a moment."
+            ),
+        },
+        status=502,
     )
 
 

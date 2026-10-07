@@ -1,7 +1,9 @@
 import abc
+import asyncio
 import typing
 
 import orjson
+import redis
 
 from .. import priviblur_extractor
 
@@ -125,7 +127,15 @@ class AccessCache(abc.ABC):
     async def get(self):
         """Retrieves some data from either the cache or Tumblr itself"""
         if self.ctx.CacheDb:
-            return await self.get_cached()
-        else:
-            initial_results = await self.fetch()
-            return self.parse(initial_results)
+            try:
+                return await self.get_cached()
+            except (redis.RedisError, asyncio.TimeoutError, OSError) as exception:
+                # A broken or unreachable cache should never take the whole
+                # instance down. Fall back to fetching fresh data from Tumblr.
+                self.ctx.LOGGER.warning(
+                    "Cache: Error while accessing Redis (%s). Falling back to Tumblr.",
+                    exception,
+                )
+
+        initial_results = await self.fetch()
+        return self.parse(initial_results)

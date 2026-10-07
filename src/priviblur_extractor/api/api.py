@@ -4,7 +4,9 @@ Inspired by Invidious' version for YouTube
 
 """
 
+import asyncio
 import json
+import os
 import urllib.parse
 from typing import Optional
 
@@ -20,6 +22,18 @@ logger = helpers.LOGGER.getChild("api")
 class TumblrAPI:
     config = rconf
 
+    # How many times to retry a request to Tumblr when it fails at the
+    # network level (connection reset, timeout, etc.)
+    MAX_RETRIES = 3
+    RETRY_BACKOFF = 0.5
+
+    # Environment variable that can be used to supply a custom API token.
+    # A token tied to a logged-in account lets Priviblur access blogs that
+    # require logging in. When unset, the default public token is used.
+    AUTHORIZATION_TOKEN_ENVIRONMENT_VARIABLE = "PRIVIBLUR_TUMBLR_API_TOKEN"
+
+    DEFAULT_AUTHORIZATION_TOKEN = "aIcXSOoTtqrzR8L8YEIOmBeW94c3FmbSNSWAUbxsny9KKx5VFh"
+
     DEFAULT_HEADERS = {
         "accept": "application/json;format=camelcase",
         "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:136.0) Gecko/20100101 Firefox/136.0",
@@ -27,9 +41,29 @@ class TumblrAPI:
         "te": "trailers",
         "connection": "keep-alive",
         "referer": "https://www.tumblr.com/",
-        # Authorization token
-        "authorization": "Bearer aIcXSOoTtqrzR8L8YEIOmBeW94c3FmbSNSWAUbxsny9KKx5VFh",
     }
+
+    @classmethod
+    def get_authorization_token(cls) -> str:
+        """Returns the API token to use, preferring one provided via the environment
+
+        Falls back to the bundled default token when no custom token is set.
+        """
+        custom_token = os.environ.get(cls.AUTHORIZATION_TOKEN_ENVIRONMENT_VARIABLE, "").strip()
+
+        # Be forgiving if the value was provided with the "Bearer " prefix
+        if custom_token.lower().startswith("bearer "):
+            custom_token = custom_token[len("bearer ") :].strip()
+
+        if custom_token:
+            logger.info(
+                "Using a custom Tumblr API token from the %s environment variable",
+                cls.AUTHORIZATION_TOKEN_ENVIRONMENT_VARIABLE,
+            )
+            return custom_token
+
+        logger.debug("Using the default Tumblr API token")
+        return cls.DEFAULT_AUTHORIZATION_TOKEN
 
     @classmethod
     async def create(cls, client=None, main_request_timeout=10, json_loads=json.loads):
@@ -37,9 +71,12 @@ class TumblrAPI:
         if not client:
             main_request_timeout = aiohttp.ClientTimeout(main_request_timeout)
 
+            headers = dict(cls.DEFAULT_HEADERS)
+            headers["authorization"] = f"Bearer {cls.get_authorization_token()}"
+
             client = aiohttp.ClientSession(
                 "https://www.tumblr.com",
-                headers=cls.DEFAULT_HEADERS,
+                headers=headers,
                 timeout=main_request_timeout,  # TODO allow fine-tuning the different types of timeouts
                 connector=helpers.create_connector(),
             )
@@ -52,7 +89,7 @@ class TumblrAPI:
         self.json_loader = json_loads
 
     async def _get_json(self, endpoint, url_params=None):
-        """Internal method that does the actual request to Tumblr"""
+        """Requests the given endpoint from Tumblr, retrying transient failures"""
         if url_params:
             url = f"{endpoint}?{urllib.parse.urlencode(url_params)}"
         else:
@@ -70,60 +107,103 @@ class TumblrAPI:
 
         logger.info(f"Requesting endpoint: /api/v2/{url}")
 
-        response = await self.client.get(f"/api/v2/{url}")
+        last_exception = None
 
-        logger.debug(f"Requested endpoint: /api/v2/{url}")
+        for attempt in range(1, self.MAX_RETRIES + 1):
+            try:
+                return await self._request_json(url, _format)
+            except (aiohttp.ClientError, asyncio.TimeoutError) as exception:
+                last_exception = exception
 
-        try:
-            result = await response.json(loads=self.json_loader)
-        except Exception as e:
-            if response.status != 200:
-                raise exceptions.TumblrNon200NorJSONResponse(response.status)
+                if attempt >= self.MAX_RETRIES:
+                    break
 
-            logger.error("Failed to parse JSON response from Tumblr!")
-            logger.error(f"Got error: '{type(e).__name__}'. Reason: '{getattr(e, 'message', '')}'")
+                delay = self.RETRY_BACKOFF * attempt
+                logger.warning(
+                    "Request to endpoint /api/v2/%s failed (attempt %s/%s): %s. Retrying in %.1fs",
+                    url,
+                    attempt,
+                    self.MAX_RETRIES,
+                    exception,
+                    delay,
+                )
+                await asyncio.sleep(delay)
 
-            raise exceptions.InitialTumblrAPIParseException(getattr(e, "message", ""))
+        logger.error(
+            "Request to endpoint /api/v2/%s failed after %s attempts",
+            url,
+            self.MAX_RETRIES,
+        )
+        raise last_exception
 
-        # Invalid response handling
-        if response.status == 429:
-            raise exceptions.TumblrRatelimitReachedError(response.status)
-        elif response.status != 200:
-            message = result["meta"]["msg"]
-            code = result["meta"]["status"]
+    async def _request_json(self, url, _format):
+        """Performs a single request to Tumblr and parses its JSON response"""
+        # Using a context manager guarantees the connection is released back
+        # into the pool, even if parsing fails.
+        async with self.client.get(f"/api/v2/{url}") as response:
+            logger.debug(f"Requested endpoint: /api/v2/{url}")
 
-            logger.info(f"Error response received with HTTP status code: {code}")
-            logger.debug(f"Response headers: {_format(response.headers)}")
+            try:
+                result = await response.json(loads=self.json_loader)
+            except (aiohttp.ClientError, asyncio.TimeoutError):
+                # Network-level failures should be retried by our caller
+                raise
+            except Exception as e:
+                if response.status != 200:
+                    raise exceptions.TumblrNon200NorJSONResponse(response.status)
 
-            if error := result.get("errors"):
-                details = error[0].get("detail")
-                internal_code = error[0].get("code")
-                logger.info(f"Reason: {details}")
-                logger.info(f"Tumblr internal error code: {internal_code}")
-            else:
-                internal_code = None
-                details = ""
+                logger.error("Failed to parse JSON response from Tumblr!")
+                logger.error(
+                    f"Got error: '{type(e).__name__}'. Reason: '{getattr(e, 'message', '')}'"
+                )
 
-            match internal_code:
-                case 13001:
-                    raise exceptions.TumblrRestrictedTagError(message, code, details, internal_code)
-                case 5029:
-                    raise exceptions.TumblrRatelimitReachedError(
-                        response.status, response.headers.get("X-Rate-Limit-Reset")
-                    )
-                case 4012:
-                    raise exceptions.TumblrLoginRequiredError(message, code, details, internal_code)
-                case 4013:
-                    raise exceptions.TumblrPasswordRequiredBlogError(
-                        message, code, details, internal_code
-                    )
-                case 0:
-                    raise exceptions.TumblrBlogNotFoundError(message, code, details, internal_code)
-                case _:
-                    logger.error(f"Unknown tumblr internal error code: {internal_code}")
-                    raise exceptions.TumblrErrorResponse(message, code, details, internal_code)
+                raise exceptions.InitialTumblrAPIParseException(getattr(e, "message", ""))
 
-        return result
+            # Invalid response handling
+            if response.status == 429:
+                raise exceptions.TumblrRatelimitReachedError(response.status)
+            elif response.status != 200:
+                message = result["meta"]["msg"]
+                code = result["meta"]["status"]
+
+                logger.info(f"Error response received with HTTP status code: {code}")
+                logger.debug(f"Response headers: {_format(response.headers)}")
+
+                if error := result.get("errors"):
+                    details = error[0].get("detail")
+                    internal_code = error[0].get("code")
+                    logger.info(f"Reason: {details}")
+                    logger.info(f"Tumblr internal error code: {internal_code}")
+                else:
+                    internal_code = None
+                    details = ""
+
+                match internal_code:
+                    case 13001:
+                        raise exceptions.TumblrRestrictedTagError(
+                            message, code, details, internal_code
+                        )
+                    case 5029:
+                        raise exceptions.TumblrRatelimitReachedError(
+                            response.status, response.headers.get("X-Rate-Limit-Reset")
+                        )
+                    case 4012:
+                        raise exceptions.TumblrLoginRequiredError(
+                            message, code, details, internal_code
+                        )
+                    case 4013:
+                        raise exceptions.TumblrPasswordRequiredBlogError(
+                            message, code, details, internal_code
+                        )
+                    case 0:
+                        raise exceptions.TumblrBlogNotFoundError(
+                            message, code, details, internal_code
+                        )
+                    case _:
+                        logger.error(f"Unknown tumblr internal error code: {internal_code}")
+                        raise exceptions.TumblrErrorResponse(message, code, details, internal_code)
+
+            return result
 
     async def explore(self):
         """Access the /explore endpoint"""

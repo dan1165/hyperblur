@@ -4,6 +4,7 @@ import urllib.parse
 import sanic
 
 from ... import cache, priviblur_extractor
+from ...helpers.helpers import to_bool
 
 blog_post_bp = sanic.Blueprint("blog_post", url_prefix="/<post_id:int>")
 
@@ -66,12 +67,12 @@ async def handle_post_args(request):
 
     args = request.args
 
-    if (fetch_polls := args.get("fetch_polls")) and sanic.utils.str_to_bool(fetch_polls):
+    if (fetch_polls := args.get("fetch_polls")) and to_bool(fetch_polls):
         jinja_context["request_poll_data"] = True
     else:
         jinja_context["request_poll_data"] = False
 
-    if (rss_feed := args.get("rss_feed")) and sanic.utils.str_to_bool(rss_feed):
+    if (rss_feed := args.get("rss_feed")) and to_bool(rss_feed):
         request.ctx.rss = True
         request.ctx.page_url = (
             f"{request.app.ctx.PRIVIBLUR_CONFIG.deployment.domain or ''}{request.ctx.post_path}"

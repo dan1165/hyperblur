@@ -1,5 +1,7 @@
 """Extensions to npf-renderer to allow asynchronous code and some other custom styling"""
 
+import urllib.parse
+
 import dominate
 import dominate.util
 import npf_renderer
@@ -14,6 +16,21 @@ DOWNLOAD_ICON = (
     "56 58-200 200ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 "
     '56.5T720-160H240Z"/></svg>'
 )
+
+
+def as_download_url(url: str) -> str:
+    """Marks a proxied media URL so that it is served as a forced download
+
+    Media is normally redirected straight to Tumblr's CDN. The download button
+    instead asks Priviblur to proxy the media as an attachment.
+    """
+    parsed = urllib.parse.urlsplit(url)
+    query = [
+        (key, value) for key, value in urllib.parse.parse_qsl(parsed.query) if key != "download"
+    ]
+    query.append(("download", "1"))
+
+    return urllib.parse.urlunsplit(parsed._replace(query=urllib.parse.urlencode(query)))
 
 
 class NPFParser(npf_renderer.parse.Parser):
@@ -237,7 +254,7 @@ class NPFFormatter(npf_renderer.format.Formatter):
         media_container.add(
             dominate.tags.a(
                 dominate.util.raw(DOWNLOAD_ICON),
-                href=media_url,
+                href=as_download_url(media_url),
                 download="",
                 cls="media-download",
                 title="Download",

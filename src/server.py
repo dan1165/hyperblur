@@ -181,11 +181,12 @@ async def robotstxt_route(request):
 
 @app.middleware("request", priority=1)
 async def before_all_routes(request):
+    # Priviblur is English-only and always uses its dark theme.
+    request.ctx.language = "en_US"
+
     request.ctx.preferences = preferences.UserPreferences(
         **config.default_user_preferences._asdict()
     )
-
-    request.ctx.language = request.ctx.preferences.language
 
     request.ctx.preferences = request.ctx.preferences.replace_from_cookie(request)
 
@@ -197,16 +198,18 @@ async def after_all_routes(request, response):
     response.headers["x-content-type-options"] = "nosniff"
     response.headers["referrer-policy"] = "same-origin"
 
+    # Media is loaded directly from Tumblr's CDN (see src/routes/media.py), so
+    # images and audio/video must be allowed to load from *.tumblr.com.
     response.headers["content-security-policy"] = "; ".join(
         [
             "default-src 'none'",
             "script-src 'self'",
             "style-src 'self' 'unsafe-inline'",
-            "img-src 'self' data:",
+            "img-src 'self' data: https://*.tumblr.com",
             "font-src 'self' data:",
             "connect-src 'self'",
             "manifest-src 'self'",
-            "media-src 'self'",
+            "media-src 'self' https://*.tumblr.com",
             "child-src 'self' blob:",
         ]
     )
