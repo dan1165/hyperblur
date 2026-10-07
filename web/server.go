@@ -150,6 +150,10 @@ func (a *App) routeExplore(w http.ResponseWriter, r *http.Request, segments []st
 		a.handleExploreIndex(w, r)
 		return
 	}
+	if len(segments) != 2 {
+		http.NotFound(w, r)
+		return
+	}
 	switch segments[1] {
 	case "trending":
 		a.handleExplore(w, r, exploreTrending, "")
@@ -194,7 +198,7 @@ func (a *App) routeSearch(w http.ResponseWriter, r *http.Request, segments []str
 }
 
 func (a *App) routeTagged(w http.ResponseWriter, r *http.Request, segments []string) {
-	if len(segments) < 2 {
+	if len(segments) != 2 {
 		http.NotFound(w, r)
 		return
 	}
