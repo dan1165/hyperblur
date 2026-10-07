@@ -41,9 +41,3 @@ class TumblrPasswordRequiredBlogError(TumblrErrorResponse):
 class TumblrNon200NorJSONResponse(Exception):
     def __init__(self, status_code):
         self.status_code = status_code
-
-
-class TumblrRatelimitReachedError(Exception):
-    def __init__(self, status_code, ratelimit_reset_timestamp=None):
-        self.status_code = status_code
-        self.ratelimit_reset_timestamp = ratelimit_reset_timestamp

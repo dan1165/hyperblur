@@ -11,7 +11,10 @@
     # to priviblur to use the `https://` scheme
     https = false
 
-    # # Amount of worker Priviblur instances to spawn. Increases speed significantly.
+    # # Amount of worker Priviblur instances to spawn.
+    # # When left at 1, Priviblur runs Sanic in fast mode and automatically
+    # # spawns one worker per available CPU core. Set a value greater than 1 to
+    # # pin an explicit worker count instead.
     # workers = 1
 
 

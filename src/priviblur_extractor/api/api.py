@@ -160,11 +160,10 @@ class TumblrAPI:
                 raise exceptions.InitialTumblrAPIParseException(getattr(e, "message", ""))
 
             # Invalid response handling
-            if response.status == 429:
-                raise exceptions.TumblrRatelimitReachedError(response.status)
-            elif response.status != 200:
-                message = result["meta"]["msg"]
-                code = result["meta"]["status"]
+            if response.status != 200:
+                meta = result.get("meta", {}) if isinstance(result, dict) else {}
+                message = meta.get("msg", "Unknown error response from Tumblr")
+                code = meta.get("status", response.status)
 
                 logger.info(f"Error response received with HTTP status code: {code}")
                 logger.debug(f"Response headers: {_format(response.headers)}")
@@ -182,10 +181,6 @@ class TumblrAPI:
                     case 13001:
                         raise exceptions.TumblrRestrictedTagError(
                             message, code, details, internal_code
-                        )
-                    case 5029:
-                        raise exceptions.TumblrRatelimitReachedError(
-                            response.status, response.headers.get("X-Rate-Limit-Reset")
                         )
                     case 4012:
                         raise exceptions.TumblrLoginRequiredError(

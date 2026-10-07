@@ -223,9 +223,19 @@ for route in routes.BLUEPRINTS:
 error_handlers.register(app)
 
 if __name__ == "__main__":
-    app.run(
-        host=config.deployment.host,
-        port=config.deployment.port,
-        workers=config.deployment.workers,
-        dev=config.misc.dev_mode,
-    )
+    run_arguments = {
+        "host": config.deployment.host,
+        "port": config.deployment.port,
+        "dev": config.misc.dev_mode,
+        "access_log": False,
+    }
+
+    # Sanic's fast mode auto-spawns one worker per available CPU core and
+    # cannot be combined with an explicit worker count. When a worker count is
+    # configured, honour it instead.
+    if config.deployment.workers > 1:
+        run_arguments["workers"] = config.deployment.workers
+    else:
+        run_arguments["fast"] = True
+
+    app.run(**run_arguments)

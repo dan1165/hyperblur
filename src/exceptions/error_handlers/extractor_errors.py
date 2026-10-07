@@ -84,25 +84,7 @@ async def tumblr_error_debug_non_json_response_error(request, exception):
             "app": request.app,
             "exception": exception,
             "error_heading": f"Non 200 status code. Tumblr returned {exception.status_code} ",
-            "error_description": "Priviblur might have been ratelimited by Tumblr. Please try again later.",
+            "error_description": "Tumblr returned an unexpected response. Please try again later.",
         },
         status=500,
-    )
-
-
-@extractor_errors.register(priviblur_exceptions.TumblrRatelimitReachedError)
-async def tumblr_error_ratelimit(request, exception):
-    return await request.app.ctx.render(
-        "misc/msg_error",
-        context={
-            "app": request.app,
-            "exception": exception,
-            "error_heading": request.app.ctx.translate(
-                request.ctx.language, "tumblr_error_ratelimit_reached_heading"
-            ),
-            "error_description": request.app.ctx.translate(
-                request.ctx.language, "tumblr_error_ratelimit_reached_description"
-            ),
-        },
-        status=429,
     )
