@@ -12,8 +12,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dan1165/openblur/assets"
-	"github.com/dan1165/openblur/tumblr"
+	"github.com/dan1165/hyperblur/assets"
+	"github.com/dan1165/hyperblur/tumblr"
 )
 
 type contextKey int
@@ -274,10 +274,10 @@ func (a *App) writePage(w http.ResponseWriter, status int, html string) {
 
 func (a *App) messageError(w http.ResponseWriter, r *http.Request, status int, heading, description string) {
 	data := a.newPageData(r)
-	data.Title = a.translate("openblur_error_page_title")
-	data.InlineStyle = "#openblur-error { color: var(--color-text); text-align: center; }"
+	data.Title = a.translate("hyperblur_error_page_title")
+	data.InlineStyle = "#hyperblur-error { color: var(--color-text); text-align: center; }"
 	html := a.renderPage(data, func(v *view) {
-		v.raw(`<section id="openblur-error"><div><h1 aria-label="Error explanation heading">`)
+		v.raw(`<section id="hyperblur-error"><div><h1 aria-label="Error explanation heading">`)
 		v.esc(heading)
 		v.raw(`</h1><p aria-label="Error explanation">`)
 		v.esc(description)
@@ -293,15 +293,15 @@ func (a *App) genericError(w http.ResponseWriter, r *http.Request, err error) {
 	contextText = fmt.Sprintf("Request: %s %s\n\n%s", r.Method, r.URL.RequestURI(), contextText)
 
 	data := a.newPageData(r)
-	data.Title = a.translate("openblur_error_page_title")
-	data.InlineStyle = "#openblur-error > div { background-color: var(--color-top-level-card-bg); border-radius: 0; padding: 25px; max-width: 100%; } #openblur-error { color: var(--color-text); } #openblur-error details { margin-top: 20px; } #openblur-error pre { text-wrap: wrap; } #openblur-error a { text-decoration: underline; } #error-header { font-size: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }"
+	data.Title = a.translate("hyperblur_error_page_title")
+	data.InlineStyle = "#hyperblur-error > div { background-color: var(--color-top-level-card-bg); border-radius: 0; padding: 25px; max-width: 100%; } #hyperblur-error { color: var(--color-text); } #hyperblur-error details { margin-top: 20px; } #hyperblur-error pre { text-wrap: wrap; } #hyperblur-error a { text-decoration: underline; } #error-header { font-size: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }"
 	html := a.renderPage(data, func(v *view) {
-		v.raw(`<section id="openblur-error"><div class="card"><div id="error-header"><h2>`)
-		v.esc(a.translate("openblur_error_generic"))
+		v.raw(`<section id="hyperblur-error"><div class="card"><div id="error-header"><h2>`)
+		v.esc(a.translate("hyperblur_error_generic"))
 		v.raw(`</h2><p>`)
-		v.esc(a.translate("openblur_error_generic_description"))
-		v.raw(`</p><p><a href="https://github.com/dan1165/openblur/issues">`)
-		v.esc(a.translate("openblur_error_generic_description_2"))
+		v.esc(a.translate("hyperblur_error_generic_description"))
+		v.raw(`</p><p><a href="https://github.com/dan1165/hyperblur/issues">`)
+		v.esc(a.translate("hyperblur_error_generic_description_2"))
 		v.raw(`</a></p></div>`)
 		a.renderErrorDetails(v, name, message, contextText, true)
 		v.raw(`</div></section>`)

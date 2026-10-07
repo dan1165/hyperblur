@@ -30,13 +30,13 @@ type Formatter struct {
 	hasRenderError        bool
 	post                  *Node
 
-	// Hooks let openblur augment the base output (download buttons, poll
+	// Hooks let hyperblur augment the base output (download buttons, poll
 	// data attributes, ...) without reimplementing the formatter.
 	ImageHook func(f *Formatter, block *ImageBlock, rowLength int, overrideAspect *float64, node *Node) *Node
 	VideoHook func(f *Formatter, block *VideoBlock, node *Node) *Node
 	PollHook  func(f *Formatter, block *PollBlock, node *Node) *Node
 
-	// Context openblur needs when augmenting output.
+	// Context hyperblur needs when augmenting output.
 	BlogName string
 	PostID   string
 }

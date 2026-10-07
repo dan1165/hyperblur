@@ -1,4 +1,4 @@
-// Package assets embeds openblur's static front-end files so the binary is
+// Package assets embeds hyperblur's static front-end files so the binary is
 // fully self-contained.
 package assets
 

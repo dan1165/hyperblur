@@ -1,4 +1,4 @@
-// Package web implements openblur's HTTP server and pages.
+// Package web implements hyperblur's HTTP server and pages.
 package web
 
 import (
@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/dan1165/openblur/npf"
-	"github.com/dan1165/openblur/render"
-	"github.com/dan1165/openblur/tumblr"
+	"github.com/dan1165/hyperblur/npf"
+	"github.com/dan1165/hyperblur/render"
+	"github.com/dan1165/hyperblur/tumblr"
 )
 
 // App holds the shared server state.

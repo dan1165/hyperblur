@@ -4,8 +4,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dan1165/openblur/helpers"
-	"github.com/dan1165/openblur/tumblr"
+	"github.com/dan1165/hyperblur/helpers"
+	"github.com/dan1165/hyperblur/tumblr"
 )
 
 // Icons reused from the templates.

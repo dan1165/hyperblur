@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dan1165/openblur/render"
-	"github.com/dan1165/openblur/tumblr"
+	"github.com/dan1165/hyperblur/render"
+	"github.com/dan1165/hyperblur/tumblr"
 )
 
 // ---------------------------------------------------------------------------
@@ -120,14 +120,14 @@ func (a *App) renderPage(data *PageData, center func(v *view)) string {
 	center(v)
 	v.raw("</div>\n<div class=\"right-column\"></div>\n</div>\n")
 	v.raw("<div class=\"buffer\"></div>\n")
-	v.raw("<footer class=\"site-footer\"><a href=\"https://github.com/dan1165/openblur\">openblur on GitHub</a></footer>\n")
+	v.raw("<footer class=\"site-footer\"><a href=\"https://github.com/dan1165/hyperblur\">hyperblur on GitHub</a></footer>\n")
 	v.raw("</div>\n</body>\n</html>\n")
 	return v.string()
 }
 
 func (a *App) renderNavbar(v *view, data *PageData) {
 	searchIcon := `<svg class="icon" xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20"><path d="M765-144 526-383q-30 22-65.792 34.5T384.035-336Q284-336 214-406t-70-170q0-100 70-170t170-70q100 0 170 70t70 170.035q0 40.381-12.5 76.173T577-434l239 239-51 51ZM384-408q70 0 119-49t49-119q0-70-49-119t-119-49q-70 0-119 49t-49 119q0 70 49 119t119 49Z"/></svg>`
-	v.raw(`<nav class="navbar"><div class="left-section"><a class="logo" href="/explore/trending">openblur</a>`)
+	v.raw(`<nav class="navbar"><div class="left-section"><a class="logo" href="/explore/trending">hyperblur</a>`)
 	v.raw(`<form class="search-bar" method="get" action="/search" autocomplete="off">`)
 	v.raw(searchIcon)
 

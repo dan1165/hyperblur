@@ -1,8 +1,8 @@
 package web
 
 import (
-	"github.com/dan1165/openblur/helpers"
-	"github.com/dan1165/openblur/tumblr"
+	"github.com/dan1165/hyperblur/helpers"
+	"github.com/dan1165/hyperblur/tumblr"
 )
 
 // renderNotesViewer writes the post-notes section for a post.

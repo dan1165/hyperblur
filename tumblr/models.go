@@ -1,4 +1,4 @@
-// Package tumblr wraps Tumblr's API and parses its JSON into openblur's models.
+// Package tumblr wraps Tumblr's API and parses its JSON into hyperblur's models.
 package tumblr
 
 import "time"

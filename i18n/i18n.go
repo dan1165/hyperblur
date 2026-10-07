@@ -1,11 +1,11 @@
-// Package i18n holds openblur's English UI strings.
+// Package i18n holds hyperblur's English UI strings.
 package i18n
 
 import "strings"
 
 // Strings maps message ids to their English text.
 var Strings = map[string]string{
-	"page_title_suffix":                                                  "- openblur",
+	"page_title_suffix":                                                  "- hyperblur",
 	"search_bar_placeholder_text":                                        "Search",
 	"navbar_today_on_tumblr_icon_title":                                  "Today on Tumblr",
 	"navbar_trending_icon_title":                                         "Trending",
@@ -45,12 +45,12 @@ var Strings = map[string]string{
 	"tumblr_error_blog_not_found_error_heading":                          "Unable to find the requested blog",
 	"tumblr_error_blog_not_found_error_description":                      "The blog may have been deleted or just never existed in the first place",
 	"tumblr_error_blog_requires_password_error_heading":                  "This blog requires a password to access",
-	"openblur_error_page_title":                                          "Error",
-	"openblur_error_invalid_internal_tumblr_redirect":                    "Error: Tumblr HTTP 301 redirect points to foreign URL",
-	"openblur_error_generic":                                             "An unknown exception has occured!",
-	"openblur_error_generic_description":                                 "It looks like you have found a bug in openblur.",
-	"openblur_error_generic_description_2":                               "Please report it here at GitHub",
-	"openblur_error_generic_technical_details_expansion_box_label":       "Show error log",
+	"hyperblur_error_page_title":                                         "Error",
+	"hyperblur_error_invalid_internal_tumblr_redirect":                   "Error: Tumblr HTTP 301 redirect points to foreign URL",
+	"hyperblur_error_generic":                                            "An unknown exception has occured!",
+	"hyperblur_error_generic_description":                                "It looks like you have found a bug in hyperblur.",
+	"hyperblur_error_generic_description_2":                              "Please report it here at GitHub",
+	"hyperblur_error_generic_technical_details_expansion_box_label":      "Show error log",
 	"post_footer_copy_link_icon_title":                                   "Copy link",
 	"post_footer_view_on_tumblr_icon_title":                              "View on Tumblr",
 	"blog_search_placeholder_text":                                       "Search posts",

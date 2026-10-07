@@ -5,5 +5,5 @@
 docker-compose.yml
 
 # Go build artifacts
-/openblur
+/hyperblur
 /bin/

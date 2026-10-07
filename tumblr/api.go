@@ -92,7 +92,7 @@ const (
 
 const (
 	defaultAuthorizationToken = "aIcXSOoTtqrzR8L8YEIOmBeW94c3FmbSNSWAUbxsny9KKx5VFh"
-	authorizationEnvVar       = "OPENBLUR_TUMBLR_API_TOKEN"
+	authorizationEnvVar       = "HYPERBLUR_TUMBLR_API_TOKEN"
 	maxRetries                = 3
 	retryBackoff              = 500 * time.Millisecond
 )
@@ -103,7 +103,7 @@ type API struct {
 	headers map[string]string
 }
 
-// DefaultUserAgent is the user agent openblur sends to Tumblr.
+// DefaultUserAgent is the user agent hyperblur sends to Tumblr.
 const DefaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:136.0) Gecko/20100101 Firefox/136.0"
 
 // NewAPI builds a Tumblr API client, using a custom token from the

@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/dan1165/openblur/tumblr"
+	"github.com/dan1165/hyperblur/tumblr"
 )
 
 var mediaRequestHeaders = map[string]string{
@@ -21,7 +21,7 @@ var mediaRequestHeaders = map[string]string{
 
 var forwardedRequestHeaders = []string{"range", "if-range", "if-none-match", "if-modified-since"}
 
-// Headers openblur never forwards from upstream media responses.
+// Headers hyperblur never forwards from upstream media responses.
 var blacklistResponseHeaders = map[string]bool{
 	"access-control-allow-origin": true,
 	"alt-svc":                     true,
@@ -121,7 +121,7 @@ func (a *App) handleAtLinks(w http.ResponseWriter, r *http.Request) {
 
 	response, err := a.Media.Do(request)
 	if err != nil {
-		a.messageError(w, r, http.StatusBadGateway, a.translate("openblur_error_invalid_internal_tumblr_redirect"), "")
+		a.messageError(w, r, http.StatusBadGateway, a.translate("hyperblur_error_invalid_internal_tumblr_redirect"), "")
 		return
 	}
 	defer response.Body.Close()
@@ -132,7 +132,7 @@ func (a *App) handleAtLinks(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	a.messageError(w, r, http.StatusBadGateway, a.translate("openblur_error_invalid_internal_tumblr_redirect"), "")
+	a.messageError(w, r, http.StatusBadGateway, a.translate("hyperblur_error_invalid_internal_tumblr_redirect"), "")
 }
 
 func (a *App) streamMedia(w http.ResponseWriter, r *http.Request, origin string, extraHeaders map[string]string, downloadFilename string) {

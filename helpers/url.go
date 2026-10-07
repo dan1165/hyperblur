@@ -1,4 +1,4 @@
-// Package helpers holds openblur's shared helpers.
+// Package helpers holds hyperblur's shared helpers.
 package helpers
 
 import (
@@ -16,7 +16,7 @@ func IsTumblrURL(rawURL string) bool {
 	return host == "tumblr.com" || strings.HasSuffix(host, ".tumblr.com")
 }
 
-// URLHandler rewrites Tumblr URLs found in posts into openblur's own
+// URLHandler rewrites Tumblr URLs found in posts into hyperblur's own
 // privacy-friendly paths. It is a port of helpers.url_handler.
 func URLHandler(rawURL string) string {
 	u, err := url.Parse(rawURL)

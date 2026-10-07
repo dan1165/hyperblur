@@ -1,10 +1,10 @@
 services:
-  openblur:
-    image: ghcr.io/dan1165/openblur:latest
-    container_name: openblur
+  hyperblur:
+    image: ghcr.io/dan1165/hyperblur:latest
+    container_name: hyperblur
     restart: unless-stopped
     environment:
       # Optional: your own Tumblr API token. Leave empty to use the bundled one.
-      OPENBLUR_TUMBLR_API_TOKEN: ""
+      HYPERBLUR_TUMBLR_API_TOKEN: ""
     ports:
       - "8000:8000"

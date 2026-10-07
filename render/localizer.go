@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dan1165/openblur/i18n"
+	"github.com/dan1165/hyperblur/i18n"
 )
 
-// Localizer bridges openblur's English strings and formatting to the
+// Localizer bridges hyperblur's English strings and formatting to the
 // npf.Localizer interface, mirroring i18n.NPFRendererLocalizer.
 type Localizer struct{}
 

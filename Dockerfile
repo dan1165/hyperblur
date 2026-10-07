@@ -8,13 +8,13 @@ COPY go.mod ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o /openblur ./cmd/openblur
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o /hyperblur ./cmd/hyperblur
 
 FROM alpine:3.21
-WORKDIR /openblur
+WORKDIR /hyperblur
 
-COPY --from=build /openblur /openblur/openblur
+COPY --from=build /hyperblur /hyperblur/hyperblur
 
 EXPOSE 8000
 USER 65534:65534
-ENTRYPOINT [ "/openblur/openblur" ]
+ENTRYPOINT [ "/hyperblur/hyperblur" ]

@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dan1165/openblur/helpers"
-	"github.com/dan1165/openblur/i18n"
-	"github.com/dan1165/openblur/render"
-	"github.com/dan1165/openblur/tumblr"
+	"github.com/dan1165/hyperblur/helpers"
+	"github.com/dan1165/hyperblur/i18n"
+	"github.com/dan1165/hyperblur/render"
+	"github.com/dan1165/hyperblur/tumblr"
 )
 
 // ---------------------------------------------------------------------------
@@ -181,7 +181,7 @@ func (a *App) renderErrorDetails(v *view, name, message, context string, open bo
 		v.raw(` open=""`)
 	}
 	v.raw(` class="error-technical-details"><summary>`)
-	v.esc(a.translate("openblur_error_generic_technical_details_expansion_box_label"))
+	v.esc(a.translate("hyperblur_error_generic_technical_details_expansion_box_label"))
 	v.raw(`</summary><pre>Error: `)
 	v.esc(name)
 	v.raw(`</pre>`)

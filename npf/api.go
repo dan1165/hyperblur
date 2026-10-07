@@ -13,7 +13,7 @@ type Options struct {
 	// PollCallback fetches poll results, if any.
 	PollCallback PollCallback
 
-	// Hooks for openblur-specific augmentation.
+	// Hooks for hyperblur-specific augmentation.
 	ImageHook func(f *Formatter, block *ImageBlock, rowLength int, overrideAspect *float64, node *Node) *Node
 	VideoHook func(f *Formatter, block *VideoBlock, node *Node) *Node
 	PollHook  func(f *Formatter, block *PollBlock, node *Node) *Node

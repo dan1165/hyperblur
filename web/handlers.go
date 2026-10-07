@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dan1165/openblur/tumblr"
+	"github.com/dan1165/hyperblur/tumblr"
 )
 
 const postsPerPage = 20
