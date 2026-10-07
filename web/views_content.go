@@ -41,7 +41,7 @@ func (a *App) renderPostBody(v *view, data *PageData, post *tumblr.Post) {
 	var mainErr *render.RenderError
 	var mainTag string
 	if hasContent {
-		mainErr, mainTag = a.FormatNPF(post.Content, post.Layout, post.Blog.Name, post.ID, data.RequestPollData, data.ExpandPosts)
+		mainErr, mainTag = a.FormatNPF(post.Content, post.Layout, post.Blog.Name, post.ID, data.RequestPollData)
 	}
 
 	v.raw(`<div class="post-content">`)
@@ -58,7 +58,7 @@ func (a *App) renderPostBody(v *view, data *PageData, post *tumblr.Post) {
 			Date:           trail.Date,
 			UseThisPostURL: trail.BlogName() + "/" + trail.ID,
 		})
-		trailErr, trailTag := a.FormatNPF(trail.Content, trail.Layout, post.Blog.Name, post.ID, data.RequestPollData, data.ExpandPosts)
+		trailErr, trailTag := a.FormatNPF(trail.Content, trail.Layout, post.Blog.Name, post.ID, data.RequestPollData)
 		if trailErr != nil {
 			a.logNPFError(post, "trail", trailErr)
 			a.renderNPFError(v, trailErr)
@@ -255,7 +255,7 @@ func (a *App) renderBlogHeader(v *view, data *PageData) {
 
 	var descriptionTag string
 	if len(blogInfo.DescriptionNPF) > 0 {
-		if _, tag := a.FormatNPF(blogInfo.DescriptionNPF, nil, "", "", false, data.ExpandPosts); tag != "" {
+		if _, tag := a.FormatNPF(blogInfo.DescriptionNPF, nil, "", "", false); tag != "" {
 			descriptionTag = tag
 		}
 	}

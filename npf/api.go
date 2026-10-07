@@ -8,8 +8,6 @@ type Options struct {
 	Localizer Localizer
 	// ForbidExternalIframes suppresses external embed iframes.
 	ForbidExternalIframes bool
-	// Truncate cuts the post at the layout's truncation point.
-	Truncate bool
 	// PollCallback fetches poll results, if any.
 	PollCallback PollCallback
 
@@ -35,7 +33,6 @@ func NewFormatter(content, layout []any, opts Options) *Formatter {
 		localizer:             opts.Localizer,
 		urlHandler:            urlHandler,
 		forbidExternalIframes: opts.ForbidExternalIframes,
-		truncate:              opts.Truncate,
 		ImageHook:             opts.ImageHook,
 		VideoHook:             opts.VideoHook,
 		PollHook:              opts.PollHook,

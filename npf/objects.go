@@ -196,8 +196,7 @@ type RowLayout struct {
 
 // Rows is a "rows" layout.
 type Rows struct {
-	Rows          []RowLayout
-	TruncateAfter *int
+	Rows []RowLayout
 }
 
 // AskLayout is an "ask" layout.

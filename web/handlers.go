@@ -585,40 +585,6 @@ func (a *App) renderNumberedPaging(v *view, data *PageData) {
 }
 
 // ---------------------------------------------------------------------------
-// Settings
-// ---------------------------------------------------------------------------
-
-// Settings: the only preference is whether to expand truncated posts. The
-// footer toggle flips it through this route.
-func (a *App) handleTogglePosts(w http.ResponseWriter, r *http.Request) {
-	prefs := preferencesFrom(r)
-	if value := r.URL.Query().Get("expand_posts"); value != "" {
-		prefs.ExpandPosts = value == "on"
-	}
-
-	http.SetCookie(w, &http.Cookie{
-		Name:   "settings",
-		Value:  preferencesToURL(prefs),
-		MaxAge: 31540000,
-		Path:   "/",
-	})
-
-	target := "/"
-	if u, err := url.Parse(r.Referer()); err == nil && u.Host == r.Host {
-		target = u.RequestURI()
-	}
-	http.Redirect(w, r, target, http.StatusFound)
-}
-
-func preferencesToURL(prefs Preferences) string {
-	value := "off"
-	if prefs.ExpandPosts {
-		value = "on"
-	}
-	return "expand_posts=" + value
-}
-
-// ---------------------------------------------------------------------------
 // API
 // ---------------------------------------------------------------------------
 

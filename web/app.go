@@ -28,11 +28,10 @@ func NewApp(logger *log.Logger) *App {
 }
 
 // FormatNPF renders post content and returns an optional render error.
-func (a *App) FormatNPF(content, layout []any, blogName, postID string, fetchPolls, expand bool) (*render.RenderError, string) {
+func (a *App) FormatNPF(content, layout []any, blogName, postID string, fetchPolls bool) (*render.RenderError, string) {
 	params := render.Params{
-		ExpandPosts: expand,
-		BlogName:    blogName,
-		PostID:      postID,
+		BlogName: blogName,
+		PostID:   postID,
 	}
 	if fetchPolls && blogName != "" && postID != "" {
 		params.PollCallback = a.pollCallback(blogName, postID)

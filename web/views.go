@@ -46,9 +46,8 @@ func (v *view) string() string { return v.b.String() }
 
 // PageData is the per-page rendering context.
 type PageData struct {
-	Path        string
-	Endpoint    string
-	ExpandPosts bool
+	Path     string
+	Endpoint string
 
 	Title       string
 	ExtraCSS    []string
@@ -116,15 +115,7 @@ func (a *App) renderPage(data *PageData, center func(v *view)) string {
 	center(v)
 	v.raw("</div>\n<div class=\"right-column\"></div>\n</div>\n")
 	v.raw("<div class=\"buffer\"></div>\n")
-	toggleLabel, toggleValue := "Collapse posts", "off"
-	if !data.ExpandPosts {
-		toggleLabel, toggleValue = "Expand posts", "on"
-	}
-	v.raw("<footer class=\"site-footer\"><a href=\"/settings/restore?expand_posts=")
-	v.raw(toggleValue)
-	v.raw("\">")
-	v.esc(toggleLabel)
-	v.raw("</a> · <a href=\"https://github.com/dan1165/hyperblur\">hyperblur on GitHub</a></footer>\n")
+	v.raw("<footer class=\"site-footer\"><a href=\"https://github.com/dan1165/hyperblur\">hyperblur on GitHub</a></footer>\n")
 	v.raw("</div>\n</body>\n</html>\n")
 	return v.string()
 }

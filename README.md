@@ -22,8 +22,7 @@ asset embedded.
   images/audio/video. Downloads are proxied through hyperblur.
 - **NSFW:** community-labelled posts are shown directly, unblurred.
 - **UI:** dark monochrome theme, system font (no web fonts or external CDNs),
-  posts expanded by default, numbered pagination on blog pages, and a footer
-  toggle to collapse/expand posts.
+  posts always fully expanded, and numbered pagination on blog pages.
 - **Works without JavaScript:** navigation and media browsing need none; a
   small amount of JS adds live poll results.
 

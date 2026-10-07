@@ -597,10 +597,6 @@ func (p *LayoutParser) Parse() []any {
 			}
 		case "rows":
 			var rows []RowLayout
-			var truncateAfter *int
-			if v, ok := asInt(getOr(p.current, "truncateAfter", "truncate_after")); ok {
-				truncateAfter = &v
-			}
 			display, _ := get(p.current, "display").([]any)
 			for _, raw := range display {
 				row := mapOf(raw)
@@ -615,7 +611,7 @@ func (p *LayoutParser) Parse() []any {
 				}
 				rows = append(rows, RowLayout{Ranges: indices})
 			}
-			p.result = append(p.result, &Rows{Rows: rows, TruncateAfter: truncateAfter})
+			p.result = append(p.result, &Rows{Rows: rows})
 		}
 	}
 	return p.result

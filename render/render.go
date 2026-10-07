@@ -22,8 +22,6 @@ type RenderError struct {
 
 // Params configure post rendering.
 type Params struct {
-	// ExpandPosts disables layout truncation when true.
-	ExpandPosts bool
 	// BlogName and PostID are used for the poll no-JS fallback link.
 	BlogName string
 	PostID   string
@@ -38,7 +36,6 @@ func FormatNPF(content, layout []any, p Params) (*RenderError, string) {
 		URLHandler:            URLHandler,
 		Localizer:             Localizer{},
 		ForbidExternalIframes: true,
-		Truncate:              !p.ExpandPosts,
 		PollCallback:          p.PollCallback,
 		BlogName:              p.BlogName,
 		PostID:                p.PostID,

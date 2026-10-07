@@ -1,12 +1,10 @@
 package web
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io/fs"
 	"net/http"
-	"net/url"
 	"regexp"
 	"runtime/debug"
 	"strconv"
@@ -15,40 +13,6 @@ import (
 	"github.com/dan1165/hyperblur/assets"
 	"github.com/dan1165/hyperblur/tumblr"
 )
-
-type contextKey int
-
-const prefsKey contextKey = 0
-
-// Preferences holds a visitor's settings.
-type Preferences struct {
-	ExpandPosts bool
-}
-
-func defaultPreferences() Preferences { return Preferences{ExpandPosts: true} }
-
-func preferencesFromRequest(r *http.Request) Preferences {
-	prefs := defaultPreferences()
-	cookie, err := r.Cookie("settings")
-	if err != nil {
-		return prefs
-	}
-	values, err := url.ParseQuery(cookie.Value)
-	if err != nil {
-		return prefs
-	}
-	if value := values.Get("expand_posts"); value != "" {
-		prefs.ExpandPosts = value == "on"
-	}
-	return prefs
-}
-
-func preferencesFrom(r *http.Request) Preferences {
-	if prefs, ok := r.Context().Value(prefsKey).(Preferences); ok {
-		return prefs
-	}
-	return defaultPreferences()
-}
 
 // Handler builds the HTTP handler for the application.
 func (a *App) Handler() http.Handler {
@@ -68,9 +32,6 @@ func (a *App) Handler() http.Handler {
 
 	// at.tumblr.com link redirects.
 	mux.HandleFunc("GET /at/{path...}", a.handleAtLinks)
-
-	// Settings.
-	mux.HandleFunc("GET /settings/restore", a.handleTogglePosts)
 
 	// API.
 	mux.HandleFunc("GET /api/v1/poll/{blog}/{post_id}/{poll_id}/results", a.handleAPIPollResults)
@@ -216,9 +177,6 @@ func numericPostID(s string) bool {
 
 func (a *App) middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		prefs := preferencesFromRequest(r)
-		r = r.WithContext(context.WithValue(r.Context(), prefsKey, prefs))
-
 		header := w.Header()
 		header.Set("x-xss-protection", "1; mode=block")
 		header.Set("x-content-type-options", "nosniff")
@@ -347,9 +305,5 @@ func (a *App) fail(w http.ResponseWriter, r *http.Request, err error) {
 
 // newPageData builds page data with request-level fields populated.
 func (a *App) newPageData(r *http.Request) *PageData {
-	prefs := preferencesFrom(r)
-	return &PageData{
-		Path:        r.URL.Path,
-		ExpandPosts: prefs.ExpandPosts,
-	}
+	return &PageData{Path: r.URL.Path}
 }

@@ -21,7 +21,6 @@ type Formatter struct {
 	localizer             Localizer
 	urlHandler            func(string) string
 	forbidExternalIframes bool
-	truncate              bool
 
 	idx                   int
 	current               any
@@ -504,10 +503,6 @@ func (f *Formatter) audiovisualFallback(aURL string, media, poster []MediaObject
 // Top-level formatting
 // ---------------------------------------------------------------------------
 
-func (f *Formatter) createTruncation() *Node {
-	return El("details", "class", "layout-truncated").Add(El("summary").Add(Txt("Read more")))
-}
-
 // Format renders all blocks and returns the post-body node.
 func (f *Formatter) Format() *Node {
 	f.post = El("div", "class", "post-body")
@@ -558,8 +553,6 @@ func originalMedia(block *ImageBlock) MediaObject {
 
 func (f *Formatter) applyLayout() {
 	blocksInLayouts := map[int]bool{}
-	rowAttachment := f.post
-	lastBlockIndex := 0
 
 	for _, layout := range f.layout {
 		switch lay := layout.(type) {
@@ -573,7 +566,6 @@ func (f *Formatter) applyLayout() {
 				hasImage := false
 
 				for _, blockIndex := range row.Ranges {
-					lastBlockIndex = blockIndex
 					instruction := instructionAt(f.renderInstructions, blockIndex)
 					if instruction == nil {
 						continue
@@ -608,14 +600,7 @@ func (f *Formatter) applyLayout() {
 
 				rowTag := El("div", "class", "layout-row")
 
-				if f.truncate && lay.TruncateAfter != nil && lastBlockIndex > *lay.TruncateAfter {
-					if rowAttachment == f.post {
-						rowAttachment = f.createTruncation()
-						f.post.Add(rowAttachment)
-					}
-				}
-
-				rowAttachment.Add(rowTag)
+				f.post.Add(rowTag)
 				for _, item := range rowItems {
 					if node, ok := item.(*Node); ok {
 						rowTag.Add(node)

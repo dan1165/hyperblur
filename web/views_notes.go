@@ -161,7 +161,7 @@ func (a *App) renderReplyNote(v *view, data *PageData, note *tumblr.ReplyNote) {
 	if blog != nil {
 		blogName = blog.Name
 	}
-	_, tag := a.FormatNPF(note.Content, note.Layout, blogName, "", data.RequestPollData, data.ExpandPosts)
+	_, tag := a.FormatNPF(note.Content, note.Layout, blogName, "", data.RequestPollData)
 	v.raw(tag)
 	v.raw(`</p></div></div>`)
 }
@@ -182,7 +182,7 @@ func (a *App) renderReblogNote(v *view, data *PageData, note *tumblr.ReblogNote)
 		UseThisPostURL: postURL,
 	})
 	v.raw(`<div class="post-content">`)
-	_, tag := a.FormatNPF(note.Content, note.Layout, note.Blog.Name, note.ID, data.RequestPollData, data.ExpandPosts)
+	_, tag := a.FormatNPF(note.Content, note.Layout, note.Blog.Name, note.ID, data.RequestPollData)
 	v.raw(tag)
 	v.raw(`</div>`)
 	if len(note.Tags) > 0 {
