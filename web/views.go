@@ -93,11 +93,7 @@ func (a *App) renderPage(data *PageData, center func(v *view)) string {
 	v.raw("<link rel=\"stylesheet\" type=\"text/css\" href=\"/assets/css/base.css\">\n")
 	v.raw("<link rel=\"stylesheet\" type=\"text/css\" href=\"/assets/css/base-post-layout.css\">\n")
 	v.raw("<link rel=\"stylesheet\" type=\"text/css\" href=\"/assets/css/post.css\">\n")
-	v.raw("<link rel=\"stylesheet\" type=\"text/css\" href=\"/assets/css/post-layout.css\">\n")
-	v.raw("<script src=\"/assets/js/base.js\" defer></script>\n")
 	v.raw("<script src=\"/assets/js/post.js\" defer></script>\n")
-	v.raw("<noscript><style>.with-js {display: none;}</style></noscript>\n")
-	v.raw("<script src=\"/assets/js/interaction.js\" defer></script>\n")
 	for _, css := range data.ExtraCSS {
 		v.raw("<link rel=\"stylesheet\" type=\"text/css\" href=\"")
 		v.esc(css)
@@ -120,7 +116,15 @@ func (a *App) renderPage(data *PageData, center func(v *view)) string {
 	center(v)
 	v.raw("</div>\n<div class=\"right-column\"></div>\n</div>\n")
 	v.raw("<div class=\"buffer\"></div>\n")
-	v.raw("<footer class=\"site-footer\"><a href=\"https://github.com/dan1165/hyperblur\">hyperblur on GitHub</a></footer>\n")
+	toggleLabel, toggleValue := "Collapse posts", "off"
+	if !data.ExpandPosts {
+		toggleLabel, toggleValue = "Expand posts", "on"
+	}
+	v.raw("<footer class=\"site-footer\"><a href=\"/settings/restore?expand_posts=")
+	v.raw(toggleValue)
+	v.raw("\">")
+	v.esc(toggleLabel)
+	v.raw("</a> · <a href=\"https://github.com/dan1165/hyperblur\">hyperblur on GitHub</a></footer>\n")
 	v.raw("</div>\n</body>\n</html>\n")
 	return v.string()
 }

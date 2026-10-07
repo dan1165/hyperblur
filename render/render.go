@@ -1,14 +1,12 @@
 // Package render turns Tumblr NPF posts into hyperblur-flavoured HTML.
 //
 // It wraps the npf package with hyperblur's customisations: media proxying,
-// download buttons, image alt-text widgets, and poll data attributes, matching
-// helpers/ext_npf_renderer.py.
+// download buttons, image alt-text widgets, and poll data attributes.
 package render
 
 import (
 	"fmt"
 
-	"github.com/dan1165/hyperblur/helpers"
 	"github.com/dan1165/hyperblur/npf"
 )
 
@@ -37,7 +35,7 @@ type Params struct {
 // an error placeholder body when rendering fails, or nil and the post body.
 func FormatNPF(content, layout []any, p Params) (*RenderError, string) {
 	opts := npf.Options{
-		URLHandler:            helpers.URLHandler,
+		URLHandler:            URLHandler,
 		Localizer:             Localizer{},
 		ForbidExternalIframes: true,
 		Truncate:              !p.ExpandPosts,

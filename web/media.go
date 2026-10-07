@@ -48,66 +48,40 @@ func (a *App) handleMediaCDN(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	path := r.PathValue("path")
-	if !validMediaPath(path) {
-		http.NotFound(w, r)
-		return
-	}
-
-	origin := "https://" + cdn + ".media.tumblr.com/" + quotePath(path)
-	if !downloadRequested(r) {
-		http.Redirect(w, r, origin, http.StatusFound)
-		return
-	}
-
 	extra := map[string]string(nil)
-	switch cdn {
-	case "ve", "va":
+	if cdn == "ve" || cdn == "va" {
 		extra = map[string]string{"accept": videoAccept}
 	}
-	a.streamMedia(w, r, origin, extra, buildContentDisposition(path))
+	a.serveMedia(w, r, "https://"+cdn+".media.tumblr.com", extra)
 }
 
 func (a *App) handleMediaAudio(w http.ResponseWriter, r *http.Request) {
-	path := r.PathValue("path")
-	if !validMediaPath(path) {
-		http.NotFound(w, r)
-		return
-	}
-	origin := "https://a.tumblr.com/" + quotePath(path)
-	if !downloadRequested(r) {
-		http.Redirect(w, r, origin, http.StatusFound)
-		return
-	}
-	a.streamMedia(w, r, origin, map[string]string{"accept": audioAccept}, buildContentDisposition(path))
+	a.serveMedia(w, r, "https://a.tumblr.com", map[string]string{"accept": audioAccept})
 }
 
 func (a *App) handleMediaAssets(w http.ResponseWriter, r *http.Request) {
-	path := r.PathValue("path")
-	if !validMediaPath(path) {
-		http.NotFound(w, r)
-		return
-	}
-	origin := "https://assets.tumblr.com/" + quotePath(path)
-	if !downloadRequested(r) {
-		http.Redirect(w, r, origin, http.StatusFound)
-		return
-	}
-	a.streamMedia(w, r, origin, nil, buildContentDisposition(path))
+	a.serveMedia(w, r, "https://assets.tumblr.com", nil)
 }
 
 func (a *App) handleMediaStatic(w http.ResponseWriter, r *http.Request) {
+	a.serveMedia(w, r, "https://static.tumblr.com", nil)
+}
+
+// serveMedia redirects a media request to its origin, or proxies it when a
+// forced download is requested.
+func (a *App) serveMedia(w http.ResponseWriter, r *http.Request, origin string, extraHeaders map[string]string) {
 	path := r.PathValue("path")
 	if !validMediaPath(path) {
 		http.NotFound(w, r)
 		return
 	}
-	origin := "https://static.tumblr.com/" + quotePath(path)
+
+	target := origin + "/" + quotePath(path)
 	if !downloadRequested(r) {
-		http.Redirect(w, r, origin, http.StatusFound)
+		http.Redirect(w, r, target, http.StatusFound)
 		return
 	}
-	a.streamMedia(w, r, origin, nil, buildContentDisposition(path))
+	a.streamMedia(w, r, target, extraHeaders, buildContentDisposition(path))
 }
 
 func (a *App) handleAtLinks(w http.ResponseWriter, r *http.Request) {

@@ -29,14 +29,10 @@ func NewFormatter(content, layout []any, opts Options) *Formatter {
 	if urlHandler == nil {
 		urlHandler = func(u string) string { return u }
 	}
-	loc := opts.Localizer
-	if loc == nil {
-		loc = DefaultLocalizer{}
-	}
 	return &Formatter{
 		content:               content,
 		layout:                layout,
-		localizer:             loc,
+		localizer:             opts.Localizer,
 		urlHandler:            urlHandler,
 		forbidExternalIframes: opts.ForbidExternalIframes,
 		truncate:              opts.Truncate,

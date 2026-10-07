@@ -70,10 +70,7 @@ func (a *App) Handler() http.Handler {
 	mux.HandleFunc("GET /at/{path...}", a.handleAtLinks)
 
 	// Settings.
-	mux.HandleFunc("GET /settings", a.handleSettings)
-	mux.HandleFunc("GET /settings/{$}", a.handleSettings)
-	mux.HandleFunc("POST /settings/{$}", a.handleSettingsPost)
-	mux.HandleFunc("GET /settings/restore", a.handleSettingsRestore)
+	mux.HandleFunc("GET /settings/restore", a.handleTogglePosts)
 
 	// API.
 	mux.HandleFunc("GET /api/v1/poll/{blog}/{post_id}/{poll_id}/results", a.handleAPIPollResults)

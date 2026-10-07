@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dan1165/hyperblur/helpers"
 	"github.com/dan1165/hyperblur/render"
 	"github.com/dan1165/hyperblur/tumblr"
 )
@@ -142,13 +141,6 @@ func (a *App) renderPostFooter(v *view, data *PageData, post *tumblr.Post, postU
 	v.raw(`"> `)
 	v.esc(noteCountLabel(noteCount))
 	v.raw(`</a></div><div class="interaction-buttons">`)
-	v.raw(`<button type="button" class="copy-link" data-post-url="/`)
-	v.esc(postURL)
-	v.raw(`" title="`)
-	v.esc("Copy link")
-	v.raw(`"><svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20"><title>`)
-	v.esc("Copy link")
-	v.raw(`</title><path d="M440-280H280q-83 0-141.5-58.5T80-480q0-83 58.5-141.5T280-680h160v80H280q-50 0-85 35t-35 85q0 50 35 85t85 35h160v80ZM320-440v-80h320v80H320Zm200 160v-80h160q50 0 85-35t35-85q0-50-35-85t-85-35H520v-80h160q83 0 141.5 58.5T880-480q0 83-58.5 141.5T680-280H520Z"/></svg></button>`)
 	v.raw(`<a href="https://www.tumblr.com/`)
 	v.esc(postURL)
 	v.raw(`" rel="noreferrer"><svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 0 320 512" role="img" aria-label="`)
@@ -268,12 +260,12 @@ func (a *App) renderBlogHeader(v *view, data *PageData) {
 		}
 	}
 
-	banner := helpers.URLHandler(blogInfo.Banner)
+	banner := render.URLHandler(blogInfo.Banner)
 	avatar := ""
 	if len(blogInfo.Avatar) >= 2 {
-		avatar = helpers.URLHandler(blogInfo.Avatar[len(blogInfo.Avatar)-2].URL)
+		avatar = render.URLHandler(blogInfo.Avatar[len(blogInfo.Avatar)-2].URL)
 	} else if len(blogInfo.Avatar) == 1 {
-		avatar = helpers.URLHandler(blogInfo.Avatar[0].URL)
+		avatar = render.URLHandler(blogInfo.Avatar[0].URL)
 	}
 
 	v.raw(`<header id="blog-header"><img id="banner" alt="`)

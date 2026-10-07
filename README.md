@@ -18,13 +18,14 @@ asset embedded.
 - **Reblogs:** post trails with per-trail headers and reblog attribution, plus
   asks.
 - **Notes viewer:** replies, reblogs (filterable) and likes, with paging.
-- **Media:** image alt-text widget, one-click download for images/audio/video,
-  and a copy-link button. Downloads are proxied through hyperblur.
+- **Media:** image alt-text widget and one-click download for
+  images/audio/video. Downloads are proxied through hyperblur.
 - **NSFW:** community-labelled posts are shown directly, unblurred.
 - **UI:** dark monochrome theme, system font (no web fonts or external CDNs),
-  posts expanded by default, numbered pagination on blog pages.
+  posts expanded by default, numbered pagination on blog pages, and a footer
+  toggle to collapse/expand posts.
 - **Works without JavaScript:** navigation and media browsing need none; a
-  small amount of JS adds poll results and copy-link.
+  small amount of JS adds live poll results.
 
 > Media loads directly from Tumblr's CDN, so Tumblr can see the IP of anyone
 > viewing it.

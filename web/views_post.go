@@ -1,10 +1,11 @@
 package web
 
 import (
+	"net/url"
 	"strings"
 	"time"
 
-	"github.com/dan1165/hyperblur/helpers"
+	"github.com/dan1165/hyperblur/render"
 	"github.com/dan1165/hyperblur/tumblr"
 )
 
@@ -45,7 +46,7 @@ func (a *App) renderPostHeader(v *view, data *PageData, hd postHeaderData) {
 		v.raw(`"><img class="avatar" alt="`)
 		v.esc("Blog avatar")
 		v.raw(`" loading="lazy" src="`)
-		v.esc(helpers.URLHandler(hd.Blog.AvatarURL()))
+		v.esc(render.URLHandler(hd.Blog.AvatarURL()))
 		v.raw(`"></a>`)
 	} else {
 		v.raw(`<img class="avatar" alt="`)
@@ -108,7 +109,7 @@ func (a *App) reblogAttribution(from, root *tumblr.ReblogAttribution) string {
 	}
 
 	url := from.PostURL
-	if !helpers.IsTumblrURL(url) {
+	if !isTumblrURL(url) {
 		if root != nil && root.PostID == from.PostID && root.BlogName != "" {
 			url = "/" + root.BlogName + "/" + from.PostID
 		} else {
@@ -116,5 +117,14 @@ func (a *App) reblogAttribution(from, root *tumblr.ReblogAttribution) string {
 		}
 	}
 
-	return `<a href="` + htmlEscape(helpers.URLHandler(url)) + `" class="` + strings.Join(classes, " ") + `">` + htmlEscape(name) + `</a>`
+	return `<a href="` + htmlEscape(render.URLHandler(url)) + `" class="` + strings.Join(classes, " ") + `">` + htmlEscape(name) + `</a>`
+}
+
+func isTumblrURL(rawURL string) bool {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return false
+	}
+	host := strings.ToLower(u.Hostname())
+	return host == "tumblr.com" || strings.HasSuffix(host, ".tumblr.com")
 }

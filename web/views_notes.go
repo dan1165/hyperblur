@@ -1,7 +1,7 @@
 package web
 
 import (
-	"github.com/dan1165/hyperblur/helpers"
+	"github.com/dan1165/hyperblur/render"
 	"github.com/dan1165/hyperblur/tumblr"
 )
 
@@ -126,7 +126,7 @@ func (a *App) renderReplyNote(v *view, data *PageData, note *tumblr.ReplyNote) {
 		v.raw(`"><img class="avatar" alt="`)
 		v.esc("Blog avatar")
 		v.raw(`" loading="lazy" src="`)
-		v.esc(helpers.URLHandler(blog.AvatarURL()))
+		v.esc(render.URLHandler(blog.AvatarURL()))
 		v.raw(`"></a>`)
 	} else {
 		v.raw(`<img class="avatar" alt="`)
@@ -207,7 +207,7 @@ func (a *App) renderLikeNote(v *view, _ *PageData, note *tumblr.LikeNote) {
 	v.raw(`<div class="note like"><div class="post-author"><a href="/`)
 	v.esc(note.BlogName)
 	v.raw(`"><img class="avatar" alt="Blog avatar" loading="lazy" src="`)
-	v.esc(helpers.URLHandler(avatar))
+	v.esc(render.URLHandler(avatar))
 	v.raw(`"></a><div class="author-information"><div class="primary-post-author"><div class="blog-name-title-grouping"><a class="link blog-name" href="/`)
 	v.esc(note.BlogName)
 	v.raw(`">`)

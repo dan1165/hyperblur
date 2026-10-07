@@ -1,23 +1,12 @@
-// Package helpers holds hyperblur's shared helpers.
-package helpers
+package render
 
 import (
 	"net/url"
 	"strings"
 )
 
-// IsTumblrURL reports whether the URL points at tumblr.com or a subdomain.
-func IsTumblrURL(rawURL string) bool {
-	u, err := url.Parse(rawURL)
-	if err != nil {
-		return false
-	}
-	host := strings.ToLower(u.Hostname())
-	return host == "tumblr.com" || strings.HasSuffix(host, ".tumblr.com")
-}
-
 // URLHandler rewrites Tumblr URLs found in posts into hyperblur's own
-// privacy-friendly paths. It is a port of helpers.url_handler.
+// privacy-friendly paths.
 func URLHandler(rawURL string) string {
 	u, err := url.Parse(rawURL)
 	if err != nil {

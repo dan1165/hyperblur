@@ -588,71 +588,26 @@ func (a *App) renderNumberedPaging(v *view, data *PageData) {
 // Settings
 // ---------------------------------------------------------------------------
 
-func (a *App) handleSettings(w http.ResponseWriter, r *http.Request) {
-	a.renderSettings(w, r, nil)
-}
-
-func (a *App) handleSettingsPost(w http.ResponseWriter, r *http.Request) {
-	_ = r.ParseForm()
-	prefs := preferencesFrom(r)
-	prefs.ExpandPosts = r.FormValue("expand_posts") == "on"
-	a.renderSettings(w, r, &prefs)
-}
-
-func (a *App) handleSettingsRestore(w http.ResponseWriter, r *http.Request) {
+// Settings: the only preference is whether to expand truncated posts. The
+// footer toggle flips it through this route.
+func (a *App) handleTogglePosts(w http.ResponseWriter, r *http.Request) {
 	prefs := preferencesFrom(r)
 	if value := r.URL.Query().Get("expand_posts"); value != "" {
 		prefs.ExpandPosts = value == "on"
 	}
-	a.renderSettings(w, r, &prefs)
-}
 
-func (a *App) renderSettings(w http.ResponseWriter, r *http.Request, newPrefs *Preferences) {
-	prefs := preferencesFrom(r)
-	if newPrefs != nil {
-		prefs = *newPrefs
-	}
-
-	data := a.newPageData(r)
-	data.ExpandPosts = prefs.ExpandPosts
-	data.Title = "Settings"
-	data.ExtraCSS = []string{"/assets/css/settings.css"}
-
-	html := a.renderPage(data, func(v *view) {
-		v.raw(`<form class="settings" method="post" action="/settings" aria-label="`)
-		v.esc("Settings")
-		v.raw(`"><div id="setting-heading"><h2>`)
-		v.esc("Settings")
-		v.raw(`</h2></div><hr><div class="main-tab"><div id="expand-posts-option" aria-describedby="expand-posts-info-box"><div class="option-info-box"><label for="expand-posts-checkbox">`)
-		v.esc("Expand posts")
-		v.raw(`</label><p id="expand-posts-info-box">`)
-		v.esc("Expands truncated posts automatically")
-		v.raw(`</p></div><input type="checkbox" id="expand-posts-checkbox" name="expand_posts"`)
-		if prefs.ExpandPosts {
-			v.raw(` checked`)
-		}
-		v.raw(`/><input type="hidden" id="expand-posts-checkbox" name="expand_posts" value="off"/></div></div>`)
-
-		v.raw(`<div id="settings-footer"><div id="copy-as-bookmarklet-container"><a id="copy-as-bookmarklet" href="/settings/restore?`)
-		v.raw(preferencesToURL(prefs))
-		v.raw(`"><svg height="12" width="12" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><path fill="currentColor" d="M579.8 267.7c56.5-56.5 56.5-148 0-204.5c-50-50-128.8-56.5-186.3-15.4l-1.6 1.1c-14.4 10.3-17.7 30.3-7.4 44.6s30.3 17.7 44.6 7.4l1.6-1.1c32.1-22.9 76-19.3 103.8 8.6c31.5 31.5 31.5 82.5 0 114L422.3 334.8c-31.5 31.5-82.5 31.5-114 0c-27.9-27.9-31.5-71.8-8.6-103.8l1.1-1.6c10.3-14.4 6.9-34.4-7.4-44.6s-34.4-6.9-44.6 7.4l-1.1 1.6C206.5 251.2 213 330 263 380c56.5 56.5 148 56.5 204.5 0L579.8 267.7zM60.2 244.3c-56.5 56.5-56.5 148 0 204.5c50 50 128.8 56.5 186.3 15.4l1.6-1.1c14.4-10.3 17.7-30.3 7.4-44.6s-30.3-17.7-44.6-7.4l-1.6 1.1c-32.1 22.9-76 19.3-103.8-8.6C74 372 74 321 105.5 289.5L217.7 177.2c31.5-31.5 82.5-31.5 114 0c27.9 27.9 31.5 71.8 8.6 103.9l-1.1 1.6c-10.3 14.4-6.9 34.4 7.4 44.6s34.4 6.9 44.6-7.4l1.1-1.6C433.5 260.8 427 182 377 132c-56.5-56.5-148-56.5-204.5 0L60.2 244.3z"/></svg><svg style="display: none;" height="12" width="12" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M438.6 105.4c12.5 12.5 12.5 32.8 0 45.3l-256 256c-12.5 12.5-32.8 12.5-45.3 0l-128-128c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0L160 338.7 393.4 105.4c12.5-12.5 32.8-12.5 45.3 0z"/></svg><svg style="display: none;" height="12" width="12" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path fill="currentColor" d="M342.6 150.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 210.7 86.6 105.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L146.7 256 41.4 361.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192 301.3 297.4 406.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.3 256 342.6 150.6z"/></svg><span>`)
-		v.esc("Copy as bookmarklet")
-		v.raw(`</span></a></div><div><a href="/settings" class="secondary button">`)
-		v.esc("Cancel")
-		v.raw(`</a><input type="submit" class="primary button" value="`)
-		v.esc("Save Changes")
-		v.raw(`"/></div></div></form>`)
+	http.SetCookie(w, &http.Cookie{
+		Name:   "settings",
+		Value:  preferencesToURL(prefs),
+		MaxAge: 31540000,
+		Path:   "/",
 	})
 
-	if newPrefs != nil {
-		http.SetCookie(w, &http.Cookie{
-			Name:   "settings",
-			Value:  preferencesToURL(*newPrefs),
-			MaxAge: 31540000,
-			Path:   "/",
-		})
+	target := "/"
+	if u, err := url.Parse(r.Referer()); err == nil && u.Host == r.Host {
+		target = u.RequestURI()
 	}
-	a.writePage(w, http.StatusOK, html)
+	http.Redirect(w, r, target, http.StatusFound)
 }
 
 func preferencesToURL(prefs Preferences) string {

@@ -458,16 +458,6 @@ li.control-bar-action:hover {
     background: var(--color-dropdown-menu-item-selected);
 }
 
-.active-dropdown-menu {
-    background: var(--color-dropdown-action-select);
-}
-
-.active-dropdown-menu .control-bar-dropdown-menu{
-    opacity: 1;
-    visibility: visible;
-    transition: all 50ms ease-in-out;
-}
-
 li.no-js:hover .control-bar-dropdown-menu {
     opacity: 1;
     visibility: visible;
