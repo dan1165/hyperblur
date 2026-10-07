@@ -7,8 +7,8 @@ token.
 ## Features
 
 - Browse blogs, tags, search, and explore timelines without an account.
-- No JavaScript. Fully monochrome dark UI.
-- A download button on every image and video.
+- No JavaScript. Fully monochrome dark UI, with posts expanded by default.
+- A download button on every image and video, plus a one-click copy-link.
 - Numbered pagination on blog pages.
 
 > Media loads directly from Tumblr's CDN, so Tumblr can see the IP of anyone
@@ -33,6 +33,12 @@ source venv/bin/activate
 pip install -r requirements.txt
 python -m src.server
 ```
+
+## Performance
+
+Runs on Sanic with uvloop and httptools, one worker per CPU core, keep-alive
+and pooled connections, and orjson. Every request is fetched fresh from Tumblr
+(no caching).
 
 ## Custom Tumblr token (optional)
 
