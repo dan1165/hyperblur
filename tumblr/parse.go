@@ -163,18 +163,6 @@ func parseLimitedBlog(target map[string]any) *Blog {
 	}
 }
 
-// processBlog returns the parsed blog if the item is a blog object.
-func processBlog(initial map[string]any) *Blog {
-	if str(initial["objectType"]) != "blog" {
-		return nil
-	}
-	resources := slice(initial["resources"])
-	if len(resources) == 0 {
-		return nil
-	}
-	return parseBlog(obj(resources[0]))
-}
-
 // ---------------------------------------------------------------------------
 // Post
 // ---------------------------------------------------------------------------
@@ -235,17 +223,15 @@ func parsePost(target map[string]any) *Post {
 	var reblogFrom, reblogRoot *ReblogAttribution
 	if rebloggedFromID := str(target["rebloggedFromId"]); rebloggedFromID != "" {
 		reblogFrom = &ReblogAttribution{
-			PostID:    rebloggedFromID,
-			PostURL:   str(target["parentPostUrl"]),
-			BlogName:  str(target["rebloggedFromName"]),
-			BlogTitle: str(target["rebloggedFromTitle"]),
+			PostID:   rebloggedFromID,
+			PostURL:  str(target["parentPostUrl"]),
+			BlogName: str(target["rebloggedFromName"]),
 		}
 		if rootID := str(target["rebloggedRootId"]); rootID != "" {
 			reblogRoot = &ReblogAttribution{
-				PostID:    rootID,
-				PostURL:   str(target["rebloggedRootUrl"]),
-				BlogName:  str(target["rebloggedRootName"]),
-				BlogTitle: str(target["rebloggedRootTitle"]),
+				PostID:   rootID,
+				PostURL:  str(target["rebloggedRootUrl"]),
+				BlogName: str(target["rebloggedRootName"]),
 			}
 		}
 	}
@@ -273,7 +259,6 @@ func parsePost(target map[string]any) *Post {
 
 func parseReplyNote(target map[string]any) *ReplyNote {
 	return &ReplyNote{
-		UUID:    str(target["id"]),
 		ReplyID: str(target["replyId"]),
 		Date:    timeFromUnix(target["timestamp"]),
 		Content: slice(target["content"]),
@@ -284,14 +269,12 @@ func parseReplyNote(target map[string]any) *ReplyNote {
 
 func parseReblogNote(target map[string]any) *ReblogNote {
 	return &ReblogNote{
-		UUID:          str(target["id"]),
-		ID:            str(target["postId"]),
-		Blog:          parseLimitedBlog(obj(target["blog"])),
-		Content:       slice(target["content"]),
-		Layout:        slice(target["content"]),
-		Tags:          stringSlice(target["tags"]),
-		RebloggedFrom: str(target["reblogParentBlogName"]),
-		Date:          timeFromUnix(target["timestamp"]),
+		ID:      str(target["postId"]),
+		Blog:    parseLimitedBlog(obj(target["blog"])),
+		Content: slice(target["content"]),
+		Layout:  slice(target["content"]),
+		Tags:    stringSlice(target["tags"]),
+		Date:    timeFromUnix(target["timestamp"]),
 	}
 }
 
@@ -310,21 +293,18 @@ func parseSimpleReblogNote(target map[string]any) *ReblogNote {
 		Active: true,
 	}
 	return &ReblogNote{
-		UUID:          str(target["blogUuid"]),
-		ID:            str(target["postId"]),
-		Blog:          blog,
-		Content:       []any{},
-		Layout:        []any{},
-		Tags:          stringSlice(target["tags"]),
-		RebloggedFrom: str(target["reblogParentBlogName"]),
-		Date:          timeFromUnix(target["timestamp"]),
+		ID:      str(target["postId"]),
+		Blog:    blog,
+		Content: []any{},
+		Layout:  []any{},
+		Tags:    stringSlice(target["tags"]),
+		Date:    timeFromUnix(target["timestamp"]),
 	}
 }
 
 func parseLikeNote(target map[string]any) *LikeNote {
 	return &LikeNote{
 		BlogName:  str(target["blogName"]),
-		BlogUUID:  str(target["blogUuid"]),
 		BlogTitle: str(target["blogTitle"]),
 		Date:      timeFromUnix(target["timestamp"]),
 		Avatar:    avatarMap(target["avatarUrl"]),

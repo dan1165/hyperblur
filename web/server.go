@@ -319,30 +319,29 @@ func errorMessage(err error) (string, string, string) {
 // handleAPIError maps Tumblr API errors to user-facing pages.
 func (a *App) handleAPIError(w http.ResponseWriter, r *http.Request, err error) bool {
 	var apiErr *tumblr.APIError
-	if errors.As(err, &apiErr) {
-		switch apiErr.Kind {
-		case tumblr.ErrLoginRequired:
-			a.messageError(w, r, http.StatusForbidden, a.translate("tumblr_error_blog_login_required_error_heading"), a.translate("tumblr_error_blog_login_required_error_description"))
-			return true
-		case tumblr.ErrPasswordRequired:
-			a.messageError(w, r, http.StatusForbidden, a.translate("tumblr_error_blog_requires_password_error_heading"), a.translate("tumblr_error_blog_login_required_error_description"))
-			return true
-		case tumblr.ErrRestrictedTag:
-			a.messageError(w, r, http.StatusForbidden, a.translate("tumblr_error_restricted_tag_error_heading"), a.translate("tumblr_error_restricted_tag_description"))
-			return true
-		case tumblr.ErrBlogNotFound:
-			a.messageError(w, r, http.StatusNotFound, a.translate("tumblr_error_blog_not_found_error_heading"), a.translate("tumblr_error_blog_not_found_error_description"))
-			return true
-		}
+	if !errors.As(err, &apiErr) {
+		return false
+	}
+	a.Logger.Printf("tumblr error on %s %s: kind=%d code=%d internal=%d: %s", r.Method, r.URL.RequestURI(), apiErr.Kind, apiErr.HTTPCode, apiErr.InternalCode, apiErr.Message)
+
+	switch apiErr.Kind {
+	case tumblr.ErrLoginRequired:
+		a.messageError(w, r, http.StatusForbidden, a.translate("tumblr_error_blog_login_required_error_heading"), a.translate("tumblr_error_blog_login_required_error_description"))
+		return true
+	case tumblr.ErrPasswordRequired:
+		a.messageError(w, r, http.StatusForbidden, a.translate("tumblr_error_blog_requires_password_error_heading"), a.translate("tumblr_error_blog_login_required_error_description"))
+		return true
+	case tumblr.ErrRestrictedTag:
+		a.messageError(w, r, http.StatusForbidden, a.translate("tumblr_error_restricted_tag_error_heading"), a.translate("tumblr_error_restricted_tag_description"))
+		return true
+	case tumblr.ErrBlogNotFound:
+		a.messageError(w, r, http.StatusNotFound, a.translate("tumblr_error_blog_not_found_error_heading"), a.translate("tumblr_error_blog_not_found_error_description"))
+		return true
 	}
 	return false
 }
 
 func (a *App) fail(w http.ResponseWriter, r *http.Request, err error) {
-	var apiErr *tumblr.APIError
-	if errors.As(err, &apiErr) {
-		a.Logger.Printf("tumblr error on %s %s: kind=%d code=%d internal=%d: %s", r.Method, r.URL.RequestURI(), apiErr.Kind, apiErr.HTTPCode, apiErr.InternalCode, apiErr.Message)
-	}
 	if a.handleAPIError(w, r, err) {
 		return
 	}

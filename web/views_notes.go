@@ -172,10 +172,14 @@ func (a *App) renderReblogNote(v *view, data *PageData, note *tumblr.ReblogNote)
 	v.raw(`<div class="note reblog-note post" data-post-id="`)
 	v.esc(note.ID)
 	v.raw(`">`)
+	postURL := ""
+	if note.Blog != nil {
+		postURL = note.Blog.Name + "/" + note.ID
+	}
 	a.renderPostHeader(v, data, postHeaderData{
-		Blog: note.Blog,
-		Date: note.Date,
-		ID:   note.ID,
+		Blog:           note.Blog,
+		Date:           note.Date,
+		UseThisPostURL: postURL,
 	})
 	v.raw(`<div class="post-content">`)
 	_, tag := a.FormatNPF(note.Content, note.Layout, note.Blog.Name, note.ID, data.RequestPollData, data.ExpandPosts)

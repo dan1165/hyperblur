@@ -46,11 +46,11 @@ func (a *App) renderSearchControlBar(v *view, data *PageData) {
 	b.WriteString(`</span><ul class="control-bar-dropdown-menu">`)
 	if data.PostFilter != "" {
 		filter := urlEscape(data.PostFilter)
-		b.WriteString(searchSortItem(data.SortBy == "popular", "/search/"+query+"/"+filter+addQuery(deseq(base)), a.translate("timeline_search_sort_by_filter_popular")))
-		b.WriteString(searchSortItem(data.SortBy == "recent", "/search/"+query+"/recent/"+filter+addQuery(deseq(base)), a.translate("timeline_search_sort_by_filter_recent")))
+		b.WriteString(searchFilterItem(data.SortBy == "popular", "/search/"+query+"/"+filter+addQuery(deseq(base)), a.translate("timeline_search_sort_by_filter_popular")))
+		b.WriteString(searchFilterItem(data.SortBy == "recent", "/search/"+query+"/recent/"+filter+addQuery(deseq(base)), a.translate("timeline_search_sort_by_filter_recent")))
 	} else {
-		b.WriteString(searchSortItem(data.SortBy == "popular", "/search/"+query+addQuery(deseq(base)), a.translate("timeline_search_sort_by_filter_popular")))
-		b.WriteString(searchSortItem(data.SortBy == "recent", "/search/"+query+"/recent"+addQuery(deseq(base)), a.translate("timeline_search_sort_by_filter_recent")))
+		b.WriteString(searchFilterItem(data.SortBy == "popular", "/search/"+query+addQuery(deseq(base)), a.translate("timeline_search_sort_by_filter_popular")))
+		b.WriteString(searchFilterItem(data.SortBy == "recent", "/search/"+query+"/recent"+addQuery(deseq(base)), a.translate("timeline_search_sort_by_filter_recent")))
 	}
 	b.WriteString(`</ul></li>`)
 
@@ -96,14 +96,6 @@ func (a *App) renderSearchControlBar(v *view, data *PageData) {
 	b.WriteString(`</ul></li>`)
 
 	v.raw(b.String())
-}
-
-func searchSortItem(selected bool, href, label string) string {
-	class := ""
-	if selected {
-		class = ` class="selected"`
-	}
-	return `<li` + class + `><a href="` + href + `">` + htmlEscape(label) + `</a></li>`
 }
 
 func searchFilterItem(selected bool, href, label string) string {

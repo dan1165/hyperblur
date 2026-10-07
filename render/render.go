@@ -20,7 +20,6 @@ const downloadIcon = `<svg class="icon" xmlns="http://www.w3.org/2000/svg" heigh
 type RenderError struct {
 	Name    string
 	Message string
-	Context string
 }
 
 // Params configure post rendering.

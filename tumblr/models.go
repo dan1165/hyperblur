@@ -42,10 +42,9 @@ type Signpost struct {
 
 // ReblogAttribution describes who a post was reblogged from.
 type ReblogAttribution struct {
-	PostID    string
-	PostURL   string
-	BlogName  string
-	BlogTitle string
+	PostID   string
+	PostURL  string
+	BlogName string
 }
 
 // PostTrail is one earlier version of a reblogged post.
@@ -94,7 +93,6 @@ type Post struct {
 
 // ReplyNote is a reply left on a post.
 type ReplyNote struct {
-	UUID    string
 	ReplyID string
 	Date    *time.Time
 	Content []any
@@ -104,7 +102,6 @@ type ReplyNote struct {
 
 // ReblogNote is a reblog of a post.
 type ReblogNote struct {
-	UUID string
 	ID   string
 	Blog *Blog
 
@@ -112,14 +109,12 @@ type ReblogNote struct {
 	Layout  []any
 	Tags    []string
 
-	RebloggedFrom string
-	Date          *time.Time
+	Date *time.Time
 }
 
 // LikeNote is a like on a post.
 type LikeNote struct {
 	BlogName  string
-	BlogUUID  string
 	BlogTitle string
 	Date      *time.Time
 	// Avatar is keyed by size ("128", "512", ...) as Tumblr returns it.

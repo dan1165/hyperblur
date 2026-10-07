@@ -82,8 +82,7 @@ type MediaObject struct {
 type AttributionKind int
 
 const (
-	AttrNone AttributionKind = iota
-	AttrPost
+	AttrPost AttributionKind = iota
 	AttrLink
 	AttrBlog
 	AttrApp

@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dan1165/openblur/render"
 	"github.com/dan1165/openblur/tumblr"
 )
 
@@ -776,5 +775,3 @@ func parsePostFilter(raw string) tumblr.PostTypeFilter {
 	}
 	return ""
 }
-
-var _ = render.RenderError{}

@@ -279,14 +279,8 @@ a.logo {
     height: 30px;
 }
 
-.nav-tab path, .right-section path, .icon path {
+.nav-tab path, .icon path {
     fill: var(--color-nav-bar-icon);
-}
-
-.right-section {
-    width: 100%;
-    gap: 20px;
-    justify-content: flex-end;
 }
 
 @media screen and (min-width: 768px) {
@@ -303,10 +297,6 @@ a.logo {
     
     div.left-section {
         flex-direction: row;
-    }
-
-    .right-section {
-        position: unset;
     }
 }
 

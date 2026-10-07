@@ -27,8 +27,6 @@ func (a *App) renderPost(v *view, data *PageData, post *tumblr.Post) {
 	a.renderPostHeader(v, data, postHeaderData{
 		Blog:           post.Blog,
 		Date:           post.Date,
-		ID:             post.ID,
-		Slug:           post.Slug,
 		ReblogFrom:     post.ReblogFrom,
 		ReblogRoot:     post.ReblogRoot,
 		UseThisPostURL: postURL,
@@ -57,14 +55,14 @@ func (a *App) renderPostBody(v *view, data *PageData, post *tumblr.Post) {
 	for _, trail := range post.Trail {
 		v.raw(`<div class="trail-post">`)
 		a.renderPostHeader(v, data, postHeaderData{
-			Blog:       trail.Blog,
-			BrokenBlog: trail.BrokenBlog,
-			Date:       trail.Date,
-			ID:         trail.ID,
+			Blog:           trail.Blog,
+			BrokenBlog:     trail.BrokenBlog,
+			Date:           trail.Date,
+			UseThisPostURL: trail.BlogName() + "/" + trail.ID,
 		})
 		trailErr, trailTag := a.FormatNPF(trail.Content, trail.Layout, post.Blog.Name, post.ID, data.RequestPollData, data.ExpandPosts)
 		if trailErr != nil {
-			a.Logger.Printf("npf render error for trail of post %s/%s: %s", post.Blog.Name, post.ID, trailErr.Message)
+			a.logNPFError(post, "trail", trailErr)
 			a.renderNPFError(v, trailErr)
 		}
 		v.raw(trailTag)
@@ -76,22 +74,20 @@ func (a *App) renderPostBody(v *view, data *PageData, post *tumblr.Post) {
 		a.renderPostHeader(v, data, postHeaderData{
 			Blog:           post.Blog,
 			Date:           post.Date,
-			ID:             post.ID,
-			Slug:           post.Slug,
 			ReblogFrom:     post.ReblogFrom,
 			ReblogRoot:     post.ReblogRoot,
 			SkipReblog:     true,
 			UseThisPostURL: postURLFor(data, post),
 		})
 		if mainErr != nil {
-			a.Logger.Printf("npf render error for post %s/%s: %s", post.Blog.Name, post.ID, mainErr.Message)
+			a.logNPFError(post, "post", mainErr)
 			a.renderNPFError(v, mainErr)
 		}
 		v.raw(mainTag)
 		v.raw(`</div>`)
 	} else {
 		if mainErr != nil {
-			a.Logger.Printf("npf render error for post %s/%s: %s", post.Blog.Name, post.ID, mainErr.Message)
+			a.logNPFError(post, "post", mainErr)
 			a.renderNPFError(v, mainErr)
 		}
 		v.raw(mainTag)
@@ -170,8 +166,13 @@ func (a *App) renderNPFError(v *view, renderErr *render.RenderError) {
 	v.raw(`</h4><p>`)
 	v.esc(a.translate("alert_error_on_rendering_post_contents"))
 	v.raw(`</p></figcaption>`)
-	a.renderErrorDetails(v, renderErr.Name, renderErr.Message, renderErr.Context, false)
+	a.renderErrorDetails(v, renderErr.Name, renderErr.Message, "", false)
 	v.raw(`</figure>`)
+}
+
+// logNPFError records an NPF render failure for a post.
+func (a *App) logNPFError(post *tumblr.Post, where string, err *render.RenderError) {
+	a.Logger.Printf("npf render error (%s) for post %s/%s: %s", where, post.Blog.Name, post.ID, err.Message)
 }
 
 func (a *App) renderErrorDetails(v *view, name, message, context string, open bool) {
@@ -189,9 +190,12 @@ func (a *App) renderErrorDetails(v *view, name, message, context string, open bo
 		v.esc(message)
 		v.raw(`"</pre>`)
 	}
-	v.raw(`<pre>Context:<br/><br/>`)
-	v.esc(context)
-	v.raw(`</pre></details>`)
+	if context != "" {
+		v.raw(`<pre>Context:<br/><br/>`)
+		v.esc(context)
+		v.raw(`</pre>`)
+	}
+	v.raw(`</details>`)
 }
 
 // ---------------------------------------------------------------------------
