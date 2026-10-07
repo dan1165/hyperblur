@@ -47,7 +47,7 @@ environment:
 Manually:
 
 ```bash
-OPENBLUR_TUMBLR_API_TOKEN=your-token-here python -m server
+OPENBLUR_TUMBLR_API_TOKEN=your-token-here ./openblur
 ```
 
 ## Performance
