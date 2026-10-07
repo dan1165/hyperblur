@@ -21,15 +21,16 @@ caching — and no configuration beyond an optional Tumblr token.
 docker compose up -d --build
 ```
 
-### Manual (Python 3.11+)
+### Manual (Go 1.24+)
 
 ```bash
-python -m venv venv
-source venv/bin/activate
-
-pip install -r requirements.txt
-python -m server
+go build -o openblur ./cmd/openblur
+./openblur
 ```
+
+openblur listens on `:8000`; set `OPENBLUR_PORT` to change it, and
+`OPENBLUR_ASSETS_DIR` to point at the `assets/` directory when running the
+binary from elsewhere.
 
 ## Custom Tumblr token (optional)
 
@@ -51,9 +52,8 @@ OPENBLUR_TUMBLR_API_TOKEN=your-token-here python -m server
 
 ## Performance
 
-Runs on Sanic with uvloop and httptools, one worker per CPU core, keep-alive
-and pooled connections, and orjson. Every request is fetched fresh from Tumblr
-(no caching).
+A single Go binary on the standard `net/http` server, with pooled keep-alive
+connections. Every request is fetched fresh from Tumblr (no caching).
 
 ## License
 

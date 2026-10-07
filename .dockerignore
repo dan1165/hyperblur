@@ -7,3 +7,7 @@ __pycache__
 venv
 *.md
 docker-compose.yml
+
+# Go build artifacts
+/openblur
+/bin/
