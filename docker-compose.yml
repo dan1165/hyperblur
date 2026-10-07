@@ -8,5 +8,3 @@ services:
         required: false
     ports:
       - "127.0.0.1:8000:8000" # Replace with "8000:8000" if you don't use a reverse proxy
-    volumes:
-      - ./config.toml:/openblur/config.toml:Z,ro

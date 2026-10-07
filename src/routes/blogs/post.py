@@ -74,9 +74,7 @@ async def handle_post_args(request):
 
     if (rss_feed := args.get("rss_feed")) and to_bool(rss_feed):
         request.ctx.rss = True
-        request.ctx.page_url = (
-            f"{request.app.ctx.OPENBLUR_CONFIG.deployment.domain or ''}{request.ctx.post_path}"
-        )
+        request.ctx.page_url = f"{request.app.ctx.DOMAIN or ''}{request.ctx.post_path}"
 
     # Requesting post notes?
     if note_type := args.get("note_viewer"):

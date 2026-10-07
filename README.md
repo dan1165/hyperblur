@@ -1,13 +1,15 @@
 # openblur
 
 An alternative frontend to Tumblr. No account, no JavaScript, no tracking, no
-caching.
+caching — and no configuration beyond an optional `.env` for a custom Tumblr
+token.
 
 ## Features
 
 - Browse blogs, tags, search, and explore timelines without an account.
 - No JavaScript. Fully monochrome dark UI.
 - A download button on every image and video.
+- Numbered pagination on blog pages.
 
 > Media loads directly from Tumblr's CDN, so Tumblr can see the IP of anyone
 > viewing it. Downloads are proxied through openblur.
@@ -17,7 +19,6 @@ caching.
 ### Docker
 
 ```bash
-cp config.example.toml config.toml   # optional
 docker compose -f docker-compose.dev.yml up -d --build
 ```
 
@@ -30,20 +31,21 @@ python -m venv venv
 source venv/bin/activate
 
 pip install -r requirements.txt
-cp config.example.toml config.toml   # optional
 python -m src.server
 ```
 
-## Configure
+## Custom Tumblr token (optional)
 
-openblur reads `config.toml` (see [`config.example.toml`](./config.example.toml)).
-Override the path with `OPENBLUR_CONFIG_LOCATION`.
+openblur ships a default Tumblr API token. To use your own (for example, to
+open blogs that require logging in), put it in `.env`:
 
-Optional secrets go in `.env` (see [`.env.example`](./.env.example)):
+```bash
+cp .env.example .env
+```
 
 | Variable | Purpose |
 | --- | --- |
-| `OPENBLUR_TUMBLR_API_TOKEN` | Custom Tumblr API token; lets openblur open blogs that require logging in. Empty uses the bundled default. |
+| `OPENBLUR_TUMBLR_API_TOKEN` | Custom Tumblr API token. Empty uses the bundled default. |
 
 ## License
 

@@ -9,7 +9,6 @@ __pycache__
 *.mo
 venv
 .env
-config.toml
 *.md
 instances.md
 docker-compose*.yml

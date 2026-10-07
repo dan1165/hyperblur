@@ -12,21 +12,25 @@ import babel.lists
 
 from . import routes, openblur_extractor, preferences, i18n
 from .exceptions import error_handlers
-from .config import load_config
+from .dotenv import load_dotenv
 from .helpers import setup_logging, helpers, render, ext_npf_renderer
 
 
-# Load configuration file
+# openblur is configless: everything is fixed here, and the only thing read
+# from the environment (or a .env file) is the optional Tumblr API token.
+HOST = "0.0.0.0"
+PORT = 8000
+DOMAIN = None
+MAIN_REQUEST_TIMEOUT = 10
+IMAGE_REQUEST_TIMEOUT = 30
 
-config = load_config(os.environ.get("OPENBLUR_CONFIG_LOCATION", "./config.toml"))
+load_dotenv()
 
-LOG_CONFIG = setup_logging.setup_logging(config.logging)
 app = sanic.Sanic(
     "openblur",
     loads=orjson.loads,
     dumps=orjson.dumps,
-    env_prefix="OPENBLUR_",
-    log_config=LOG_CONFIG,
+    log_config=setup_logging.setup_logging(),
 )
 app.config.OAS = False
 
@@ -41,7 +45,7 @@ app.ctx.LOGGER = logging.getLogger("openblur")
 app.ctx.URL_HANDLER = helpers.url_handler
 app.ctx.BLACKLIST_RESPONSE_HEADERS = ("access-control-allow-origin", "alt-svc", "server")
 
-app.ctx.OPENBLUR_CONFIG = config
+app.ctx.DOMAIN = DOMAIN
 app.ctx.translate = i18n.translate
 
 app.ctx.OPENBLUR_PARENT_DIR_PATH = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
@@ -50,10 +54,8 @@ app.ctx.create_user_friendly_error_message = error_handlers.create_user_friendly
 
 @app.listener("before_server_start")
 async def initialize(app):
-    openblur_backend = app.ctx.OPENBLUR_CONFIG.backend
-
     app.ctx.TumblrAPI = await openblur_extractor.TumblrAPI.create(
-        main_request_timeout=openblur_backend.main_response_timeout, json_loads=orjson.loads
+        main_request_timeout=MAIN_REQUEST_TIMEOUT, json_loads=orjson.loads
     )
 
     media_request_headers = {
@@ -68,7 +70,7 @@ async def initialize(app):
 
     # TODO set pool size for image requests
 
-    def create_image_client(url, timeout=openblur_backend.image_response_timeout):
+    def create_image_client(url, timeout=IMAGE_REQUEST_TIMEOUT):
         timeout = aiohttp.ClientTimeout(timeout)
         return aiohttp.ClientSession(
             url,
@@ -89,7 +91,7 @@ async def initialize(app):
 
     app.ctx.MediaGenericClient = aiohttp.ClientSession(
         headers=media_request_headers,
-        timeout=aiohttp.ClientTimeout(openblur_backend.image_response_timeout),
+        timeout=aiohttp.ClientTimeout(IMAGE_REQUEST_TIMEOUT),
         connector=openblur_extractor.helpers.create_connector(),
     )
 
@@ -102,7 +104,7 @@ async def initialize(app):
     app.ctx.TumblrAtClient = aiohttp.ClientSession(
         "https://at.tumblr.com",
         headers={"user-agent": openblur_extractor.TumblrAPI.DEFAULT_HEADERS["user-agent"]},
-        timeout=aiohttp.ClientTimeout(openblur_backend.main_response_timeout),
+        timeout=aiohttp.ClientTimeout(MAIN_REQUEST_TIMEOUT),
         connector=openblur_extractor.helpers.create_connector(),
     )
 
@@ -165,9 +167,7 @@ async def before_all_routes(request):
     # openblur is English-only and always uses its dark theme.
     request.ctx.language = "en_US"
 
-    request.ctx.preferences = preferences.UserPreferences(
-        **config.default_user_preferences._asdict()
-    )
+    request.ctx.preferences = preferences.UserPreferences()
 
     request.ctx.preferences = request.ctx.preferences.replace_from_cookie(request)
 
@@ -209,19 +209,6 @@ for route in routes.BLUEPRINTS:
 error_handlers.register(app)
 
 if __name__ == "__main__":
-    run_arguments = {
-        "host": config.deployment.host,
-        "port": config.deployment.port,
-        "dev": config.misc.dev_mode,
-        "access_log": False,
-    }
-
-    # Sanic's fast mode auto-spawns one worker per available CPU core and
-    # cannot be combined with an explicit worker count. When a worker count is
-    # configured, honour it instead.
-    if config.deployment.workers > 1:
-        run_arguments["workers"] = config.deployment.workers
-    else:
-        run_arguments["fast"] = True
-
-    app.run(**run_arguments)
+    # Sanic's fast mode spawns one worker per available CPU core and disables
+    # access logs.
+    app.run(host=HOST, port=PORT, access_log=False, fast=True)

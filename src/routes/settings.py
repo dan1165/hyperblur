@@ -24,7 +24,7 @@ async def settings_post(request):
         },
     )
 
-    response.add_cookie(**request.ctx.preferences.construct_cookie(request))
+    response.add_cookie(**request.ctx.preferences.construct_cookie())
 
     request.ctx.invalid_settings_cookie = False
 
@@ -42,7 +42,7 @@ async def settings_restore(request):
         },
     )
 
-    response.add_cookie(**request.ctx.preferences.construct_cookie(request))
+    response.add_cookie(**request.ctx.preferences.construct_cookie())
 
     request.ctx.invalid_settings_cookie = False
 

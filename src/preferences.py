@@ -4,8 +4,7 @@ import urllib.parse
 
 @dataclasses.dataclass
 class UserPreferences:
-    # See DefaultUserPreferences in config/__init__.py
-    expand_posts: bool
+    expand_posts: bool = True
 
     def replace_from_forms(self, request) -> "UserPreferences":
         """Returns updated UserPreferences from POST form data"""
@@ -44,18 +43,10 @@ class UserPreferences:
         """
         return urllib.parse.urlencode({"expand_posts": "on" if self.expand_posts else "off"})
 
-    def construct_cookie(self, request):
+    def construct_cookie(self):
         """Serializes user preferences into a cookie"""
-        deployment = request.app.ctx.OPENBLUR_CONFIG.deployment
-
-        cookie = {
+        return {
             "key": "settings",
             "value": self.to_url_encoded(),
-            "secure": deployment.https,
             "max_age": 31540000,
         }
-
-        if deployment.domain:
-            cookie["domain"] = deployment.domain
-
-        return cookie
