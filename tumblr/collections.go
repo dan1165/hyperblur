@@ -22,7 +22,7 @@ func ParseTimeline(initialData map[string]any) *Timeline {
 	return &Timeline{
 		Elements:  elements,
 		Signposts: signposts,
-		Next:      parseCursor(target),
+		Next:      cursorFrom(target),
 	}
 }
 
@@ -43,7 +43,7 @@ func ParseBlogTimeline(initialData map[string]any, isSearch bool) *BlogTimeline 
 			BlogInfo:   blogInfo,
 			Posts:      posts,
 			TotalPosts: &totalRawPosts,
-			Next:       parseCursor(initialData),
+			Next:       cursorFrom(initialData),
 		}
 	}
 
@@ -51,7 +51,7 @@ func ParseBlogTimeline(initialData map[string]any, isSearch bool) *BlogTimeline 
 		BlogInfo:   parseBlog(obj(initialData["blog"])),
 		Posts:      posts,
 		TotalPosts: optionalInt(initialData["totalPosts"]),
-		Next:       parseCursor(initialData),
+		Next:       cursorFrom(initialData),
 	}
 }
 
@@ -120,37 +120,17 @@ func noteModel(initialData map[string]any, notes []any, beforeTimestamp, afterID
 	}
 }
 
-func parseCursor(initialData map[string]any) *Cursor {
+func cursorFrom(initialData map[string]any) string {
 	next := obj(digDict(initialData, "links", "next"))
 	if next == nil {
-		return nil
+		return ""
 	}
 	queryParams := obj(next["queryParams"])
 	if queryParams == nil {
-		return nil
+		return ""
 	}
-
-	cursor := str(queryParams["cursor"])
-	if cursor == "" {
-		cursor = str(queryParams["pageNumber"])
+	if cursor := str(queryParams["cursor"]); cursor != "" {
+		return cursor
 	}
-
-	return &Cursor{
-		Cursor:         cursor,
-		Limit:          optionalInt(queryParams["days"]),
-		Days:           optionalInt(queryParams["query"]),
-		Query:          str(queryParams["mode"]),
-		Mode:           str(queryParams["timelineType"]),
-		SkipComponents: str(queryParams["skipComponent"]),
-		ReblogInfo:     optionalBool(queryParams["reblogInfo"]),
-		PostTypeFilter: str(queryParams["postTypeFilter"]),
-	}
-}
-
-func optionalBool(v any) *bool {
-	if v == nil {
-		return nil
-	}
-	b := boolean(v)
-	return &b
+	return str(queryParams["pageNumber"])
 }

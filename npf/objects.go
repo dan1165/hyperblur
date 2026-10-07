@@ -70,15 +70,12 @@ type ListGrouping struct {
 
 // MediaObject is an NPF media object.
 type MediaObject struct {
-	URL                       string
-	Width                     int
-	Height                    int
-	Type                      string
-	OriginalDimensionsMissing bool
-	Cropped                   bool
-	HasOriginalDimensions     bool
-	Poster                    *MediaObject
-	Video                     *MediaObject
+	URL                   string
+	Width                 int
+	Height                int
+	Type                  string
+	Cropped               bool
+	HasOriginalDimensions bool
 }
 
 // AttributionKind discriminates the attribution union.
@@ -95,7 +92,6 @@ const (
 
 // BlogAttribution describes a blog.
 type BlogAttribution struct {
-	UUID   string
 	URL    string
 	Name   string
 	Avatar []MediaObject
@@ -104,14 +100,11 @@ type BlogAttribution struct {
 // Attribution is the parsed attribution for a media block. Kind selects which
 // fields are meaningful.
 type Attribution struct {
-	Kind        AttributionKind
-	URL         string
-	Post        string
-	Blog        BlogAttribution
-	AppName     string
-	DisplayText string
-	Logo        *MediaObject
-	TypeStr     string
+	Kind    AttributionKind
+	URL     string
+	Blog    BlogAttribution
+	AppName string
+	TypeStr string
 }
 
 // ImageBlock is a parsed NPF image content block.
@@ -119,7 +112,6 @@ type ImageBlock struct {
 	Media       []MediaObject
 	AltText     string
 	Caption     string
-	Colors      []string
 	Attribution *Attribution
 }
 
@@ -130,7 +122,6 @@ type LinkBlock struct {
 	Description string
 	Author      string
 	SiteName    string
-	DisplayURL  string
 	Poster      []MediaObject
 }
 
@@ -143,16 +134,15 @@ type EmbedIframe struct {
 
 // AudioBlock is a parsed NPF audio content block.
 type AudioBlock struct {
-	URL         string
-	Provider    string
-	Media       []MediaObject
-	Title       string
-	Artist      string
-	Album       string
-	Poster      []MediaObject
-	EmbedHTML   string
-	EmbedURL    string
-	Attribution *Attribution
+	URL       string
+	Provider  string
+	Media     []MediaObject
+	Title     string
+	Artist    string
+	Album     string
+	Poster    []MediaObject
+	EmbedHTML string
+	EmbedURL  string
 }
 
 // VideoBlock is a parsed NPF video content block.
@@ -164,8 +154,6 @@ type VideoBlock struct {
 	EmbedIframe *EmbedIframe
 	EmbedURL    string
 	Poster      []MediaObject
-	Attribution *Attribution
-	Filmstrip   []MediaObject
 }
 
 // PollResult is a single poll answer's result.
@@ -202,19 +190,9 @@ type Unsupported struct {
 	Type string
 }
 
-// DisplayMode is a layout row display mode.
-type DisplayMode int
-
-const (
-	Weighted DisplayMode = iota
-	Carousel
-	UnsupportedMode
-)
-
 // RowLayout is one row of a "rows" layout.
 type RowLayout struct {
-	Ranges      []int
-	DisplayMode DisplayMode
+	Ranges []int
 }
 
 // Rows is a "rows" layout.

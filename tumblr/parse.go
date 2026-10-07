@@ -75,6 +75,24 @@ func avatarSlice(v any) []Avatar {
 	return out
 }
 
+func avatarMap(v any) map[string]string {
+	out := map[string]string{}
+	switch t := v.(type) {
+	case map[string]any:
+		for key, value := range t {
+			out[key] = str(value)
+		}
+	case []any:
+		for _, item := range t {
+			entry := obj(item)
+			if key := str(entry["width"]); key != "" {
+				out[key] = str(entry["url"])
+			}
+		}
+	}
+	return out
+}
+
 func timeFromUnix(v any) *time.Time {
 	if v == nil {
 		return nil
@@ -105,39 +123,26 @@ func digDict(target map[string]any, keys ...string) any {
 	return cur
 }
 
+func optionalInt(v any) *int {
+	if v == nil {
+		return nil
+	}
+	n := integer(v)
+	return &n
+}
+
 // ---------------------------------------------------------------------------
 // Blog
 // ---------------------------------------------------------------------------
 
-func parseBlogTheme(target map[string]any) BlogTheme {
-	theme := obj(target["theme"])
-	avatarShape := str(theme["avatarShape"])
-
-	if headerImage := str(theme["headerImage"]); headerImage != "" {
-		return BlogTheme{
-			AvatarShape:     avatarShape,
-			BackgroundColor: str(theme["backgroundColor"]),
-			BodyFont:        str(theme["bodyFont"]),
-			HeaderInfo: &HeaderInfo{
-				HeaderImage:        str(theme["headerImage"]),
-				FocusedHeaderImage: str(theme["headerImageFocused"]),
-				ScaledHeaderImage:  str(theme["headerImageScaled"]),
-			},
-		}
-	}
-	return BlogTheme{AvatarShape: avatarShape}
-}
-
 func parseBlog(target map[string]any) *Blog {
+	theme := obj(target["theme"])
 	return &Blog{
 		Name:                  str(target["name"]),
 		Avatar:                avatarSlice(target["avatar"]),
 		Title:                 str(target["title"]),
-		URL:                   str(target["url"]),
-		IsAdult:               boolean(target["isAdult"]),
 		DescriptionNPF:        slice(target["descriptionNpf"]),
-		UUID:                  str(target["uuid"]),
-		Theme:                 parseBlogTheme(target),
+		Banner:                str(theme["headerImageFocused"]),
 		Active:                target["active"] == nil || boolean(target["active"]),
 		RequiresAccountToView: boolean(target["isHiddenFromBlogNetwork"]),
 	}
@@ -148,15 +153,13 @@ func parseLimitedBlog(target map[string]any) *Blog {
 	if v, ok := target["active"]; ok {
 		active = boolean(v)
 	}
+	theme := obj(target["theme"])
 	return &Blog{
 		Name:           str(target["name"]),
 		Avatar:         avatarSlice(target["avatar"]),
 		Title:          str(target["title"]),
-		URL:            str(target["url"]),
-		IsAdult:        boolean(target["isAdult"]),
 		DescriptionNPF: slice(target["descriptionNpf"]),
-		UUID:           str(target["uuid"]),
-		Theme:          parseBlogTheme(target),
+		Banner:         str(theme["headerImageFocused"]),
 		Active:         active,
 	}
 }
@@ -209,21 +212,16 @@ func parseCommunityLabel(initial map[string]any) []CommunityLabel {
 
 func parsePost(target map[string]any) *Post {
 	blog := parseBlog(obj(target["blog"]))
-	postID := str(target["id"])
 
-	noteCount := optionalInt(target["noteCount"])
-	replyCount := optionalInt(target["replyCount"])
-	reblogCount := optionalInt(target["reblogCount"])
-	likeCount := optionalInt(target["likeCount"])
-
+	// Pick the first non-empty note tab, defaulting to replies.
 	defaultTab := "replies"
 	for _, tab := range []struct {
 		name  string
 		count *int
 	}{
-		{"replies", replyCount},
-		{"reblogs", reblogCount},
-		{"likes", likeCount},
+		{"replies", optionalInt(target["replyCount"])},
+		{"reblogs", optionalInt(target["reblogCount"])},
+		{"likes", optionalInt(target["likeCount"])},
 	} {
 		if tab.count != nil && *tab.count > 0 {
 			defaultTab = tab.name
@@ -244,8 +242,7 @@ func parsePost(target map[string]any) *Post {
 		if rawBlog, ok := trailPost["blog"]; ok && rawBlog != nil {
 			trailBlog = parseBlog(obj(rawBlog))
 		} else {
-			broken := obj(trailPost["brokenBlog"])
-			brokenBlog = &BrokenBlog{Name: str(broken["name"]), Avatar: avatarSlice(broken["avatar"])}
+			brokenBlog = &BrokenBlog{Name: str(obj(trailPost["brokenBlog"])["name"])}
 			isBroken = true
 		}
 
@@ -286,35 +283,20 @@ func parsePost(target map[string]any) *Post {
 
 	return &Post{
 		Blog:                 blog,
-		ID:                   postID,
-		IsNSFW:               boolean(target["isNsfw"]),
+		ID:                   str(target["id"]),
 		IsAdvertisement:      isAdvertisement,
-		PostURL:              str(target["postUrl"]),
 		Slug:                 str(target["slug"]),
 		Date:                 timeFromUnix(target["timestamp"]),
 		Tags:                 stringSlice(target["tags"]),
-		Summary:              str(target["summary"]),
 		Content:              slice(target["content"]),
 		Layout:               slice(target["layout"]),
 		Trail:                trails,
-		DisplayAvatar:        boolean(target["displayAvatar"]),
-		NoteCount:            noteCount,
-		ReplyCount:           replyCount,
-		ReblogCount:          reblogCount,
-		LikeCount:            likeCount,
+		NoteCount:            optionalInt(target["noteCount"]),
 		DefaultNoteViewerTab: defaultTab,
 		ReblogFrom:           reblogFrom,
 		ReblogRoot:           reblogRoot,
 		CommunityLabels:      parseCommunityLabel(target),
 	}
-}
-
-func optionalInt(v any) *int {
-	if v == nil {
-		return nil
-	}
-	n := integer(v)
-	return &n
 }
 
 // ---------------------------------------------------------------------------
@@ -355,13 +337,10 @@ func parseSimpleReblogNote(target map[string]any) *ReblogNote {
 		}
 	}
 	blog := &Blog{
-		Name:           str(target["blogName"]),
-		Avatar:         avatars,
-		Title:          str(target["blogTitle"]),
-		UUID:           str(target["blogUuid"]),
-		Theme:          BlogTheme{AvatarShape: str(target["avatarShape"])},
-		Active:         true,
-		DescriptionNPF: nil,
+		Name:   str(target["blogName"]),
+		Avatar: avatars,
+		Title:  str(target["blogTitle"]),
+		Active: true,
 	}
 	return &ReblogNote{
 		UUID:          str(target["blogUuid"]),
@@ -383,24 +362,6 @@ func parseLikeNote(target map[string]any) *LikeNote {
 		Date:      timeFromUnix(target["timestamp"]),
 		Avatar:    avatarMap(target["avatarUrl"]),
 	}
-}
-
-func avatarMap(v any) map[string]string {
-	out := map[string]string{}
-	switch t := v.(type) {
-	case map[string]any:
-		for key, value := range t {
-			out[key] = str(value)
-		}
-	case []any:
-		for _, item := range t {
-			entry := obj(item)
-			if key := str(entry["width"]); key != "" {
-				out[key] = str(entry["url"])
-			}
-		}
-	}
-	return out
 }
 
 func parseSignpost(target map[string]any) *Signpost {

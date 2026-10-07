@@ -70,13 +70,13 @@ func (a *App) handleExplore(w http.ResponseWriter, r *http.Request, target explo
 }
 
 func (a *App) renderNextPagePaging(v *view, data *PageData) {
-	if data.Timeline == nil || data.Timeline.Next == nil {
+	if data.Timeline == nil || data.Timeline.Next == "" {
 		return
 	}
 	v.raw(`<a class="primary next-page button" href="`)
 	v.esc(data.Path)
 	v.raw(`?continuation=`)
-	v.esc(url.QueryEscape(data.Timeline.Next.Cursor))
+	v.esc(url.QueryEscape(data.Timeline.Next))
 	v.raw(`#m">`)
 	v.esc(a.translate("pagination_next_page"))
 	v.raw(`</a>`)
@@ -97,7 +97,7 @@ func (a *App) handleSearchRedirect(w http.ResponseWriter, r *http.Request) {
 func (a *App) handleSearch(w http.ResponseWriter, r *http.Request) {
 	query := unquotePath(r.PathValue("query"))
 	timeFilter := normalizeTimeFilter(r.URL.Query().Get("t"))
-	timeline, err := a.querySearch(r, query, timeFilter, tumblr.TimelinePost, nil, false)
+	timeline, err := a.querySearch(r, query, timeFilter, nil, false)
 	if err != nil {
 		a.fail(w, r, err)
 		return
@@ -108,7 +108,7 @@ func (a *App) handleSearch(w http.ResponseWriter, r *http.Request) {
 func (a *App) handleSearchRecent(w http.ResponseWriter, r *http.Request) {
 	query := unquotePath(r.PathValue("query"))
 	timeFilter := normalizeTimeFilter(r.URL.Query().Get("t"))
-	timeline, err := a.querySearch(r, query, timeFilter, tumblr.TimelinePost, nil, true)
+	timeline, err := a.querySearch(r, query, timeFilter, nil, true)
 	if err != nil {
 		a.fail(w, r, err)
 		return
@@ -142,7 +142,7 @@ func (a *App) searchFilter(w http.ResponseWriter, r *http.Request, latest bool) 
 		return
 	}
 
-	timeline, err := a.querySearch(r, query, timeFilter, tumblr.TimelinePost, &filter, latest)
+	timeline, err := a.querySearch(r, query, timeFilter, &filter, latest)
 	if err != nil {
 		a.fail(w, r, err)
 		return
@@ -156,7 +156,7 @@ func (a *App) searchFilter(w http.ResponseWriter, r *http.Request, latest bool) 
 	a.renderSearch(w, r, timeline, query, sortBy, displayFilter, timeFilter)
 }
 
-func (a *App) querySearch(r *http.Request, query, timeFilter string, timelineType tumblr.TimelineType, filter *tumblr.PostTypeFilter, latest bool) (*tumblr.Timeline, error) {
+func (a *App) querySearch(r *http.Request, query, timeFilter string, filter *tumblr.PostTypeFilter, latest bool) (*tumblr.Timeline, error) {
 	continuation := unquoteQuery(r.URL.Query().Get("continuation"))
 	days, _ := strconv.Atoi(timeFilter)
 
@@ -165,7 +165,7 @@ func (a *App) querySearch(r *http.Request, query, timeFilter string, timelineTyp
 		postFilter = *filter
 	}
 
-	raw, err := a.API.TimelineSearch(query, timelineType, continuation, latest, days, postFilter)
+	raw, err := a.API.TimelineSearch(query, continuation, latest, days, postFilter)
 	if err != nil {
 		return nil, err
 	}
@@ -250,7 +250,7 @@ func (a *App) handleBlogIndex(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	timeline, err := a.getBlogPosts(blog, "", "", "", "", strconv.Itoa((page-1)*postsPerPage), strconv.Itoa(postsPerPage))
+	timeline, err := a.getBlogPosts(blog, "", "", strconv.Itoa((page-1)*postsPerPage), strconv.Itoa(postsPerPage))
 	if err != nil {
 		a.fail(w, r, err)
 		return
@@ -301,7 +301,7 @@ func (a *App) handleBlogTags(w http.ResponseWriter, r *http.Request) {
 	}
 	continuation := unquoteQuery(r.URL.Query().Get("continuation"))
 
-	timeline, err := a.getBlogPosts(blog, continuation, tag, "", "", "", "")
+	timeline, err := a.getBlogPosts(blog, continuation, tag, "", "")
 	if err != nil {
 		a.fail(w, r, err)
 		return
@@ -328,7 +328,7 @@ func (a *App) handleBlogSearch(w http.ResponseWriter, r *http.Request) {
 	}
 	continuation := unquoteQuery(r.URL.Query().Get("continuation"))
 
-	raw, err := a.API.BlogSearch(blog, query, continuation, false, false, "")
+	raw, err := a.API.BlogSearch(blog, query, continuation)
 	if err != nil {
 		a.fail(w, r, err)
 		return
@@ -336,7 +336,7 @@ func (a *App) handleBlogSearch(w http.ResponseWriter, r *http.Request) {
 	timeline := tumblr.ParseBlogTimeline(responseOf(raw), true)
 	if timeline == nil || timeline.BlogInfo == nil {
 		// No results: fall back to the blog's own info with an empty post list.
-		fallback, ferr := a.getBlogPosts(blog, "", "", "", "", "", "")
+		fallback, ferr := a.getBlogPosts(blog, "", "", "", "")
 		if ferr != nil {
 			a.fail(w, r, ferr)
 			return
@@ -400,7 +400,6 @@ func (a *App) serveBlogPost(w http.ResponseWriter, r *http.Request, slug string)
 		data.Title = post.Blog.Name
 	}
 	data.Blog = timeline
-	data.Post = post
 	data.PostURL = strings.TrimPrefix(r.URL.Path, "/")
 	data.BlogTagName = post.Blog.Name
 	data.RequestPollData = truthyQuery(r.URL.Query().Get("fetch_polls"))
@@ -536,11 +535,11 @@ func (a *App) renderBlogPage(w http.ResponseWriter, r *http.Request, br blogRend
 
 		if len(br.pageNumbers) > 1 {
 			a.renderNumberedPaging(v, data)
-		} else if br.timeline.Next != nil {
+		} else if br.timeline.Next != "" {
 			v.raw(`<div class="paging"><a class="primary next-page button" href="`)
 			v.esc(r.URL.Path)
 			v.raw(`?continuation=`)
-			v.esc(url.QueryEscape(br.timeline.Next.Cursor))
+			v.esc(url.QueryEscape(br.timeline.Next))
 			v.raw(`#m">`)
 			v.esc(a.translate("pagination_next_page"))
 			v.raw(`</a></div>`)
@@ -693,8 +692,8 @@ func responseOf(raw map[string]any) map[string]any {
 	return response
 }
 
-func (a *App) getBlogPosts(blog, continuation, tag, postType, beforeID, offset, limit string) (*tumblr.BlogTimeline, error) {
-	raw, err := a.API.BlogPosts(blog, continuation, tag, postType, beforeID, offset, limit)
+func (a *App) getBlogPosts(blog, continuation, tag, offset, limit string) (*tumblr.BlogTimeline, error) {
+	raw, err := a.API.BlogPosts(blog, continuation, tag, offset, limit)
 	if err != nil {
 		return nil, err
 	}

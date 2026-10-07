@@ -130,10 +130,10 @@ func (a *App) renderTaggedControlBar(v *view, data *PageData) {
 }
 
 func (a *App) renderSearchPaging(v *view, data *PageData) {
-	if data.Timeline == nil || data.Timeline.Next == nil {
+	if data.Timeline == nil || data.Timeline.Next == "" {
 		return
 	}
-	href := htmlEscape(data.Path) + addQuery(updateQuery(data.QueryArgs, "continuation", data.Timeline.Next.Cursor))
+	href := htmlEscape(data.Path) + addQuery(updateQuery(data.QueryArgs, "continuation", data.Timeline.Next))
 	v.raw(`<a class="primary next-page button" href="`)
 	v.raw(href)
 	v.raw(`#m">`)

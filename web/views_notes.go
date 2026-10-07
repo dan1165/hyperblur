@@ -124,13 +124,13 @@ func (a *App) renderReplyNote(v *view, data *PageData, note *tumblr.ReplyNote) {
 		v.raw(`<a href="/`)
 		v.esc(blog.Name)
 		v.raw(`"><img class="avatar" alt="`)
-		v.esc(data.translate("blog_avatar_alt"))
+		v.esc(a.translate("blog_avatar_alt"))
 		v.raw(`" loading="lazy" src="`)
 		v.esc(helpers.URLHandler(blog.AvatarURL()))
 		v.raw(`"></a>`)
 	} else {
 		v.raw(`<img class="avatar" alt="`)
-		v.esc(data.translate("blog_avatar_alt"))
+		v.esc(a.translate("blog_avatar_alt"))
 		v.raw(`" loading="lazy" src="/assets/images/anon_96px.png">`)
 	}
 

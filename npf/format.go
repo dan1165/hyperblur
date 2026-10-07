@@ -497,7 +497,6 @@ func (f *Formatter) audiovisualFallback(aURL string, media, poster []MediaObject
 		Description: description,
 		Poster:      poster,
 		SiteName:    site,
-		DisplayURL:  aURL,
 	})
 }
 

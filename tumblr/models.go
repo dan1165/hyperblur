@@ -10,31 +10,13 @@ type Avatar struct {
 	Height int    `json:"height"`
 }
 
-// HeaderInfo holds a blog's header images.
-type HeaderInfo struct {
-	HeaderImage        string
-	FocusedHeaderImage string
-	ScaledHeaderImage  string
-}
-
-// BlogTheme holds a blog's theming information.
-type BlogTheme struct {
-	AvatarShape     string
-	BackgroundColor string
-	BodyFont        string
-	HeaderInfo      *HeaderInfo
-}
-
 // Blog is a Tumblr blog.
 type Blog struct {
 	Name                  string
 	Avatar                []Avatar
 	Title                 string
-	URL                   string
-	IsAdult               bool
 	DescriptionNPF        []any
-	UUID                  string
-	Theme                 BlogTheme
+	Banner                string // focused header image
 	Active                bool
 	RequiresAccountToView bool
 }
@@ -49,8 +31,7 @@ func (b *Blog) AvatarURL() string {
 
 // BrokenBlog is a blog that Tumblr no longer returns details for.
 type BrokenBlog struct {
-	Name   string
-	Avatar []Avatar
+	Name string
 }
 
 // Signpost is an advisory card shown inside a timeline.
@@ -102,25 +83,18 @@ func (t PostTrail) BlogName() string {
 type Post struct {
 	Blog *Blog
 
-	ID            string
-	PostURL       string
-	Slug          string
-	Date          *time.Time
-	Tags          []string
-	Summary       string
-	DisplayAvatar bool
+	ID   string
+	Slug string
+	Date *time.Time
+	Tags []string
 
 	IsAdvertisement bool
-	IsNSFW          bool
 
 	Content []any
 	Layout  []any
 	Trail   []PostTrail
 
-	NoteCount   *int
-	LikeCount   *int
-	ReblogCount *int
-	ReplyCount  *int
+	NoteCount *int
 
 	DefaultNoteViewerTab string
 
@@ -166,26 +140,13 @@ type LikeNote struct {
 	Avatar map[string]string
 }
 
-// Cursor is Tumblr's "next" object. The field mapping intentionally mirrors
-// openblur's extractor, including its (buggy) offset assignments.
-type Cursor struct {
-	Cursor         string
-	Limit          *int
-	Days           *int
-	Query          string
-	Mode           string
-	TimelineType   string
-	SkipComponents string
-	ReblogInfo     *bool
-	PostTypeFilter string
-}
-
-// BlogTimeline is a blog page.
+// BlogTimeline is a blog page. Next is a continuation cursor, empty when there
+// is no next page.
 type BlogTimeline struct {
 	BlogInfo   *Blog
 	Posts      []*Post
 	TotalPosts *int
-	Next       *Cursor
+	Next       string
 }
 
 // NoteTimeline is a page of post notes.
@@ -205,5 +166,5 @@ type NoteTimeline struct {
 type Timeline struct {
 	Elements  []any
 	Signposts []Signpost
-	Next      *Cursor
+	Next      string
 }

@@ -5,7 +5,6 @@ import "strings"
 
 // Strings maps message ids to their English text.
 var Strings = map[string]string{
-	"project_title":                                                      "openblur",
 	"page_title_suffix":                                                  "- openblur",
 	"search_bar_placeholder_text":                                        "Search",
 	"navbar_today_on_tumblr_icon_title":                                  "Today on Tumblr",
@@ -46,11 +45,7 @@ var Strings = map[string]string{
 	"tumblr_error_blog_not_found_error_heading":                          "Unable to find the requested blog",
 	"tumblr_error_blog_not_found_error_description":                      "The blog may have been deleted or just never existed in the first place",
 	"tumblr_error_blog_requires_password_error_heading":                  "This blog requires a password to access",
-	"tumblr_error_ratelimit_reached_heading":                             "openblur has been ratelimited by Tumblr",
-	"tumblr_error_ratelimit_reached_description":                         "Please try again later",
 	"openblur_error_page_title":                                          "Error",
-	"openblur_error_request_to_tumblr_timed_out_heading":                 "Error: Request to Tumblr timed out",
-	"openblur_error_request_to_tumblr_timed_out_description":             "openblur was unable to complete the request to Tumblr before timing out",
 	"openblur_error_invalid_internal_tumblr_redirect":                    "Error: Tumblr HTTP 301 redirect points to foreign URL",
 	"openblur_error_generic":                                             "An unknown exception has occured!",
 	"openblur_error_generic_description":                                 "It looks like you have found a bug in openblur.",
@@ -69,18 +64,9 @@ var Strings = map[string]string{
 	"blog_banner_alt":                                                    "Blog banner",
 	"blog_avatar_alt":                                                    "Blog avatar",
 	"settings_header":                                                    "Settings",
-	"settings_language_selector":                                         "Language",
-	"settings_language_selector_desc":                                    "Select which language you'd like openblur to use",
-	"settings_theme_selector":                                            "Theme",
-	"settings_theme_selector_desc":                                       "Select your display theme",
-	"settings_theme_selector_option_auto":                                "Auto",
-	"settings_theme_selector_option_light":                               "Light",
-	"settings_theme_selector_option_dark":                                "Dark",
 	"settings_save_changes":                                              "Save Changes",
 	"settings_cancel_changes":                                            "Cancel",
 	"settings_copy_as_bookmarklet":                                       "Copy as bookmarklet",
-	"settings_copy_as_bookmarklet_confirmed":                             "Copied",
-	"settings_copy_as_bookmarklet_failed":                                "Unable to copy",
 	"post_note_viewer_view_replies_tab_title":                            "Replies",
 	"post_note_viewer_view_reblogs_tab_title":                            "Reblogs",
 	"post_note_viewer_view_likes_tab_title":                              "Likes",
@@ -163,9 +149,4 @@ func Translate(id string, number *int, substitution map[string]string) string {
 		text = strings.ReplaceAll(text, "{"+k+"}", v)
 	}
 	return text
-}
-
-// Conv is a convenience for template code: T(id, subst...).
-func T(id string, substitution map[string]string) string {
-	return Translate(id, nil, substitution)
 }

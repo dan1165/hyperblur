@@ -36,8 +36,8 @@ func TestParseBlogTimeline(t *testing.T) {
 	}
 
 	post := timeline.Posts[0]
-	if post.ID == "" || post.PostURL == "" {
-		t.Errorf("post missing id/url: %+v", post)
+	if post.ID == "" {
+		t.Errorf("post missing id: %+v", post)
 	}
 	if len(post.Content) == 0 {
 		t.Errorf("post content not parsed")

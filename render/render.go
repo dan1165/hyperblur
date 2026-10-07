@@ -30,8 +30,6 @@ type Params struct {
 	// BlogName and PostID are used for the poll no-JS fallback link.
 	BlogName string
 	PostID   string
-	// URLHandler rewrites URLs; defaults to helpers.URLHandler.
-	URLHandler func(string) string
 	// PollCallback fetches poll results.
 	PollCallback npf.PollCallback
 }
@@ -39,13 +37,8 @@ type Params struct {
 // FormatNPF renders NPF content to openblur HTML. It returns a RenderError and
 // an error placeholder body when rendering fails, or nil and the post body.
 func FormatNPF(content, layout []any, p Params) (*RenderError, string) {
-	urlHandler := p.URLHandler
-	if urlHandler == nil {
-		urlHandler = helpers.URLHandler
-	}
-
 	opts := npf.Options{
-		URLHandler:            urlHandler,
+		URLHandler:            helpers.URLHandler,
 		Localizer:             Localizer{},
 		ForbidExternalIframes: true,
 		Truncate:              !p.ExpandPosts,

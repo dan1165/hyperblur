@@ -41,15 +41,6 @@ const (
 	FilterPoll   PostTypeFilter = "poll"
 )
 
-// TimelineType selects the kind of search timeline.
-type TimelineType string
-
-const (
-	TimelineTag  TimelineType = "tag"
-	TimelineBlog TimelineType = "blog"
-	TimelinePost TimelineType = "post"
-)
-
 // ReblogNoteTypes selects the reblog note viewer filter.
 type ReblogNoteTypes string
 
@@ -267,24 +258,19 @@ func (a *API) ExplorePost(postType ExplorePostType, continuation string) (map[st
 }
 
 // TimelineSearch requests /timeline/search.
-func (a *API) TimelineSearch(query string, timelineType TimelineType, continuation string, latest bool, days int, postTypeFilter PostTypeFilter) (map[string]any, error) {
+func (a *API) TimelineSearch(query, continuation string, latest bool, days int, postTypeFilter PostTypeFilter) (map[string]any, error) {
 	mode := "top"
 	if latest {
 		mode = "recent"
 	}
 	params := url.Values{
-		"limit":       {"20"},
-		"days":        {fmt.Sprint(days)},
-		"query":       {query},
-		"mode":        {mode},
-		"reblog_info": {"true"},
-	}
-
-	if timelineType == TimelinePost {
-		params.Set("timeline_type", "post")
-		params.Set("skip_component", "related_tags,blog_search")
-	} else {
-		params.Set("timeline_type", string(timelineType))
+		"limit":          {"20"},
+		"days":           {fmt.Sprint(days)},
+		"query":          {query},
+		"mode":           {mode},
+		"reblog_info":    {"true"},
+		"timeline_type":  {"post"},
+		"skip_component": {"related_tags,blog_search"},
 	}
 
 	if postTypeFilter != "" {
@@ -319,7 +305,7 @@ func (a *API) HubsTimeline(tag string, continuation string, latest bool) (map[st
 }
 
 // BlogPosts requests /blog/<name>/posts.
-func (a *API) BlogPosts(blogName, continuation, tag, postType, beforeID, offset, limit string) (map[string]any, error) {
+func (a *API) BlogPosts(blogName, continuation, tag, offset, limit string) (map[string]any, error) {
 	params := url.Values{
 		"fields[blogs]":        {BlogPostsBlogInfoFields},
 		"npf":                  {"true"},
@@ -328,12 +314,6 @@ func (a *API) BlogPosts(blogName, continuation, tag, postType, beforeID, offset,
 	}
 	if tag != "" {
 		params.Set("tag", tag)
-		if postType != "" {
-			params.Set("post_type", postType)
-		}
-	}
-	if beforeID != "" {
-		params.Set("before_id", beforeID)
 	}
 	if offset != "" {
 		params.Set("offset", offset)
@@ -349,23 +329,13 @@ func (a *API) BlogPosts(blogName, continuation, tag, postType, beforeID, offset,
 }
 
 // BlogSearch requests /blog/<name>/search/<query>.
-func (a *API) BlogSearch(blogName, query, continuation string, top, originalPosts bool, postType string) (map[string]any, error) {
+func (a *API) BlogSearch(blogName, query, continuation string) (map[string]any, error) {
 	escapedBlog := url.PathEscape(blogName)
 	params := url.Values{
 		"reblog_info":   {"true"},
 		"fields[blogs]": {ExploreBlogInfoFields},
 		"npf":           {"true"},
-	}
-	if postType != "" {
-		params.Set("post_type", postType)
-	}
-	if originalPosts {
-		params.Set("post_role", "ORIGINAL")
-	}
-	if top {
-		params.Set("sort", "POPULARITY_DESC")
-	} else {
-		params.Set("sort", "CREATED_DESC")
+		"sort":          {"CREATED_DESC"},
 	}
 	if continuation != "" {
 		params.Set("tumblelog", blogName)

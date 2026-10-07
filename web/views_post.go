@@ -45,13 +45,13 @@ func (a *App) renderPostHeader(v *view, data *PageData, hd postHeaderData) {
 		v.raw(`<a href="/`)
 		v.esc(hd.Blog.Name)
 		v.raw(`"><img class="avatar" alt="`)
-		v.esc(data.translate("blog_avatar_alt"))
+		v.esc(a.translate("blog_avatar_alt"))
 		v.raw(`" loading="lazy" src="`)
 		v.esc(helpers.URLHandler(hd.Blog.AvatarURL()))
 		v.raw(`"></a>`)
 	} else {
 		v.raw(`<img class="avatar" alt="`)
-		v.esc(data.translate("blog_avatar_alt"))
+		v.esc(a.translate("blog_avatar_alt"))
 		v.raw(`" loading="lazy" src="/assets/images/anon_96px.png">`)
 	}
 
@@ -80,7 +80,7 @@ func (a *App) renderPostHeader(v *view, data *PageData, hd postHeaderData) {
 		v.raw(`<span class="separator">•</span><span class="post-timestamp" title="`)
 		v.esc(FormatDatetime(*hd.Date))
 		v.raw(`"><a href="/`)
-		v.esc(hd.UseThisPostURL)
+		v.esc(hd.postPath())
 		v.raw(`"><time datetime="`)
 		v.esc(hd.Date.Format("2006-01-02T15:04"))
 		v.raw(`">`)
@@ -98,6 +98,33 @@ func (a *App) renderPostHeader(v *view, data *PageData, hd postHeaderData) {
 	}
 
 	v.raw(`</div></div></div>`)
+}
+
+// postPath returns the post's path for the header link, falling back to the
+// blog name and post id when no explicit URL was given (trails, reblog notes).
+func (hd postHeaderData) postPath() string {
+	if hd.UseThisPostURL != "" {
+		return hd.UseThisPostURL
+	}
+	name := hd.blogName()
+	if name == "" && hd.ID == "" {
+		return ""
+	}
+	path := name + "/" + hd.ID
+	if hd.Slug != "" {
+		path += "/" + hd.Slug
+	}
+	return path
+}
+
+func (hd postHeaderData) blogName() string {
+	if hd.Blog != nil {
+		return hd.Blog.Name
+	}
+	if hd.BrokenBlog != nil {
+		return hd.BrokenBlog.Name
+	}
+	return ""
 }
 
 // reblogAttribution renders who the post was reblogged from.

@@ -345,9 +345,7 @@ func (a *App) fail(w http.ResponseWriter, r *http.Request, err error) {
 func (a *App) newPageData(r *http.Request) *PageData {
 	prefs := preferencesFrom(r)
 	return &PageData{
-		Lang:        "en_US",
 		Path:        r.URL.Path,
-		QueryString: r.URL.RawQuery,
 		ExpandPosts: prefs.ExpandPosts,
 	}
 }

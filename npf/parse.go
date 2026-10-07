@@ -188,36 +188,12 @@ func parseMediaBlock(m map[string]any) MediaObject {
 	}
 	mo.Cropped = truthy(get(m, "cropped"))
 
-	odm := get(m, "original_dimensions_missing")
-	if !truthy(odm) {
-		odm = get(m, "originalDimensionsMissing")
-	}
-	mo.OriginalDimensionsMissing = truthy(odm)
-
 	hod := get(m, "has_original_dimensions")
 	if !truthy(hod) {
 		hod = get(m, "hasOriginalDimensions")
 	}
 	mo.HasOriginalDimensions = truthy(hod)
 
-	if pb := get(m, "poster"); pb != nil {
-		if l, ok := pb.([]any); ok && len(l) > 0 {
-			pb = l[0]
-		}
-		if pm, ok := pb.(map[string]any); ok {
-			p := parseMediaBlock(pm)
-			mo.Poster = &p
-		}
-	}
-	if vb := get(m, "video"); vb != nil {
-		if l, ok := vb.([]any); ok && len(l) > 0 {
-			vb = l[0]
-		}
-		if vm, ok := vb.(map[string]any); ok {
-			v := parseMediaBlock(vm)
-			mo.Video = &v
-		}
-	}
 	return mo
 }
 
@@ -225,13 +201,10 @@ func parseAttribution(m map[string]any) Attribution {
 	switch str(get(m, "type")) {
 	case "post":
 		blog := mapOf(get(m, "blog"))
-		post := mapOf(get(m, "post"))
 		return Attribution{
 			Kind: AttrPost,
 			URL:  str(get(m, "url")),
-			Post: str(get(post, "id")),
 			Blog: BlogAttribution{
-				UUID: str(get(blog, "uuid")),
 				URL:  str(get(blog, "url")),
 				Name: str(get(blog, "name")),
 			},
@@ -254,32 +227,19 @@ func parseAttribution(m map[string]any) Attribution {
 			Kind: AttrBlog,
 			URL:  str(get(m, "url")),
 			Blog: BlogAttribution{
-				UUID:   str(get(blog, "uuid")),
 				Name:   str(get(blog, "name")),
 				Avatar: avatars,
 			},
 		}
 	case "app":
-		logo := get(m, "logo")
-		var logoObj *MediaObject
-		if lm, ok := logo.(map[string]any); ok {
-			l := parseMediaBlock(lm)
-			logoObj = &l
-		}
 		name := str(get(m, "app_name"))
 		if name == "" {
 			name = str(get(m, "appName"))
 		}
-		display := str(get(m, "display_text"))
-		if display == "" {
-			display = str(get(m, "displayText"))
-		}
 		return Attribution{
-			Kind:        AttrApp,
-			URL:         str(get(m, "url")),
-			AppName:     name,
-			DisplayText: display,
-			Logo:        logoObj,
+			Kind:    AttrApp,
+			URL:     str(get(m, "url")),
+			AppName: name,
 		}
 	default:
 		return Attribution{Kind: AttrUnsupported, TypeStr: str(get(m, "type"))}
@@ -434,18 +394,6 @@ func (p *Parser) parseImageBlock() *ImageBlock {
 	alt, _ := asString(getOr(p.current, "alt_text", "altText"))
 	caption, _ := asString(get(p.current, "caption"))
 
-	var colors []string
-	if cb, ok := get(p.current, "colors").(map[string]any); ok {
-		keys := make([]string, 0, len(cb))
-		for k := range cb {
-			keys = append(keys, k)
-		}
-		sort.Strings(keys)
-		for _, k := range keys {
-			colors = append(colors, str(cb[k]))
-		}
-	}
-
 	var attr *Attribution
 	if a, ok := get(p.current, "attribution").(map[string]any); ok {
 		parsed := parseAttribution(a)
@@ -456,7 +404,6 @@ func (p *Parser) parseImageBlock() *ImageBlock {
 		Media:       parseMediaObjects(get(p.current, "media")),
 		AltText:     alt,
 		Caption:     caption,
-		Colors:      colors,
 		Attribution: attr,
 	}
 }
@@ -470,11 +417,10 @@ func (p *Parser) parseLinkBlock() *LinkBlock {
 	block.Description, _ = asString(get(p.current, "description"))
 	block.Author, _ = asString(get(p.current, "author"))
 	block.SiteName, _ = asString(getOr(p.current, "siteName", "site_name"))
-	block.DisplayURL, _ = asString(getOr(p.current, "displayUrl", "display_url"))
 	return block
 }
 
-func (p *Parser) fetchAudiovisual() (string, string, []MediaObject, []MediaObject, string, string, *EmbedIframe, *Attribution) {
+func (p *Parser) fetchAudiovisual() (string, string, []MediaObject, []MediaObject, string, string, *EmbedIframe) {
 	url := str(get(p.current, "url"))
 	provider := str(get(p.current, "provider"))
 	media := parseMediaObjects(get(p.current, "media"))
@@ -496,17 +442,11 @@ func (p *Parser) fetchAudiovisual() (string, string, []MediaObject, []MediaObjec
 
 	poster := parseMediaObjects(get(p.current, "poster"))
 
-	var attr *Attribution
-	if a, ok := get(p.current, "attribution").(map[string]any); ok {
-		parsed := parseAttribution(a)
-		attr = &parsed
-	}
-
-	return url, provider, media, poster, embedHTML, embedURL, embedIframe, attr
+	return url, provider, media, poster, embedHTML, embedURL, embedIframe
 }
 
 func (p *Parser) parseVideoBlock() *VideoBlock {
-	url, provider, media, poster, embedHTML, embedURL, embedIframe, attr := p.fetchAudiovisual()
+	url, provider, media, poster, embedHTML, embedURL, embedIframe := p.fetchAudiovisual()
 	return &VideoBlock{
 		URL:         url,
 		Provider:    provider,
@@ -515,24 +455,21 @@ func (p *Parser) parseVideoBlock() *VideoBlock {
 		EmbedIframe: embedIframe,
 		EmbedURL:    embedURL,
 		Poster:      poster,
-		Attribution: attr,
-		Filmstrip:   parseMediaObjects(get(p.current, "filmstrip")),
 	}
 }
 
 func (p *Parser) parseAudioBlock() *AudioBlock {
-	url, provider, media, poster, embedHTML, embedURL, _, attr := p.fetchAudiovisual()
+	url, provider, media, poster, embedHTML, embedURL, _ := p.fetchAudiovisual()
 	return &AudioBlock{
-		URL:         url,
-		Provider:    provider,
-		Media:       media,
-		Poster:      poster,
-		EmbedHTML:   embedHTML,
-		EmbedURL:    embedURL,
-		Attribution: attr,
-		Title:       str(get(p.current, "title")),
-		Artist:      str(get(p.current, "artist")),
-		Album:       str(get(p.current, "album")),
+		URL:       url,
+		Provider:  provider,
+		Media:     media,
+		Poster:    poster,
+		EmbedHTML: embedHTML,
+		EmbedURL:  embedURL,
+		Title:     str(get(p.current, "title")),
+		Artist:    str(get(p.current, "artist")),
+		Album:     str(get(p.current, "album")),
 	}
 }
 
@@ -676,15 +613,7 @@ func (p *LayoutParser) Parse() []any {
 				if len(indices) == 0 {
 					continue
 				}
-				mode := Weighted
-				if m, ok := get(row, "mode").(map[string]any); ok {
-					if str(get(m, "type")) == "carousel" {
-						mode = Carousel
-					} else {
-						mode = UnsupportedMode
-					}
-				}
-				rows = append(rows, RowLayout{Ranges: indices, DisplayMode: mode})
+				rows = append(rows, RowLayout{Ranges: indices})
 			}
 			p.result = append(p.result, &Rows{Rows: rows, TruncateAfter: truncateAfter})
 		}
