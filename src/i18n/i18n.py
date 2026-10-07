@@ -23,16 +23,6 @@ class Language:
 
 SUPPORTED_LANGUAGES = [
     "en_US",
-    "cs_CZ",
-    "fr",
-    "ja",
-    "uk",
-    "zh_Hans",
-    "zh_Hant",
-    "es",
-    "nb_NO",
-    "de",
-    "ta",
 ]
 
 SUPPORTED_LANGUAGES.sort()

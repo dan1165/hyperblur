@@ -51,13 +51,8 @@
 # # Controls default user preferences
 # [default_user_preferences]
 #
-#     # User interface theme
-#     # Acceptable values: [auto, light, dark]
-#     theme = "auto"
-#
-#     # User interface language
-#     # For available options see SUPPORTED_LANGUAGES constant in src/helpers/i18n.py
-#     language = "en_US"
+#     # Whether blogger-truncated posts are expanded by default
+#     expand_posts = false
 
 
 # Controls logging behavior

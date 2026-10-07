@@ -21,19 +21,11 @@
 
     <title>{% block title %}{% endblock %} {{translate(request.ctx.language, "page_title_suffix")}} </title>
 </head>
-<body class="
-{%- if request.ctx.preferences.theme =="light"-%}
-    light-theme
-{% elif request.ctx.preferences.theme =="dark"%}
-    dark-theme
-{%- else -%}
-    default-theme
-{%- endif -%}"
->
+<body class="dark-theme">
     <div class="container">
         <nav class="navbar">
             <div class="left-section">
-                <a class="logo" href="/">Priviblur</a>
+                <a class="logo" href="/explore/trending">Priviblur</a>
                 <form class="search-bar" method="get" action="/search" autocomplete="off">
                     {{-search_icon(20, 20)}}
                     {%- if query is defined -%}

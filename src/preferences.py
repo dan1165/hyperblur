@@ -1,32 +1,17 @@
 import dataclasses
 import urllib.parse
 
-from .i18n import SUPPORTED_LANGUAGES
-
 VERSION = 1
 
 
 @dataclasses.dataclass
 class UserPreferences:
     # See DefaultUserPreferences in config/user_preferences.py
-    language: str
-    theme: str
-
     expand_posts: bool
 
     # Tracks major revisions of the settings cookie
     # Only bump in case of breaking changes.
     version: int = 1
-
-    def __post_init__(self):
-        """Validates default user attribute values"""
-        # Silently fallback when the language given is invalid
-        # TODO raise error to the end-user and instance maintainer when necessary
-        if self.language not in SUPPORTED_LANGUAGES:
-            self.language = "en_US"
-
-        if self.theme not in ("auto", "light", "dark"):
-            self.theme = "auto"
 
     def replace_from_forms(self, request) -> "UserPreferences":
         """Returns updated UserPreferences class from POST form data"""
@@ -70,7 +55,6 @@ class UserPreferences:
         # or when an value is invalid.
 
         new_preferences = dataclasses.replace(self, **raw_new_prefs)
-        request.ctx.language = new_preferences.language
 
         return new_preferences
 
@@ -103,8 +87,8 @@ class UserPreferences:
         Example: Convert "on"/"off" strings to Python bools
         """
         for attribute, type_ in self.__annotations__.items():
-            if type_ is bool:
-                fields_dict[attribute] = True if fields_dict[attribute] == "on" else False
+            if type_ is bool and attribute in fields_dict:
+                fields_dict[attribute] = fields_dict[attribute] == "on"
 
     def construct_cookie(self, request):
         """Serializes user preferences into a cookie"""

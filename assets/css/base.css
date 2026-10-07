@@ -1,27 +1,3 @@
-/* https://css-tricks.com/a-dry-approach-to-color-themes-in-css/ */
-
-:root {
-    --ON: initial;
-    --OFF: ;
-}
-
-.default-theme, .light-theme {
-    --light: var(--ON);
-    --dark: var(--OFF);
-}
-
-.dark-theme {
-    --light: var(--OFF);
-    --dark: var(--ON);
-}
-
-/* If user prefers dark, then that's what they'll get */
-@media (prefers-color-scheme: dark) {
-    .default-theme {
-      --light: var(--OFF);
-      --dark: var(--ON);
-    }
-}
 
 /* Color palettes */
 body {
@@ -93,87 +69,85 @@ body {
 
 /* Color definitions */
 body {
-    --color-background: var(--light, var(--color-gray-175)) var(--dark, var(--color-dt-gray-800));
-    --color-top-level-card-bg: var(--light, var(--color-gray-0)) var(--dark, var(--color-dt-gray-600));
-    --color-text: var(--light, var(--color-gray-900)) var(--dark, var(--color-dt-gray-100));
+    --color-background: var(--color-dt-gray-800);
+    --color-top-level-card-bg: var(--color-dt-gray-600);
+    --color-text: var(--color-dt-gray-100);
 
-    --color-nav-bar-icon: var(--light, var(--color-gray-700)) var(--dark, var(--color-dt-gray-200));
-    --color-nav-bar-icon-hover: var(--light, var(--color-gray-200)) var(--dark, var(--color-dt-gray-500));;
-    --color-nav-bar-selected-tab-highlight: var(--light, var(--color-primary-400)) var(--dark, var(--color-primary-600));
-    --color-search-icon-fill: var(--light, var(--color-gray-500)) var(--dark, var(--color-gray-600));
-    --color-search-bar-bg: var(--light, var(--color-gray-150)) var(--dark, var(--color-dt-gray-550));
-    --color-logo: var(--light, var(--color-primary-500)) var(--dark, var(--color-primary-500));
+    --color-nav-bar-icon: var(--color-dt-gray-200);
+    --color-nav-bar-icon-hover: var(--color-dt-gray-500);
+    --color-nav-bar-selected-tab-highlight: var(--color-primary-600);
+    --color-search-icon-fill: var(--color-gray-600);
+    --color-search-bar-bg: var(--color-dt-gray-550);
+    --color-logo: var(--color-primary-500);
 
-    --color-footer-text: var(--light, var(--color-gray-700)) var(--dark, var(--color-dt-gray-250));
+    --color-footer-text: var(--color-dt-gray-250);
 
-    --color-community-label-text: var(--light, var(--color-gray-700)) var(--dark, var(--color-dt-gray-100));
-    --color-community-label-button-text: var(--light, var(--color-gray-600)) var(--dark, var(--color-dt-gray-200));
-    --color-community-label-button-bg: var(--light, var(--color-gray-200)) var(--dark, var(--color-dt-gray-400));
-    --color-community-label-button-highlight: var(--light, var(--color-gray-300)) var(--dark, var(--color-dt-gray-300));
-    --color-community-label-button-hover: var(--light, rgba(0,0,0,0.03)) var(--dark, rgba(255,255,255,0.05));
-    --color-community-label-gradient-1: var(--light, var(--color-gray-0)) var(--dark, hsl(41, 4%, 9%));
-    --color-community-label-gradient-2: var(--light, rgba(255,255,255,0.7)) var(--dark, hsla(0,0%,0%,0.7));
+    --color-community-label-text: var(--color-dt-gray-100);
+    --color-community-label-button-text: var(--color-dt-gray-200);
+    --color-community-label-button-bg: var(--color-dt-gray-400);
+    --color-community-label-button-highlight: var(--color-dt-gray-300);
+    --color-community-label-button-hover: rgba(255,255,255,0.05);
+    --color-community-label-gradient-1: hsl(41, 4%, 9%);
+    --color-community-label-gradient-2: hsla(0,0%,0%,0.7);
 
-    --color-post-blog-name: var(--light, var(--color-gray-800)) var(--dark, var(--color-dt-gray-100));
-    --color-reblog-attribution: var(--light, var(--color-gray-500)) var(--dark, var(--color-dt-gray-250));
-    --color-post-link-block-subtitle: var(--light, var(--color-gray-600)) var(--dark, var(--color-dt-gray-250));
-    --color-post-header-date-separator: var(--light, var(--color-gray-600)) var(--dark, var(--color-dt-gray-250));
+    --color-post-blog-name: var(--color-dt-gray-100);
+    --color-reblog-attribution: var(--color-dt-gray-250);
+    --color-post-link-block-subtitle: var(--color-dt-gray-250);
+    --color-post-header-date-separator: var(--color-dt-gray-250);
 
-    --color-ask-header: var(--light, var(--color-gray-800)) var(--dark, var(--color-dt-gray-225));
-    --color-ask-bg: var(--light, var(--color-gray-200)) var(--dark, var(--color-dt-gray-525));
+    --color-ask-header: var(--color-dt-gray-225);
+    --color-ask-bg: var(--color-dt-gray-525);
 
-    --color-post-img-alt-text-widget-bg: var(--light, var(--color-gray-900)) var(--dark, var(--color-dt-gray-600));
-    --color-post-img-alt-text-widget-text: var(--light, var(--color-gray-100)) var(--dark, var(--color-text));
+    --color-post-img-alt-text-widget-bg: var(--color-dt-gray-600);
+    --color-post-img-alt-text-widget-text: var(--color-text);
 
-    --color-poll-text-color: var(--light, var(--color-gray-800)) var(--dark, var(--color-gray-200));
-    --color-poll-winner-bg: var(--light, var(--color-primary-300)) var(--dark, var(--color-primary-700));
-    --color-poll-proportion-bar-bg: var(--light, var(--color-gray-250)) var(--dark, var(--color-dt-gray-300));
-    --color-poll-choice-bg: var(--light, var(--color-gray-150)) var(--dark, var(--color-dt-gray-500));
+    --color-poll-text-color: var(--color-gray-200);
+    --color-poll-winner-bg: var(--color-primary-700);
+    --color-poll-proportion-bar-bg: var(--color-dt-gray-300);
+    --color-poll-choice-bg: var(--color-dt-gray-500);
 
-    --color-post-reveal-truncated-content-button: var(--light, var(--color-primary-500)) var(--dark, var(--color-primary-650));
-    --color-post-reveal-truncated-content-button-hover: var(--light, var(--color-primary-400)) var(--dark, var(--color-primary-600));
+    --color-post-reveal-truncated-content-button: var(--color-primary-650);
+    --color-post-reveal-truncated-content-button-hover: var(--color-primary-600);
 
-    --color-post-footer: var(--light, var(--color-gray-500)) var(--dark, var(--color-dt-gray-250));
-    --color-post-footer-post-interaction: var(--light, var(--color-gray-500)) var(--dark, var(--color-dt-gray-225));
-    --color-post-tag-bg: var(--light, var(--color-gray-125)) var(--dark, var(--color-dt-gray-575));
-    --color-post-tag-hover: var(--light, var(--color-gray-175)) var(--dark, var(--color-dt-gray-500));
+    --color-post-footer: var(--color-dt-gray-250);
+    --color-post-footer-post-interaction: var(--color-dt-gray-225);
+    --color-post-tag-bg: var(--color-dt-gray-575);
+    --color-post-tag-hover: var(--color-dt-gray-500);
 
-    --color-trail-post-separator: var(--light, var(--color-gray-300)) var(--dark, var(--color-dt-gray-400));
+    --color-trail-post-separator: var(--color-dt-gray-400);
 
-    --color-post-notes-viewer-nav-bar-bg: var(--light, var(--color-gray-150)) var(--dark, var(--color-dt-gray-550));
-    --color-post-notes-viewer-nav-bar-item: var(--light, var(--color-gray-600)) var(--dark, var(--color-dt-gray-250));
-    --color-reblog-note-separator: var(--light, var(--color-gray-100)) var(--dark, var(--color-dt-gray-300));
+    --color-post-notes-viewer-nav-bar-bg: var(--color-dt-gray-550);
+    --color-post-notes-viewer-nav-bar-item: var(--color-dt-gray-250);
+    --color-reblog-note-separator: var(--color-dt-gray-300);
 
-    --color-primary-button-bg: var(--light, var(--color-primary-500)) var(--dark, var(--color-primary-600));
-    --color-primary-button-hover: var(--light, var(--color-primary-600)) var(--dark, var(--color-primary-700));
-    --color-primary-button-text: var(--light, var(--color-primary-100)) var(--dark, var(--color-primary-100));
+    --color-primary-button-bg: var(--color-primary-600);
+    --color-primary-button-hover: var(--color-primary-700);
+    --color-primary-button-text: var(--color-primary-100);
 
-    --color-secondary-button-bg: var(--light, var(--color-gray-200)) var(--dark, var(--color-dt-gray-500));
-    --color-secondary-button-hover: var(--light, var(--color-gray-250)) var(--dark, var(--color-dt-gray-600));
-    --color-button-secondary-text: var(--light, var(--color-gray-800)) var(--dark, var(--color-gray-200));
+    --color-secondary-button-bg: var(--color-dt-gray-500);
+    --color-secondary-button-hover: var(--color-dt-gray-600);
+    --color-button-secondary-text: var(--color-gray-200);
 
-    --color-tertiary-button-color: var(--light, var(--color-gray-900)) var(--dark, var(--color-dt-gray-250));
+    --color-tertiary-button-color: var(--color-dt-gray-250);
     
-    --color-dropdown-menu-bg: var(--light, var(--color-gray-100)) var(--dark, var(--color-dt-gray-550));
-    --color-dropdown-action-select: var(--light, var(--color-gray-250)) var(--dark, var(--color-dt-gray-500));
-    --color-dropdown-action-hover: var(--light, var(--color-gray-250)) var(--dark, var(--color-dt-gray-500));
-    --color-control-bar-action-text: var(--light, var(--color-gray-600)) var(--dark, var(--color-gray-500));
-    --color-dropdown-menu-item-selected: var(--light, var(--color-gray-250)) var(--dark, var(--color-dt-gray-475));
-    --color-dropdown-menu-item-hover: var(--light, var(--color-gray-175)) var(--dark, var(--color-dt-gray-400));
+    --color-dropdown-menu-bg: var(--color-dt-gray-550);
+    --color-dropdown-action-select: var(--color-dt-gray-500);
+    --color-dropdown-action-hover: var(--color-dt-gray-500);
+    --color-control-bar-action-text: var(--color-gray-500);
+    --color-dropdown-menu-item-selected: var(--color-dt-gray-475);
+    --color-dropdown-menu-item-hover: var(--color-dt-gray-400);
 
-    --color-blog-header-blog-name: var(--light, var(--color-gray-500)) var(--dark, var(--color-dt-gray-200));
-    --color-setting-top-heading: var(--light, var(--color-gray-900)) var(--dark, var(--color-dt-gray-100));
-    --color-setting-option-separator: var(--light, var(--color-gray-175)) var(--dark, var(--color-dt-gray-450));
-    --color-setting-option: var(--light, var(--color-gray-900)) var(--dark, var(--color-dt-gray-100));
-    --color-setting-option-desc: var(--light, var(--color-gray-500)) var(--dark, var(--color-dt-gray-250));
-    --color-settings-theme-select-outline: var(--light, var(--color-primary-400)) var(--dark, var(--color-primary-400));
-    --color-settings-dropdown-option-bg: var(--light, var(--color-gray-200)) var(--dark, var(--color-dt-gray-400));
+    --color-blog-header-blog-name: var(--color-dt-gray-200);
+    --color-setting-top-heading: var(--color-dt-gray-100);
+    --color-setting-option-separator: var(--color-dt-gray-450);
+    --color-setting-option: var(--color-dt-gray-100);
+    --color-setting-option-desc: var(--color-dt-gray-250);
 
-    --tumblr-signpost-bg: var(--light, var(--color-gray-125)) var(--dark, var(--color-dt-gray-700));
-    --tumblr-signpost-border: var(--light, var(--color-gray-300)) var(--dark, var(--color-dt-gray-500));
+    --tumblr-signpost-bg: var(--color-dt-gray-700);
+    --tumblr-signpost-border: var(--color-dt-gray-500);
 
-    --color-alert-show-error-details:  var(--light, var(--color-gray-700)) var(--dark, var(--color-dt-gray-250));
-    --color-alert-show-error-details-hover:  var(--light, var(--color-gray-900)) var(--dark, var(--color-dt-gray-250));
+    --color-alert-show-error-details:  var(--color-dt-gray-250);
+    --color-alert-show-error-details-hover:  var(--color-dt-gray-250);
 }
 
 html, body, .container {

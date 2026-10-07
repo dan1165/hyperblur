@@ -5,9 +5,7 @@ class DefaultUserPreferences(NamedTuple):
     """NamedTuple that stores default user Preferences
 
     Attributes:
-        language: user interface language
+        expand_posts: whether to expand truncated posts by default
     """
 
-    language: str = "en_US"
-    theme: str = "auto"
     expand_posts: bool = False
