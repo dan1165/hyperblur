@@ -121,7 +121,7 @@ func (a *App) handleAtLinks(w http.ResponseWriter, r *http.Request) {
 
 	response, err := a.Media.Do(request)
 	if err != nil {
-		a.messageError(w, r, http.StatusBadGateway, a.translate("hyperblur_error_invalid_internal_tumblr_redirect"), "")
+		a.messageError(w, r, http.StatusBadGateway, "Error: Tumblr HTTP 301 redirect points to foreign URL", "")
 		return
 	}
 	defer response.Body.Close()
@@ -132,7 +132,7 @@ func (a *App) handleAtLinks(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	a.messageError(w, r, http.StatusBadGateway, a.translate("hyperblur_error_invalid_internal_tumblr_redirect"), "")
+	a.messageError(w, r, http.StatusBadGateway, "Error: Tumblr HTTP 301 redirect points to foreign URL", "")
 }
 
 func (a *App) streamMedia(w http.ResponseWriter, r *http.Request, origin string, extraHeaders map[string]string, downloadFilename string) {

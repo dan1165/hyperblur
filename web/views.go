@@ -111,7 +111,7 @@ func (a *App) renderPage(data *PageData, center func(v *view)) string {
 	v.raw("<title>")
 	v.esc(data.Title)
 	v.raw(" ")
-	v.esc(a.translate("page_title_suffix"))
+	v.esc("- hyperblur")
 	v.raw(" </title>\n</head>\n")
 	v.raw("<body class=\"dark-theme\">\n")
 	v.raw("<div class=\"container\">\n")
@@ -145,21 +145,21 @@ func (a *App) renderNavbar(v *view, data *PageData) {
 		v.raw(`"`)
 	}
 	v.raw(` placeholder="`)
-	v.esc(a.translate("search_bar_placeholder_text"))
+	v.esc("Search")
 	v.raw(`"></input></form></div><div class="center-section">`)
 	v.raw(`<a class="nav-tab`)
 	if data.Endpoint == "today" {
 		v.raw(` selected-tab`)
 	}
 	v.raw(`" href="/explore/today" title="`)
-	v.esc(a.translate("navbar_today_on_tumblr_icon_title"))
+	v.esc("Today on Tumblr")
 	v.raw(`"><svg xmlns="http://www.w3.org/2000/svg" height="30" viewBox="0 -960 960 960" width="30"><path d="M686.588-120q-47.254 0-80.254-33.055-33-33.056-33-80.278 0-46.667 33.078-80t80.333-33.333q47.255 0 80.255 33.333Q800-280 800-233t-33.078 80q-33.079 33-80.334 33Zm-23.254-273.333v-73.333H710v73.333h-46.666Zm0 393.333v-73.333H710V0h-46.666Zm152.333-329.667-33-33.333L835-415.333l33.333 33-52.666 52.666Zm-278 278L505-84.333 557.334-136 590-104l-52.333 52.333Zm309-158.333v-46.666H920V-210h-73.333Zm-393.333 0v-46.666h73.333V-210h-73.333ZM835.667-51.667l-52-53 32.666-32.666 52.334 52-33 33.666ZM556.334-330 505-381.666 537.667-415l51.666 52-32.999 33ZM186.666-80q-27 0-46.833-19.833T120-146.666v-600.001q0-27 19.833-46.833 19.833-19.834 46.833-19.834h56.667V-880h70v66.666h333.334V-880h70v66.666h56.667q27 0 46.833 19.834Q840-773.667 840-746.667v180H186.666v420.001h166.667V-80H186.666Zm0-553.333h586.668v-113.334H186.666v113.334Zm0 0v-113.334 113.334Z"></path></svg></a>`)
 	v.raw(`<a class="nav-tab`)
 	if data.Endpoint == "trending" {
 		v.raw(` selected-tab`)
 	}
 	v.raw(`" href="/explore/trending" title="`)
-	v.esc(a.translate("navbar_trending_icon_title"))
+	v.esc("Trending")
 	v.raw(`"><svg xmlns="http://www.w3.org/2000/svg" height="30" viewBox="0 -960 960 960" width="30"><path d="m136-240-56-56 296-298 160 160 208-206H640v-80h240v240h-80v-104L536-320 376-480 136-240Z"/></svg></a>`)
 	v.raw(`</div><div class="right-section"></div></nav>`)
 }

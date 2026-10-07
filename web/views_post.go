@@ -43,13 +43,13 @@ func (a *App) renderPostHeader(v *view, data *PageData, hd postHeaderData) {
 		v.raw(`<a href="/`)
 		v.esc(hd.Blog.Name)
 		v.raw(`"><img class="avatar" alt="`)
-		v.esc(a.translate("blog_avatar_alt"))
+		v.esc("Blog avatar")
 		v.raw(`" loading="lazy" src="`)
 		v.esc(helpers.URLHandler(hd.Blog.AvatarURL()))
 		v.raw(`"></a>`)
 	} else {
 		v.raw(`<img class="avatar" alt="`)
-		v.esc(a.translate("blog_avatar_alt"))
+		v.esc("Blog avatar")
 		v.raw(`" loading="lazy" src="/assets/images/anon_96px.png">`)
 	}
 

@@ -274,7 +274,7 @@ func (a *App) writePage(w http.ResponseWriter, status int, html string) {
 
 func (a *App) messageError(w http.ResponseWriter, r *http.Request, status int, heading, description string) {
 	data := a.newPageData(r)
-	data.Title = a.translate("hyperblur_error_page_title")
+	data.Title = "Error"
 	data.InlineStyle = "#hyperblur-error { color: var(--color-text); text-align: center; }"
 	html := a.renderPage(data, func(v *view) {
 		v.raw(`<section id="hyperblur-error"><div><h1 aria-label="Error explanation heading">`)
@@ -293,15 +293,15 @@ func (a *App) genericError(w http.ResponseWriter, r *http.Request, err error) {
 	contextText = fmt.Sprintf("Request: %s %s\n\n%s", r.Method, r.URL.RequestURI(), contextText)
 
 	data := a.newPageData(r)
-	data.Title = a.translate("hyperblur_error_page_title")
+	data.Title = "Error"
 	data.InlineStyle = "#hyperblur-error > div { background-color: var(--color-top-level-card-bg); border-radius: 0; padding: 25px; max-width: 100%; } #hyperblur-error { color: var(--color-text); } #hyperblur-error details { margin-top: 20px; } #hyperblur-error pre { text-wrap: wrap; } #hyperblur-error a { text-decoration: underline; } #error-header { font-size: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }"
 	html := a.renderPage(data, func(v *view) {
 		v.raw(`<section id="hyperblur-error"><div class="card"><div id="error-header"><h2>`)
-		v.esc(a.translate("hyperblur_error_generic"))
+		v.esc("An unknown exception has occured!")
 		v.raw(`</h2><p>`)
-		v.esc(a.translate("hyperblur_error_generic_description"))
+		v.esc("It looks like you have found a bug in hyperblur.")
 		v.raw(`</p><p><a href="https://github.com/dan1165/hyperblur/issues">`)
-		v.esc(a.translate("hyperblur_error_generic_description_2"))
+		v.esc("Please report it here at GitHub")
 		v.raw(`</a></p></div>`)
 		a.renderErrorDetails(v, name, message, contextText, true)
 		v.raw(`</div></section>`)
@@ -326,16 +326,16 @@ func (a *App) handleAPIError(w http.ResponseWriter, r *http.Request, err error) 
 
 	switch apiErr.Kind {
 	case tumblr.ErrLoginRequired:
-		a.messageError(w, r, http.StatusForbidden, a.translate("tumblr_error_blog_login_required_error_heading"), a.translate("tumblr_error_blog_login_required_error_description"))
+		a.messageError(w, r, http.StatusForbidden, "This blog requires an account to view", "Try finding reblogs instead!")
 		return true
 	case tumblr.ErrPasswordRequired:
-		a.messageError(w, r, http.StatusForbidden, a.translate("tumblr_error_blog_requires_password_error_heading"), a.translate("tumblr_error_blog_login_required_error_description"))
+		a.messageError(w, r, http.StatusForbidden, "This blog requires a password to access", "Try finding reblogs instead!")
 		return true
 	case tumblr.ErrRestrictedTag:
-		a.messageError(w, r, http.StatusForbidden, a.translate("tumblr_error_restricted_tag_error_heading"), a.translate("tumblr_error_restricted_tag_description"))
+		a.messageError(w, r, http.StatusForbidden, "This tag has been restricted on Tumblr", "Try performing a search instead")
 		return true
 	case tumblr.ErrBlogNotFound:
-		a.messageError(w, r, http.StatusNotFound, a.translate("tumblr_error_blog_not_found_error_heading"), a.translate("tumblr_error_blog_not_found_error_description"))
+		a.messageError(w, r, http.StatusNotFound, "Unable to find the requested blog", "The blog may have been deleted or just never existed in the first place")
 		return true
 	}
 	return false

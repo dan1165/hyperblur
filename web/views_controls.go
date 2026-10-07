@@ -39,59 +39,59 @@ func (a *App) renderSearchControlBar(v *view, data *PageData) {
 
 	// Sort-by filter.
 	b.WriteString(`<li class="control-bar-action no-js" id="sort-by-filter" title="`)
-	b.WriteString(htmlEscape(a.translate("timeline_search_sort_by_filter_title")))
+	b.WriteString(htmlEscape("Sort by"))
 	b.WriteString(`"><span>`)
-	b.WriteString(htmlEscape(a.translate("timeline_search_sort_by_filter_" + data.SortBy)))
+	b.WriteString(htmlEscape(searchSortLabel(data.SortBy)))
 	b.WriteString(dropdownIcon)
 	b.WriteString(`</span><ul class="control-bar-dropdown-menu">`)
 	if data.PostFilter != "" {
 		filter := urlEscape(data.PostFilter)
-		b.WriteString(searchFilterItem(data.SortBy == "popular", "/search/"+query+"/"+filter+addQuery(deseq(base)), a.translate("timeline_search_sort_by_filter_popular")))
-		b.WriteString(searchFilterItem(data.SortBy == "recent", "/search/"+query+"/recent/"+filter+addQuery(deseq(base)), a.translate("timeline_search_sort_by_filter_recent")))
+		b.WriteString(searchFilterItem(data.SortBy == "popular", "/search/"+query+"/"+filter+addQuery(deseq(base)), "Popular"))
+		b.WriteString(searchFilterItem(data.SortBy == "recent", "/search/"+query+"/recent/"+filter+addQuery(deseq(base)), "Latest"))
 	} else {
-		b.WriteString(searchFilterItem(data.SortBy == "popular", "/search/"+query+addQuery(deseq(base)), a.translate("timeline_search_sort_by_filter_popular")))
-		b.WriteString(searchFilterItem(data.SortBy == "recent", "/search/"+query+"/recent"+addQuery(deseq(base)), a.translate("timeline_search_sort_by_filter_recent")))
+		b.WriteString(searchFilterItem(data.SortBy == "popular", "/search/"+query+addQuery(deseq(base)), "Popular"))
+		b.WriteString(searchFilterItem(data.SortBy == "recent", "/search/"+query+"/recent"+addQuery(deseq(base)), "Latest"))
 	}
 	b.WriteString(`</ul></li>`)
 
 	// Date filter (popular only).
 	if data.SortBy == "popular" {
 		b.WriteString(`<li class="control-bar-action no-js" id="filter-by-date-filter" title="`)
-		b.WriteString(htmlEscape(a.translate("timeline_search_filter_by_date_filter_title")))
+		b.WriteString(htmlEscape("Filter by date"))
 		b.WriteString(`"><span>`)
-		b.WriteString(htmlEscape(a.translate("timeline_search_filter_by_date_filter_" + data.TimeFilter)))
+		b.WriteString(htmlEscape(dateFilterLabel(data.TimeFilter)))
 		b.WriteString(dropdownIcon)
 		b.WriteString(`</span><ul class="control-bar-dropdown-menu">`)
-		b.WriteString(searchFilterItem(data.TimeFilter == "0", htmlEscape(data.Path)+addQuery(removeQuery(base, "t")), a.translate("timeline_search_filter_by_date_filter_0")))
+		b.WriteString(searchFilterItem(data.TimeFilter == "0", htmlEscape(data.Path)+addQuery(removeQuery(base, "t")), "All Time"))
 		for _, time := range []string{"365", "180", "30", "7", "1"} {
-			b.WriteString(searchFilterItem(data.TimeFilter == time, htmlEscape(data.Path)+addQuery(updateQuery(base, "t", time)), a.translate("timeline_search_filter_by_date_filter_"+time)))
+			b.WriteString(searchFilterItem(data.TimeFilter == time, htmlEscape(data.Path)+addQuery(updateQuery(base, "t", time)), dateFilterLabel(time)))
 		}
 		b.WriteString(`</ul></li>`)
 	}
 
 	// Post type filter.
-	selectedLabel := a.translate("timeline_search_post_type_filter_none")
+	selectedLabel := "All Types"
 	if data.PostFilter != "" {
-		selectedLabel = a.translate("timeline_search_post_type_filter_" + data.PostFilter)
+		selectedLabel = postTypeLabel(data.PostFilter)
 	}
 	b.WriteString(`<li class="control-bar-action no-js" id="filter-by-post-type-filter" title="`)
-	b.WriteString(htmlEscape(a.translate("timeline_search_post_type_filter_title")))
+	b.WriteString(htmlEscape("Filter by post type"))
 	b.WriteString(`"><span>`)
 	b.WriteString(htmlEscape(selectedLabel))
 	b.WriteString(dropdownIcon)
 	b.WriteString(`</span><ul class="control-bar-dropdown-menu">`)
 
 	if data.SortBy == "recent" {
-		b.WriteString(searchFilterItem(data.PostFilter == "", "/search/"+query+"/recent"+addQuery(deseq(base)), a.translate("timeline_search_post_type_filter_none")))
+		b.WriteString(searchFilterItem(data.PostFilter == "", "/search/"+query+"/recent"+addQuery(deseq(base)), "All Types"))
 	} else {
-		b.WriteString(searchFilterItem(data.PostFilter == "", "/search/"+query+addQuery(deseq(base)), a.translate("timeline_search_post_type_filter_none")))
+		b.WriteString(searchFilterItem(data.PostFilter == "", "/search/"+query+addQuery(deseq(base)), "All Types"))
 	}
 	for _, postType := range []string{"text", "photo", "gif", "quote", "link", "chat", "audio", "video", "ask", "poll"} {
 		target := "/search/" + query + "/" + urlEscape(postType) + addQuery(deseq(base))
 		if data.SortBy == "recent" {
 			target = "/search/" + query + "/recent/" + urlEscape(postType) + addQuery(deseq(base))
 		}
-		b.WriteString(searchFilterItem(data.PostFilter == postType, target, a.translate("timeline_search_post_type_filter_"+postType)))
+		b.WriteString(searchFilterItem(data.PostFilter == postType, target, postTypeLabel(postType)))
 	}
 	b.WriteString(`</ul></li>`)
 
@@ -106,18 +106,74 @@ func searchFilterItem(selected bool, href, label string) string {
 	return `<li` + class + `><a href="` + href + `">` + htmlEscape(label) + `</a></li>`
 }
 
+func searchSortLabel(sortBy string) string {
+	if sortBy == "recent" {
+		return "Latest"
+	}
+	return "Popular"
+}
+
+func taggedSortLabel(sortBy string) string {
+	if sortBy == "recent" {
+		return "Latest"
+	}
+	return "Top"
+}
+
+func dateFilterLabel(filter string) string {
+	switch filter {
+	case "1":
+		return "Today"
+	case "7":
+		return "Last week"
+	case "30":
+		return "Last month"
+	case "180":
+		return "Last 6 months"
+	case "365":
+		return "Last year"
+	}
+	return "All Time"
+}
+
+func postTypeLabel(postType string) string {
+	switch postType {
+	case "text":
+		return "Text"
+	case "photo":
+		return "Photo"
+	case "gif":
+		return "Gifs"
+	case "quote":
+		return "Quote"
+	case "link":
+		return "Link"
+	case "chat":
+		return "Chat"
+	case "audio":
+		return "Audio"
+	case "video":
+		return "Video"
+	case "ask":
+		return "Ask"
+	case "poll":
+		return "Poll"
+	}
+	return "All Types"
+}
+
 func (a *App) renderTaggedControlBar(v *view, data *PageData) {
 	base := data.QueryArgs
 	tag := urlEscape(data.Tag)
 
 	v.raw(`<li class="control-bar-action no-js" id="sort-by-filter" title="`)
-	v.esc(a.translate("timeline_tagged_sort_by_filter_title"))
+	v.esc("Sort by")
 	v.raw(`"><span>`)
-	v.esc(a.translate("timeline_tagged_sort_by_filter_" + data.SortBy))
+	v.esc(taggedSortLabel(data.SortBy))
 	v.raw(dropdownIcon)
 	v.raw(`</span><ul class="control-bar-dropdown-menu">`)
-	v.raw(searchFilterItem(data.SortBy == "top", "/tagged/"+tag+addQuery(updateQuery(base, "sort", "top")), a.translate("timeline_tagged_sort_by_filter_top")))
-	v.raw(searchFilterItem(data.SortBy == "recent", "/tagged/"+tag+addQuery(updateQuery(base, "sort", "recent")), a.translate("timeline_tagged_sort_by_filter_recent")))
+	v.raw(searchFilterItem(data.SortBy == "top", "/tagged/"+tag+addQuery(updateQuery(base, "sort", "top")), "Top"))
+	v.raw(searchFilterItem(data.SortBy == "recent", "/tagged/"+tag+addQuery(updateQuery(base, "sort", "recent")), "Latest"))
 	v.raw(`</ul></li>`)
 }
 
@@ -129,6 +185,6 @@ func (a *App) renderSearchPaging(v *view, data *PageData) {
 	v.raw(`<a class="primary next-page button" href="`)
 	v.raw(href)
 	v.raw(`#m">`)
-	v.esc(a.translate("pagination_next_page"))
+	v.esc("Next page")
 	v.raw(`</a>`)
 }

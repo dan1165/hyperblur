@@ -40,15 +40,15 @@ func (a *App) handleExplore(w http.ResponseWriter, r *http.Request, target explo
 	switch target {
 	case exploreTrending:
 		raw, err = a.API.ExploreTrending(continuation)
-		data.Title = a.translate("explore_trending_page_title")
+		data.Title = "Trending topics"
 		data.Endpoint = "trending"
 	case exploreToday:
 		raw, err = a.API.ExploreToday(continuation)
-		data.Title = a.translate("explore_today_on_tumblr_page_title")
+		data.Title = "Today on Tumblr"
 		data.Endpoint = "today"
 	default:
 		raw, err = a.API.ExplorePost(postType, continuation)
-		data.Title = a.translate("explore_trending_page_title")
+		data.Title = "Trending topics"
 	}
 	if err != nil {
 		a.fail(w, r, err)
@@ -77,7 +77,7 @@ func (a *App) renderNextPagePaging(v *view, data *PageData) {
 	v.raw(`?continuation=`)
 	v.esc(url.QueryEscape(data.Timeline.Next))
 	v.raw(`#m">`)
-	v.esc(a.translate("pagination_next_page"))
+	v.esc("Next page")
 	v.raw(`</a>`)
 }
 
@@ -407,9 +407,9 @@ func (a *App) serveBlogPost(w http.ResponseWriter, r *http.Request, slug string)
 		a.renderBlogHeader(v, data)
 		if post.Blog.RequiresAccountToView {
 			v.raw(`<div class="alerts"><figure class="alert warning"><figcaption><h4>`)
-			v.esc(a.translate("alert_view_post_on_account_restricted_blog_heading"))
+			v.esc("This blog requires an account to view")
 			v.raw(`</h4><p>`)
-			v.esc(a.translate("alert_view_post_on_account_restricted_blog_message"))
+			v.esc("Only individual posts like this one can be displayed")
 			v.raw(`</p></figcaption></figure></div>`)
 		}
 		v.raw(`<div class="blog-posts">`)
@@ -521,7 +521,7 @@ func (a *App) renderBlogPage(w http.ResponseWriter, r *http.Request, br blogRend
 			v.raw(`"`)
 		}
 		v.raw(` placeholder="`)
-		v.esc(a.translate("blog_search_placeholder_text"))
+		v.esc("Search posts")
 		v.raw(`"></input></form>`)
 
 		v.raw(`<div class="blog-posts">`)
@@ -540,7 +540,7 @@ func (a *App) renderBlogPage(w http.ResponseWriter, r *http.Request, br blogRend
 			v.raw(`?continuation=`)
 			v.esc(url.QueryEscape(br.timeline.Next))
 			v.raw(`#m">`)
-			v.esc(a.translate("pagination_next_page"))
+			v.esc("Next page")
 			v.raw(`</a></div>`)
 		}
 	})
@@ -615,18 +615,18 @@ func (a *App) renderSettings(w http.ResponseWriter, r *http.Request, newPrefs *P
 
 	data := a.newPageData(r)
 	data.ExpandPosts = prefs.ExpandPosts
-	data.Title = a.translate("settings_header")
+	data.Title = "Settings"
 	data.ExtraCSS = []string{"/assets/css/settings.css"}
 
 	html := a.renderPage(data, func(v *view) {
 		v.raw(`<form class="settings" method="post" action="/settings" aria-label="`)
-		v.esc(a.translate("settings_header"))
+		v.esc("Settings")
 		v.raw(`"><div id="setting-heading"><h2>`)
-		v.esc(a.translate("settings_header"))
+		v.esc("Settings")
 		v.raw(`</h2></div><hr><div class="main-tab"><div id="expand-posts-option" aria-describedby="expand-posts-info-box"><div class="option-info-box"><label for="expand-posts-checkbox">`)
-		v.esc(a.translate("settings_expand_blogger_truncated_posts"))
+		v.esc("Expand posts")
 		v.raw(`</label><p id="expand-posts-info-box">`)
-		v.esc(a.translate("settings_expand_blogger_truncated_posts_desc"))
+		v.esc("Expands truncated posts automatically")
 		v.raw(`</p></div><input type="checkbox" id="expand-posts-checkbox" name="expand_posts"`)
 		if prefs.ExpandPosts {
 			v.raw(` checked`)
@@ -636,11 +636,11 @@ func (a *App) renderSettings(w http.ResponseWriter, r *http.Request, newPrefs *P
 		v.raw(`<div id="settings-footer"><div id="copy-as-bookmarklet-container"><a id="copy-as-bookmarklet" href="/settings/restore?`)
 		v.raw(preferencesToURL(prefs))
 		v.raw(`"><svg height="12" width="12" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><path fill="currentColor" d="M579.8 267.7c56.5-56.5 56.5-148 0-204.5c-50-50-128.8-56.5-186.3-15.4l-1.6 1.1c-14.4 10.3-17.7 30.3-7.4 44.6s30.3 17.7 44.6 7.4l1.6-1.1c32.1-22.9 76-19.3 103.8 8.6c31.5 31.5 31.5 82.5 0 114L422.3 334.8c-31.5 31.5-82.5 31.5-114 0c-27.9-27.9-31.5-71.8-8.6-103.8l1.1-1.6c10.3-14.4 6.9-34.4-7.4-44.6s-34.4-6.9-44.6 7.4l-1.1 1.6C206.5 251.2 213 330 263 380c56.5 56.5 148 56.5 204.5 0L579.8 267.7zM60.2 244.3c-56.5 56.5-56.5 148 0 204.5c50 50 128.8 56.5 186.3 15.4l1.6-1.1c14.4-10.3 17.7-30.3 7.4-44.6s-30.3-17.7-44.6-7.4l-1.6 1.1c-32.1 22.9-76 19.3-103.8-8.6C74 372 74 321 105.5 289.5L217.7 177.2c31.5-31.5 82.5-31.5 114 0c27.9 27.9 31.5 71.8 8.6 103.9l-1.1 1.6c-10.3 14.4-6.9 34.4 7.4 44.6s34.4 6.9 44.6-7.4l1.1-1.6C433.5 260.8 427 182 377 132c-56.5-56.5-148-56.5-204.5 0L60.2 244.3z"/></svg><svg style="display: none;" height="12" width="12" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M438.6 105.4c12.5 12.5 12.5 32.8 0 45.3l-256 256c-12.5 12.5-32.8 12.5-45.3 0l-128-128c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0L160 338.7 393.4 105.4c12.5-12.5 32.8-12.5 45.3 0z"/></svg><svg style="display: none;" height="12" width="12" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path fill="currentColor" d="M342.6 150.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 210.7 86.6 105.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L146.7 256 41.4 361.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192 301.3 297.4 406.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.3 256 342.6 150.6z"/></svg><span>`)
-		v.esc(a.translate("settings_copy_as_bookmarklet"))
+		v.esc("Copy as bookmarklet")
 		v.raw(`</span></a></div><div><a href="/settings" class="secondary button">`)
-		v.esc(a.translate("settings_cancel_changes"))
+		v.esc("Cancel")
 		v.raw(`</a><input type="submit" class="primary button" value="`)
-		v.esc(a.translate("settings_save_changes"))
+		v.esc("Save Changes")
 		v.raw(`"/></div></div></form>`)
 	})
 

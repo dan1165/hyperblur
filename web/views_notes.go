@@ -13,9 +13,9 @@ func (a *App) renderNotesViewer(v *view, data *PageData) {
 	}
 
 	v.raw(`<section class="post-notes"><header><ul class="post-notes-nav">`)
-	a.notesTab(v, data, "replies", replyIcon, a.translate("post_note_viewer_view_replies_tab_title"), notes.TotalReplies)
-	a.notesTab(v, data, "reblogs", reblogIcon, a.translate("post_note_viewer_view_reblogs_tab_title"), notes.TotalReblogs)
-	a.notesTab(v, data, "likes", heartIcon, a.translate("post_note_viewer_view_likes_tab_title"), notes.TotalLikes)
+	a.notesTab(v, data, "replies", replyIcon, "Replies", notes.TotalReplies)
+	a.notesTab(v, data, "reblogs", reblogIcon, "Reblogs", notes.TotalReblogs)
+	a.notesTab(v, data, "likes", heartIcon, "Likes", notes.TotalLikes)
 	v.raw(`</ul><ul id="timeline-control-bar">`)
 	a.renderNotesControlBar(v, data)
 	v.raw(`</ul></header><section>`)
@@ -58,13 +58,13 @@ func (a *App) renderNotesControlBar(v *view, data *PageData) {
 	switch data.NoteType {
 	case "replies":
 		v.raw(`<li class="control-bar-action no-js" id="sort-by-filter" title="`)
-		v.esc(a.translate("timeline_search_sort_by_filter_title"))
+		v.esc("Sort by")
 		v.raw(`"><span>`)
-		v.esc(a.translate("dropdown_filter_menu_text"))
+		v.esc("Filter")
 		v.raw(dropdownIcon)
 		v.raw(`</span><ul class="control-bar-dropdown-menu">`)
-		v.raw(searchFilterItem(!data.Latest, "/"+data.PostURL+"?note_viewer=replies", a.translate("post_note_viewer_view_replies_filter_sort_oldest")))
-		v.raw(searchFilterItem(data.Latest, "/"+data.PostURL+"?note_viewer=replies&latest", a.translate("post_note_viewer_view_replies_filter_sort_newest")))
+		v.raw(searchFilterItem(!data.Latest, "/"+data.PostURL+"?note_viewer=replies", "Oldest first"))
+		v.raw(searchFilterItem(data.Latest, "/"+data.PostURL+"?note_viewer=replies&latest", "Newest first"))
 		v.raw(`</ul></li>`)
 	case "reblogs":
 		filter := data.ReblogFilter
@@ -72,14 +72,14 @@ func (a *App) renderNotesControlBar(v *view, data *PageData) {
 			filter = "reblogs_with_comments"
 		}
 		v.raw(`<li class="control-bar-action no-js" id="sort-by-filter" title="`)
-		v.esc(a.translate("timeline_search_sort_by_filter_title"))
+		v.esc("Sort by")
 		v.raw(`"><span>`)
-		v.esc(a.translate("dropdown_filter_menu_text"))
+		v.esc("Filter")
 		v.raw(dropdownIcon)
 		v.raw(`</span><ul class="control-bar-dropdown-menu">`)
-		v.raw(searchFilterItem(filter == "reblogs_with_comments", "/"+data.PostURL+"?note_viewer=reblogs", a.translate("post_note_viewer_view_reblogs_filter_reblogs_with_comments")))
-		v.raw(searchFilterItem(filter == "reblogs_with_content_comments", "/"+data.PostURL+"?note_viewer=reblogs&reblog_filter=reblogs_with_content_comments", a.translate("post_note_viewer_view_reblogs_filter_reblogs_with_content_comments")))
-		v.raw(searchFilterItem(filter == "reblogs_only", "/"+data.PostURL+"?note_viewer=reblogs&reblog_filter=reblogs_only", a.translate("post_note_viewer_view_reblogs_filter_reblogs_only")))
+		v.raw(searchFilterItem(filter == "reblogs_with_comments", "/"+data.PostURL+"?note_viewer=reblogs", "Comments and tags"))
+		v.raw(searchFilterItem(filter == "reblogs_with_content_comments", "/"+data.PostURL+"?note_viewer=reblogs&reblog_filter=reblogs_with_content_comments", "Comments only"))
+		v.raw(searchFilterItem(filter == "reblogs_only", "/"+data.PostURL+"?note_viewer=reblogs&reblog_filter=reblogs_only", "Other reblogs"))
 		v.raw(`</ul></li>`)
 	}
 }
@@ -97,7 +97,7 @@ func (a *App) renderNotesPaging(v *view, data *PageData) {
 			v.raw(`?`)
 			v.raw(htmlEscape(updateQuery(data.QueryArgs, "after", notes.AfterID)))
 			v.raw(`">`)
-			v.esc(a.translate("pagination_next_page"))
+			v.esc("Next page")
 			v.raw(`</a>`)
 		}
 	default:
@@ -107,7 +107,7 @@ func (a *App) renderNotesPaging(v *view, data *PageData) {
 			v.raw(`?`)
 			v.raw(htmlEscape(updateQuery(data.QueryArgs, "before_timestamp", notes.BeforeTimestamp)))
 			v.raw(`">`)
-			v.esc(a.translate("pagination_next_page"))
+			v.esc("Next page")
 			v.raw(`</a>`)
 		}
 	}
@@ -124,13 +124,13 @@ func (a *App) renderReplyNote(v *view, data *PageData, note *tumblr.ReplyNote) {
 		v.raw(`<a href="/`)
 		v.esc(blog.Name)
 		v.raw(`"><img class="avatar" alt="`)
-		v.esc(a.translate("blog_avatar_alt"))
+		v.esc("Blog avatar")
 		v.raw(`" loading="lazy" src="`)
 		v.esc(helpers.URLHandler(blog.AvatarURL()))
 		v.raw(`"></a>`)
 	} else {
 		v.raw(`<img class="avatar" alt="`)
-		v.esc(a.translate("blog_avatar_alt"))
+		v.esc("Blog avatar")
 		v.raw(`" loading="lazy" src="/assets/images/anon_96px.png">`)
 	}
 
