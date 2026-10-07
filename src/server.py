@@ -34,6 +34,13 @@ app = sanic.Sanic(
 )
 app.config.OAS = False
 
+# Performance: uvloop + httptools when installed, no access log or MOTD, and
+# keep-alive so clients reuse the TLS connection.
+app.config.USE_UVLOOP = True
+app.config.ACCESS_LOG = False
+app.config.MOTD = False
+app.config.KEEP_ALIVE_TIMEOUT = 30
+
 app.ctx.LANGUAGES = i18n.initialize_locales()
 
 # Constants

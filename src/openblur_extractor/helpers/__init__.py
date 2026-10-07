@@ -30,4 +30,9 @@ def create_connector() -> aiohttp.TCPConnector:
     context = ssl.create_default_context()
     context.set_alpn_protocols([])
 
-    return aiohttp.TCPConnector(ssl=context)
+    return aiohttp.TCPConnector(
+        ssl=context,
+        limit=200,  # concurrent connections
+        keepalive_timeout=30,  # reuse TLS connections across requests
+        ttl_dns_cache=300,  # cache DNS lookups
+    )
