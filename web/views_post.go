@@ -77,13 +77,13 @@ func (a *App) renderPostHeader(v *view, data *PageData, hd postHeaderData) {
 
 	if hd.Date != nil {
 		v.raw(`<span class="separator">•</span><span class="post-timestamp" title="`)
-		v.esc(FormatDatetime(*hd.Date))
+		v.esc(formatDatetime(*hd.Date))
 		v.raw(`"><a href="/`)
 		v.esc(hd.UseThisPostURL)
 		v.raw(`"><time datetime="`)
 		v.esc(hd.Date.Format("2006-01-02T15:04"))
 		v.raw(`">`)
-		v.esc(FormatDate(*hd.Date))
+		v.esc(formatDate(*hd.Date))
 		v.raw(`</time></a></span>`)
 	}
 

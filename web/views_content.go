@@ -68,6 +68,10 @@ func (a *App) renderPostBody(v *view, data *PageData, post *tumblr.Post) {
 	}
 
 	if len(post.Trail) > 0 && hasContent {
+		postURL := data.PostURL
+		if postURL == "" {
+			postURL = PostPath(post)
+		}
 		v.raw(`<div class="trail-post">`)
 		a.renderPostHeader(v, data, postHeaderData{
 			Blog:           post.Blog,
@@ -75,7 +79,7 @@ func (a *App) renderPostBody(v *view, data *PageData, post *tumblr.Post) {
 			ReblogFrom:     post.ReblogFrom,
 			ReblogRoot:     post.ReblogRoot,
 			SkipReblog:     true,
-			UseThisPostURL: postURLFor(data, post),
+			UseThisPostURL: postURL,
 		})
 		if mainErr != nil {
 			a.logNPFError(post, "post", mainErr)
@@ -95,13 +99,6 @@ func (a *App) renderPostBody(v *view, data *PageData, post *tumblr.Post) {
 		v.raw(`</div>`)
 	}
 	v.raw(`</div>`)
-}
-
-func postURLFor(data *PageData, post *tumblr.Post) string {
-	if data.PostURL != "" {
-		return data.PostURL
-	}
-	return PostPath(post)
 }
 
 func (a *App) renderPostFooter(v *view, data *PageData, post *tumblr.Post, postURL string) {

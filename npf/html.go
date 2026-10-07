@@ -58,19 +58,9 @@ func (n *Node) Prepend(kid *Node) *Node {
 	return n
 }
 
-// ReplaceChild swaps old for repl within the receiver's direct children.
-func (n *Node) ReplaceChild(old, repl *Node) {
-	for i, c := range n.Kids {
-		if c == old {
-			n.Kids[i] = repl
-			return
-		}
-	}
-}
-
-// FindAll returns every descendant element with the given tag name, in
-// depth-first order (matching dominate's getElementsByTagName).
-func (n *Node) FindAll(tag string) []*Node {
+// findAll returns every descendant element with the given tag name, in
+// depth-first order.
+func (n *Node) findAll(tag string) []*Node {
 	var out []*Node
 	var rec func(*Node)
 	rec = func(p *Node) {
@@ -90,7 +80,7 @@ func (n *Node) FindAll(tag string) []*Node {
 
 // Find returns the first descendant with the given tag, or nil.
 func (n *Node) Find(tag string) *Node {
-	if all := n.FindAll(tag); len(all) > 0 {
+	if all := n.findAll(tag); len(all) > 0 {
 		return all[0]
 	}
 	return nil

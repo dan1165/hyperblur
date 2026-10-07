@@ -40,7 +40,7 @@ func (a *App) FormatNPF(content, layout []any, blogName, postID string, fetchPol
 }
 
 func (a *App) pollCallback(blog, postID string) npf.PollCallback {
-	return func(pollID string, _ int64) (*npf.PollResults, error) {
+	return func(pollID string, _ int64) (map[string]npf.PollResult, error) {
 		result, err := a.API.PollResults(blog, postID, pollID)
 		if err != nil {
 			return nil, err
@@ -52,7 +52,7 @@ func (a *App) pollCallback(blog, postID string) npf.PollCallback {
 				results[id] = npf.PollResult{VoteCount: int(toFloat(count))}
 			}
 		}
-		return &npf.PollResults{Timestamp: int64(toFloat(response["timestamp"])), Results: results}, nil
+		return results, nil
 	}
 }
 

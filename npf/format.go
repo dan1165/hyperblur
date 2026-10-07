@@ -18,9 +18,8 @@ type Formatter struct {
 	content []any
 	layout  []any
 
-	localizer             Localizer
-	urlHandler            func(string) string
-	forbidExternalIframes bool
+	localizer  Localizer
+	urlHandler func(string) string
 
 	idx                   int
 	current               any
@@ -266,30 +265,8 @@ func (f *Formatter) formatVideo(block *VideoBlock) *Node {
 		}
 	}
 
-	if video == nil && !f.forbidExternalIframes {
-		if block.EmbedIframe != nil {
-			width := block.EmbedIframe.Width
-			height := block.EmbedIframe.Height
-			if block.Provider == "youtube" {
-				height = 300
-			}
-			iframe := El("iframe",
-				"src", block.EmbedIframe.URL,
-				"width", strconv.Itoa(width),
-				"height", strconv.Itoa(height),
-				"scrolling", "no",
-				"frameborder", "0")
-			if block.Provider != "" {
-				iframe.SetAttr("title", block.Provider)
-			}
-			video = iframe
-		} else if block.EmbedHTML != "" {
-			video = RawHTML(block.EmbedHTML)
-		}
-	}
-
 	if video == nil {
-		if f.forbidExternalIframes && (block.EmbedHTML != "" || block.EmbedURL != "" || block.EmbedIframe != nil) {
+		if block.EmbedHTML != "" || block.EmbedURL != "" || block.EmbedIframe != nil {
 			return f.audiovisualFallback(
 				block.URL, block.Media, block.Poster, block.Provider,
 				f.localizer.Translate("link_block_fallback_embeds_are_disabled", nil),
@@ -373,16 +350,8 @@ func (f *Formatter) formatAudio(block *AudioBlock) *Node {
 		audio = container
 	}
 
-	if audio == nil && !f.forbidExternalIframes {
-		if block.EmbedHTML != "" {
-			audio = RawHTML(block.EmbedHTML)
-		} else if block.EmbedURL != "" {
-			audio = El("iframe", "src", block.EmbedURL, "scrolling", "no", "frameborder", "0")
-		}
-	}
-
 	if audio == nil {
-		if f.forbidExternalIframes && (block.EmbedHTML != "" || block.EmbedURL != "") {
+		if block.EmbedHTML != "" || block.EmbedURL != "" {
 			return f.audiovisualFallback(
 				block.URL, block.Media, block.Poster, block.Provider,
 				f.localizer.Translate("link_block_fallback_embeds_are_disabled", nil),
@@ -411,7 +380,7 @@ func (f *Formatter) formatPoll(block *PollBlock) *Node {
 		choice.Add(El("h4", "class", "answer").Add(Txt(answer.Text)))
 
 		if block.Votes != nil {
-			result := block.Votes.Results[answer.ID]
+			result := block.Votes[answer.ID]
 			if result.IsWinner {
 				choice.SetAttr("class", choice.Attrs["class"]+" poll-winner")
 			}

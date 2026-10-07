@@ -9,7 +9,7 @@ import (
 
 // PollCallback fetches results for a poll. endTimestamp is the poll's
 // expiration time (creation + expires_after).
-type PollCallback func(pollID string, endTimestamp int64) (*PollResults, error)
+type PollCallback func(pollID string, endTimestamp int64) (map[string]PollResult, error)
 
 // ---------------------------------------------------------------------------
 // JSON value helpers
@@ -259,8 +259,8 @@ type Parser struct {
 	pollCallback PollCallback
 }
 
-// NewParser builds a parser over raw NPF content blocks.
-func NewParser(content []any, cb PollCallback) *Parser {
+// newParser builds a parser over raw NPF content blocks.
+func newParser(content []any, cb PollCallback) *Parser {
 	blocks := make([]map[string]any, 0, len(content))
 	for _, c := range content {
 		if m, ok := c.(map[string]any); ok {
@@ -495,31 +495,29 @@ func (p *Parser) parsePollBlock() (*PollBlock, error) {
 	settings := mapOf(get(p.current, "settings"))
 	expiresAfter, _ := asInt64(get(settings, "expireAfter"))
 
-	var votes *PollResults
+	var votes map[string]PollResult
 	totalVotes := 0
 	if p.pollCallback != nil {
 		results, err := p.pollCallback(str(pollID), creation+expiresAfter)
 		if err != nil {
 			return nil, err
 		}
-		votes = results
 		if results != nil {
 			type pair struct {
 				id    string
 				count int
 			}
-			pairs := make([]pair, 0, len(results.Results))
-			for id, r := range results.Results {
+			pairs := make([]pair, 0, len(results))
+			for id, r := range results {
 				pairs = append(pairs, pair{id, r.VoteCount})
 			}
 			sort.SliceStable(pairs, func(i, j int) bool { return pairs[i].count > pairs[j].count })
 
-			out := map[string]PollResult{}
+			votes = map[string]PollResult{}
 			for i, pr := range pairs {
 				totalVotes += pr.count
-				out[pr.id] = PollResult{IsWinner: i == 0, VoteCount: pr.count}
+				votes[pr.id] = PollResult{IsWinner: i == 0, VoteCount: pr.count}
 			}
-			votes.Results = out
 		}
 	}
 
@@ -547,8 +545,8 @@ type LayoutParser struct {
 	result     []any
 }
 
-// NewLayoutParser builds a parser over raw layout blocks.
-func NewLayoutParser(layouts []any) *LayoutParser {
+// newLayoutParser builds a parser over raw layout blocks.
+func newLayoutParser(layouts []any) *LayoutParser {
 	blocks := make([]map[string]any, 0, len(layouts))
 	for _, l := range layouts {
 		if m, ok := l.(map[string]any); ok {

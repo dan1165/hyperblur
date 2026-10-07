@@ -98,8 +98,6 @@ func routeInlineFormat(m map[string]any) Instruction {
 		insn.URL = str(get(m, "url"))
 	case FMTMention:
 		blog := mapOf(get(m, "blog"))
-		insn.BlogName = str(get(blog, "name"))
-		insn.BlogUUID = str(get(blog, "uuid"))
 		insn.BlogURL = str(get(blog, "url"))
 	case FMTColor:
 		insn.Hex = str(get(m, "hex"))

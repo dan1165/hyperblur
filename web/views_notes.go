@@ -148,11 +148,11 @@ func (a *App) renderReplyNote(v *view, data *PageData, note *tumblr.ReplyNote) {
 	}
 	if note.Date != nil {
 		v.raw(`<span class="separator">•</span><span class="post-timestamp" title="`)
-		v.esc(FormatDatetime(*note.Date))
+		v.esc(formatDatetime(*note.Date))
 		v.raw(`"><time datetime="`)
 		v.esc(note.Date.Format("2006-01-02T15:04"))
 		v.raw(`">`)
-		v.esc(FormatDate(*note.Date))
+		v.esc(formatDate(*note.Date))
 		v.raw(`</time></span>`)
 	}
 	v.raw(`</div></div><p>`)

@@ -38,12 +38,11 @@ const (
 // Instruction is a single inline formatting operation. Only the fields
 // relevant to its Type are populated.
 type Instruction struct {
-	Type     FMTType
-	URL      string
-	BlogName string
-	BlogURL  string
-	BlogUUID string
-	Hex      string
+	Type FMTType
+	URL  string
+	// BlogURL is the target of a mention.
+	BlogURL string
+	Hex     string
 }
 
 // StyleInterval is a run of text sharing a set of inline formatting
@@ -161,12 +160,6 @@ type PollResult struct {
 	VoteCount int
 }
 
-// PollResults is the result set returned by the poll callback.
-type PollResults struct {
-	Timestamp int64
-	Results   map[string]PollResult
-}
-
 // Answer is a poll answer, kept in source order.
 type Answer struct {
 	ID   string
@@ -180,7 +173,7 @@ type PollBlock struct {
 	Answers           []Answer
 	CreationTimestamp int64
 	ExpiresAfter      int64
-	Votes             *PollResults
+	Votes             map[string]PollResult
 	TotalVotes        int
 }
 

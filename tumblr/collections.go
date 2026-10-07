@@ -111,7 +111,6 @@ func parseNoteSequence(initialData map[string]any) *NoteTimeline {
 func noteModel(initialData map[string]any, notes []any, beforeTimestamp, afterID string) *NoteTimeline {
 	return &NoteTimeline{
 		Notes:           notes,
-		TotalNotes:      integer(initialData["totalNotes"]),
 		TotalLikes:      integer(initialData["totalLikes"]),
 		TotalReblogs:    integer(initialData["totalReblogs"]),
 		TotalReplies:    integer(initialData["totalReplies"]),

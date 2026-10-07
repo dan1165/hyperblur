@@ -33,15 +33,14 @@ type Params struct {
 // an error placeholder body when rendering fails, or nil and the post body.
 func FormatNPF(content, layout []any, p Params) (*RenderError, string) {
 	opts := npf.Options{
-		URLHandler:            URLHandler,
-		Localizer:             Localizer{},
-		ForbidExternalIframes: true,
-		PollCallback:          p.PollCallback,
-		BlogName:              p.BlogName,
-		PostID:                p.PostID,
-		ImageHook:             imageHook,
-		VideoHook:             videoHook,
-		PollHook:              pollHook,
+		URLHandler:   URLHandler,
+		Localizer:    Localizer{},
+		PollCallback: p.PollCallback,
+		BlogName:     p.BlogName,
+		PostID:       p.PostID,
+		ImageHook:    imageHook,
+		VideoHook:    videoHook,
+		PollHook:     pollHook,
 	}
 
 	hasError, html := npf.Format(content, layout, opts)

@@ -14,13 +14,13 @@ import (
 // Formatting helpers (babel-ish, en_US only)
 // ---------------------------------------------------------------------------
 
-// FormatDate renders a date the way babel's "medium" format does.
-func FormatDate(t time.Time) string {
+// formatDate renders a date the way babel's "medium" format does.
+func formatDate(t time.Time) string {
 	return t.Format("Jan 2, 2006")
 }
 
-// FormatDatetime renders a datetime the way babel's "medium" format does.
-func FormatDatetime(t time.Time) string {
+// formatDatetime renders a datetime the way babel's "medium" format does.
+func formatDatetime(t time.Time) string {
 	return t.Format("Jan 2, 2006, 3:04:05 PM")
 }
 

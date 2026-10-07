@@ -134,7 +134,6 @@ type BlogTimeline struct {
 type NoteTimeline struct {
 	Notes []any
 
-	TotalNotes   int
 	TotalReplies int
 	TotalReblogs int
 	TotalLikes   int
