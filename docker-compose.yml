@@ -3,8 +3,11 @@ services:
     image: quay.io/syeopite/priviblur:latest
     container_name: priviblur
     restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
     ports:
-      - "127.0.0.1:8000:8000" # Replace with "8000:8000" if you don't use a reverse proxy
+      - "127.0.0.1:8000:8000" # Replace with "8000:8000" if you don't use a reverse proxy
     volumes:
       - ./config.toml:/priviblur/config.toml:Z,ro
 

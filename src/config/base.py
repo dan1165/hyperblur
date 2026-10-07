@@ -4,6 +4,7 @@ import tomllib
 from typing import NamedTuple
 
 from . import deployment, priviblur_backend, cache_config, user_preferences, logging_config, misc
+from .dotenv import load_dotenv
 
 
 class PriviblurConfig(NamedTuple):
@@ -29,6 +30,10 @@ class PriviblurConfig(NamedTuple):
 
 def load_config(path: str) -> PriviblurConfig:
     """Loads a TOML configuration file into a PriviblurConfig object"""
+
+    # Load a .env file (if present) so that optional secrets such as the
+    # Tumblr API token can be supplied without editing the configuration file.
+    load_dotenv()
 
     try:
         with open(path, "rb") as config_file:
