@@ -127,3 +127,41 @@ for (let btn of unblurCommunityLabledPostButtons) {
         postContentElement["style"] = `height: unset;`;
     })
 }
+
+function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+        return navigator.clipboard.writeText(text);
+    }
+
+    return new Promise(function (resolve, reject) {
+        const area = document.createElement("textarea");
+        area.value = text;
+        area.style.position = "fixed";
+        area.style.opacity = "0";
+        document.body.appendChild(area);
+        area.select();
+
+        try {
+            document.execCommand("copy");
+            resolve();
+        } catch (error) {
+            reject(error);
+        } finally {
+            document.body.removeChild(area);
+        }
+    });
+}
+
+const copyLinkButtons = document.getElementsByClassName("copy-link");
+for (let btn of copyLinkButtons) {
+    btn.addEventListener("click", function () {
+        const url = new URL(btn.dataset.postUrl, window.location.origin).href;
+
+        copyText(url).then(function () {
+            btn.classList.add("copied");
+            setTimeout(function () {
+                btn.classList.remove("copied");
+            }, 1000);
+        });
+    });
+}

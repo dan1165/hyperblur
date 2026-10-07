@@ -30,7 +30,7 @@ class BackendConfig(NamedTuple):
 class DefaultUserPreferences(NamedTuple):
     """Default user preferences"""
 
-    expand_posts: bool = False
+    expand_posts: bool = True
 
 
 class LoggingConfig(NamedTuple):

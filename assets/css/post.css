@@ -194,6 +194,17 @@ a.hidden-reblog {
   fill: var(--color-post-footer-post-interaction);
 }
 
+.interaction-buttons .copy-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.interaction-buttons .copy-link.copied path {
+  fill: var(--color-primary-button-bg);
+}
+
 .note-count {
   font-weight: bold;
 }
