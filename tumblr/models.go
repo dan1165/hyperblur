@@ -40,16 +40,6 @@ type Signpost struct {
 	Description string
 }
 
-// CommunityLabel marks potentially sensitive post content.
-type CommunityLabel int
-
-const (
-	LabelMature CommunityLabel = iota
-	LabelDrugUse
-	LabelViolence
-	LabelSexualThemes
-)
-
 // ReblogAttribution describes who a post was reblogged from.
 type ReblogAttribution struct {
 	PostID    string
@@ -100,8 +90,6 @@ type Post struct {
 
 	ReblogFrom *ReblogAttribution
 	ReblogRoot *ReblogAttribution
-
-	CommunityLabels []CommunityLabel
 }
 
 // ReplyNote is a reply left on a post.
@@ -126,8 +114,6 @@ type ReblogNote struct {
 
 	RebloggedFrom string
 	Date          *time.Time
-
-	CommunityLabels []CommunityLabel
 }
 
 // LikeNote is a like on a post.

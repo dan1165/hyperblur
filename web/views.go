@@ -119,7 +119,9 @@ func (a *App) renderPage(data *PageData, center func(v *view)) string {
 	v.raw("<div class=\"contents\">\n<div class=\"left-column\"></div>\n<div class=\"center-column\">\n")
 	center(v)
 	v.raw("</div>\n<div class=\"right-column\"></div>\n</div>\n")
-	v.raw("<div class=\"buffer\"></div>\n</div>\n</body>\n</html>\n")
+	v.raw("<div class=\"buffer\"></div>\n")
+	v.raw("<footer class=\"site-footer\"><a href=\"https://github.com/dan1165/openblur\">openblur on GitHub</a></footer>\n")
+	v.raw("</div>\n</body>\n</html>\n")
 	return v.string()
 }
 

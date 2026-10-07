@@ -213,68 +213,6 @@ a.hidden-reblog {
   text-decoration: underline;
 }
 
-.mature-content {
-  position: relative;
-  height: 300px;
-  overflow: hidden;
-}
-
-.community-label-cover {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 10px;
-  box-sizing: border-box;
-  align-items: center;
-  width: 100%;
-  height: 100%;
-  backdrop-filter: blur(40px);
-  text-align: center;
-  font-size: 18px;
-  font-weight: 600;
-  padding: 0 30px;
-  text-wrap: balance;
-
-  background: linear-gradient(0deg, var(--color-community-label-gradient-1) 0%, var(--color-community-label-gradient-2) 100%);
-
-  color: var(--color-community-label-text);
-  z-index: 2;
-}
-
-.no-js.mature-content:hover {
-  height: unset;
-}
-
-.no-js .community-label-cover:hover, .no-js.mature-content:hover .community-label-cover {
-  display: none;
-}
-
-.community-label-cover > h3 {
-  margin: 0;
-}
-
-.no-js-view-community-post-instruction {
-  margin-top: 20px;
-  font-size: 12px;
-  color: var(--color-community-label-text);
-}
-
-.unblur-post-button.button, .no-js-view-community-post-instruction {
-  background: none;
-  padding: 5px 15px;
-  border-radius: 0;
-  font-weight: bold;
-  font-size: 16px;
-  color: var(--color-community-label-button-text);
-  border: solid 2px var(--color-community-label-button-highlight);
-  margin-top: 25px;
-}
-
-.unblur-post-button.button:hover {
-  background: var(--color-community-label-button-hover);
-}
-
 .post-notes {
   background: var(--color-top-level-card-bg);
   display: flex;

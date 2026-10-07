@@ -4,7 +4,7 @@ package assets
 
 import "embed"
 
-// FS holds the embedded stylesheets, scripts, fonts, images and robots.txt.
+// FS holds the embedded stylesheets, scripts, images and robots.txt.
 //
-//go:embed css js images fonts robots.txt
+//go:embed css js images robots.txt
 var FS embed.FS

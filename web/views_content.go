@@ -48,12 +48,7 @@ func (a *App) renderPostBody(v *view, data *PageData, post *tumblr.Post) {
 		mainErr, mainTag = a.FormatNPF(post.Content, post.Layout, post.Blog.Name, post.ID, data.RequestPollData, data.ExpandPosts)
 	}
 
-	if len(post.CommunityLabels) > 0 {
-		v.raw(`<div class="post-content mature-content no-js">`)
-		a.renderCommunityCover(v, data, post.CommunityLabels)
-	} else {
-		v.raw(`<div class="post-content">`)
-	}
+	v.raw(`<div class="post-content">`)
 
 	if len(post.Trail) > 0 {
 		v.raw(`<div class="post-trails">`)
@@ -69,6 +64,7 @@ func (a *App) renderPostBody(v *view, data *PageData, post *tumblr.Post) {
 		})
 		trailErr, trailTag := a.FormatNPF(trail.Content, trail.Layout, post.Blog.Name, post.ID, data.RequestPollData, data.ExpandPosts)
 		if trailErr != nil {
+			a.Logger.Printf("npf render error for trail of post %s/%s: %s", post.Blog.Name, post.ID, trailErr.Message)
 			a.renderNPFError(v, trailErr)
 		}
 		v.raw(trailTag)
@@ -88,12 +84,14 @@ func (a *App) renderPostBody(v *view, data *PageData, post *tumblr.Post) {
 			UseThisPostURL: postURLFor(data, post),
 		})
 		if mainErr != nil {
+			a.Logger.Printf("npf render error for post %s/%s: %s", post.Blog.Name, post.ID, mainErr.Message)
 			a.renderNPFError(v, mainErr)
 		}
 		v.raw(mainTag)
 		v.raw(`</div>`)
 	} else {
 		if mainErr != nil {
+			a.Logger.Printf("npf render error for post %s/%s: %s", post.Blog.Name, post.ID, mainErr.Message)
 			a.renderNPFError(v, mainErr)
 		}
 		v.raw(mainTag)
@@ -194,56 +192,6 @@ func (a *App) renderErrorDetails(v *view, name, message, context string, open bo
 	v.raw(`<pre>Context:<br/><br/>`)
 	v.esc(context)
 	v.raw(`</pre></details>`)
-}
-
-func (a *App) renderCommunityCover(v *view, data *PageData, labels []tumblr.CommunityLabel) {
-	v.raw(`<div class="community-label-cover"><h3>`)
-	v.esc(a.translate("post_community_label_mature_heading"))
-	v.raw(`</h3>`)
-
-	if labels[0] == tumblr.LabelMature {
-		v.raw(`<p>`)
-		v.esc(a.translate("post_community_label_generic_explanation"))
-		v.raw(`</p>`)
-	} else {
-		var names []string
-		for _, label := range labels {
-			names = append(names, a.translate("post_community_label_"+labelName(label)))
-		}
-		v.raw(`<p> `)
-		v.esc(formatListEn(names))
-		v.raw(` </p>`)
-	}
-
-	v.raw(`<button class="with-js button secondary unblur-post-button">`)
-	v.esc(a.translate("post_community_label_show_post_button"))
-	v.raw(`</button><noscript><p class="no-js-view-community-post-instruction ">`)
-	v.esc(a.translate("post_community_label_no_js_show_post_instructions"))
-	v.raw(`</p></noscript></div>`)
-}
-
-func labelName(label tumblr.CommunityLabel) string {
-	switch label {
-	case tumblr.LabelDrugUse:
-		return "drug_use"
-	case tumblr.LabelViolence:
-		return "violence"
-	case tumblr.LabelSexualThemes:
-		return "sexual_themes"
-	}
-	return "mature"
-}
-
-func formatListEn(items []string) string {
-	switch len(items) {
-	case 0:
-		return ""
-	case 1:
-		return items[0]
-	case 2:
-		return items[0] + " and " + items[1]
-	}
-	return strings.Join(items[:len(items)-1], ", ") + ", and " + items[len(items)-1]
 }
 
 // ---------------------------------------------------------------------------

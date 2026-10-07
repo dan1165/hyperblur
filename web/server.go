@@ -287,7 +287,11 @@ func (a *App) messageError(w http.ResponseWriter, r *http.Request, status int, h
 }
 
 func (a *App) genericError(w http.ResponseWriter, r *http.Request, err error) {
+	a.Logger.Printf("error handling %s %s: %v", r.Method, r.URL.RequestURI(), err)
+
 	name, message, contextText := errorMessage(err)
+	contextText = fmt.Sprintf("Request: %s %s\n\n%s", r.Method, r.URL.RequestURI(), contextText)
+
 	data := a.newPageData(r)
 	data.Title = a.translate("openblur_error_page_title")
 	data.InlineStyle = "#openblur-error > div { background-color: var(--color-top-level-card-bg); border-radius: 0; padding: 25px; max-width: 100%; } #openblur-error { color: var(--color-text); } #openblur-error details { margin-top: 20px; } #openblur-error pre { text-wrap: wrap; } #openblur-error a { text-decoration: underline; } #error-header { font-size: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }"
@@ -296,9 +300,9 @@ func (a *App) genericError(w http.ResponseWriter, r *http.Request, err error) {
 		v.esc(a.translate("openblur_error_generic"))
 		v.raw(`</h2><p>`)
 		v.esc(a.translate("openblur_error_generic_description"))
-		v.raw(`</p><p>`)
+		v.raw(`</p><p><a href="https://github.com/dan1165/openblur/issues">`)
 		v.esc(a.translate("openblur_error_generic_description_2"))
-		v.raw(`</p></div>`)
+		v.raw(`</a></p></div>`)
 		a.renderErrorDetails(v, name, message, contextText, true)
 		v.raw(`</div></section>`)
 	})
@@ -335,6 +339,10 @@ func (a *App) handleAPIError(w http.ResponseWriter, r *http.Request, err error) 
 }
 
 func (a *App) fail(w http.ResponseWriter, r *http.Request, err error) {
+	var apiErr *tumblr.APIError
+	if errors.As(err, &apiErr) {
+		a.Logger.Printf("tumblr error on %s %s: kind=%d code=%d internal=%d: %s", r.Method, r.URL.RequestURI(), apiErr.Kind, apiErr.HTTPCode, apiErr.InternalCode, apiErr.Message)
+	}
 	if a.handleAPIError(w, r, err) {
 		return
 	}

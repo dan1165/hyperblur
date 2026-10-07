@@ -2,7 +2,6 @@ package tumblr
 
 import (
 	"fmt"
-	"strings"
 	"time"
 )
 
@@ -177,36 +176,6 @@ func processBlog(initial map[string]any) *Blog {
 }
 
 // ---------------------------------------------------------------------------
-// Community labels
-// ---------------------------------------------------------------------------
-
-func parseCommunityLabel(initial map[string]any) []CommunityLabel {
-	raw := obj(initial["communityLabels"])
-	if !boolean(raw["hasCommunityLabel"]) {
-		return nil
-	}
-
-	var labels []CommunityLabel
-	for _, category := range slice(raw["categories"]) {
-		switch strings.ToUpper(str(category)) {
-		case "MATURE":
-			labels = append(labels, LabelMature)
-		case "DRUG_USE":
-			labels = append(labels, LabelDrugUse)
-		case "VIOLENCE":
-			labels = append(labels, LabelViolence)
-		case "SEXUAL_THEMES":
-			labels = append(labels, LabelSexualThemes)
-		}
-	}
-
-	if len(labels) == 0 {
-		labels = append(labels, LabelMature)
-	}
-	return labels
-}
-
-// ---------------------------------------------------------------------------
 // Post
 // ---------------------------------------------------------------------------
 
@@ -295,7 +264,6 @@ func parsePost(target map[string]any) *Post {
 		DefaultNoteViewerTab: defaultTab,
 		ReblogFrom:           reblogFrom,
 		ReblogRoot:           reblogRoot,
-		CommunityLabels:      parseCommunityLabel(target),
 	}
 }
 
@@ -316,15 +284,14 @@ func parseReplyNote(target map[string]any) *ReplyNote {
 
 func parseReblogNote(target map[string]any) *ReblogNote {
 	return &ReblogNote{
-		UUID:            str(target["id"]),
-		ID:              str(target["postId"]),
-		Blog:            parseLimitedBlog(obj(target["blog"])),
-		Content:         slice(target["content"]),
-		Layout:          slice(target["content"]),
-		Tags:            stringSlice(target["tags"]),
-		RebloggedFrom:   str(target["reblogParentBlogName"]),
-		Date:            timeFromUnix(target["timestamp"]),
-		CommunityLabels: parseCommunityLabel(target),
+		UUID:          str(target["id"]),
+		ID:            str(target["postId"]),
+		Blog:          parseLimitedBlog(obj(target["blog"])),
+		Content:       slice(target["content"]),
+		Layout:        slice(target["content"]),
+		Tags:          stringSlice(target["tags"]),
+		RebloggedFrom: str(target["reblogParentBlogName"]),
+		Date:          timeFromUnix(target["timestamp"]),
 	}
 }
 
