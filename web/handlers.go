@@ -64,8 +64,7 @@ func (a *App) handleExplore(w http.ResponseWriter, r *http.Request, target explo
 	})
 }
 
-// renderTimelinePage renders a timeline page with the given control bar and
-// paging blocks.
+// renderTimelinePage renders timeline page with control bar and paging blocks.
 func (a *App) renderTimelinePage(w http.ResponseWriter, r *http.Request, data *PageData, controlBar, paging func(v *view)) {
 	html := a.renderPage(data, func(v *view) {
 		a.renderTimelineCenter(v, data, controlBar, paging)
@@ -331,7 +330,7 @@ func (a *App) handleBlogSearch(w http.ResponseWriter, r *http.Request) {
 	}
 	timeline := tumblr.ParseBlogTimeline(responseOf(raw), true)
 	if timeline == nil || timeline.BlogInfo == nil {
-		// No results: fall back to the blog's own info with an empty post list.
+		// No results: fall back to blog info with empty post list.
 		fallback, ferr := a.getBlogPosts(blog, "", "", "", "")
 		if ferr != nil {
 			a.fail(w, r, ferr)
@@ -369,7 +368,7 @@ func (a *App) serveBlogPost(w http.ResponseWriter, r *http.Request, slug string)
 		return
 	}
 
-	// Ensure the slug in the URL matches (redirect to the canonical URL).
+	// Ensure URL slug matches; redirect to canonical URL.
 	if slug != post.Slug {
 		path := "/" + PostPath(post)
 		if post.Slug == "" {
@@ -429,7 +428,7 @@ func (a *App) handleRedirectPost(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/"+blog+"/"+postID+"/"+slug, http.StatusFound)
 }
 
-// serveNotesViewer renders the replies/reblogs/likes note viewer for a post.
+// serveNotesViewer renders replies/reblogs/likes viewer for post.
 func (a *App) serveNotesViewer(w http.ResponseWriter, r *http.Request, post *tumblr.Post, noteType string) {
 	blog := post.Blog.Name
 	postID := post.ID

@@ -1,9 +1,8 @@
 package npf
 
-// This file defines the parsed NPF object model, mirroring
-// npf_renderer.objects.
+// Parsed NPF object model, mirroring npf_renderer.objects.
 
-// Subtype is a text block subtype.
+// Subtype is text block subtype.
 type Subtype int
 
 const (
@@ -22,7 +21,7 @@ func isListSubtype(s Subtype) bool {
 	return s == OrderedListItem || s == UnorderedListItem
 }
 
-// FMTType is an inline formatting type.
+// FMTType is inline formatting type.
 type FMTType int
 
 const (
@@ -35,25 +34,23 @@ const (
 	FMTColor
 )
 
-// Instruction is a single inline formatting operation. Only the fields relevant
-// to its Type are set.
+// Instruction is one inline formatting operation. Only fields for its Type set.
 type Instruction struct {
 	Type FMTType
 	URL  string
-	// BlogURL is the target of a mention.
+	// BlogURL is mention target.
 	BlogURL string
 	Hex     string
 }
 
-// StyleInterval is a run of text sharing a set of inline formatting
-// instructions.
+// StyleInterval is text run sharing a set of inline formatting instructions.
 type StyleInterval struct {
 	Start        int
 	End          int
 	Instructions []Instruction
 }
 
-// TextBlock is a parsed NPF text content block.
+// TextBlock is parsed NPF text block.
 type TextBlock struct {
 	Text             string
 	Subtype          Subtype
@@ -61,13 +58,13 @@ type TextBlock struct {
 	InlineFormatting []StyleInterval
 }
 
-// ListGrouping groups adjacent list-item text blocks into one <ul>/<ol>.
+// ListGrouping groups adjacent list-item blocks into one <ul>/<ol>.
 type ListGrouping struct {
 	Type  Subtype
 	Group []*TextBlock
 }
 
-// MediaObject is an NPF media object.
+// MediaObject is NPF media object.
 type MediaObject struct {
 	URL                   string
 	Width                 int
@@ -77,7 +74,7 @@ type MediaObject struct {
 	HasOriginalDimensions bool
 }
 
-// AttributionKind discriminates the attribution union.
+// AttributionKind discriminates attribution union.
 type AttributionKind int
 
 const (
@@ -88,15 +85,15 @@ const (
 	AttrUnsupported
 )
 
-// BlogAttribution describes a blog.
+// BlogAttribution describes blog.
 type BlogAttribution struct {
 	URL    string
 	Name   string
 	Avatar []MediaObject
 }
 
-// Attribution is the parsed attribution for a media block. Kind selects which
-// fields are meaningful.
+// Attribution is parsed attribution for media block. Kind selects meaningful
+// fields.
 type Attribution struct {
 	Kind    AttributionKind
 	URL     string
@@ -105,7 +102,7 @@ type Attribution struct {
 	TypeStr string
 }
 
-// ImageBlock is a parsed NPF image content block.
+// ImageBlock is parsed NPF image block.
 type ImageBlock struct {
 	Media       []MediaObject
 	AltText     string
@@ -113,7 +110,7 @@ type ImageBlock struct {
 	Attribution *Attribution
 }
 
-// LinkBlock is a parsed NPF link content block.
+// LinkBlock is parsed NPF link block.
 type LinkBlock struct {
 	URL         string
 	Title       string
@@ -130,7 +127,7 @@ type EmbedIframe struct {
 	Height int
 }
 
-// AudioBlock is a parsed NPF audio content block.
+// AudioBlock is parsed NPF audio block.
 type AudioBlock struct {
 	URL       string
 	Provider  string
@@ -143,7 +140,7 @@ type AudioBlock struct {
 	EmbedURL  string
 }
 
-// VideoBlock is a parsed NPF video content block.
+// VideoBlock is parsed NPF video block.
 type VideoBlock struct {
 	URL         string
 	Provider    string
@@ -154,19 +151,19 @@ type VideoBlock struct {
 	Poster      []MediaObject
 }
 
-// PollResult is a single poll answer's result.
+// PollResult is one poll answer's result.
 type PollResult struct {
 	IsWinner  bool
 	VoteCount int
 }
 
-// Answer is a poll answer, kept in source order.
+// Answer is poll answer, source order.
 type Answer struct {
 	ID   string
 	Text string
 }
 
-// PollBlock is a parsed NPF poll content block.
+// PollBlock is parsed NPF poll block.
 type PollBlock struct {
 	PollID            string
 	Question          string
@@ -177,7 +174,7 @@ type PollBlock struct {
 	TotalVotes        int
 }
 
-// Unsupported is a placeholder for an NPF block type we cannot render.
+// Unsupported is placeholder for NPF block type we cannot render.
 type Unsupported struct {
 	Type string
 }

@@ -1,7 +1,7 @@
 # hyperblur
 
-Alternative frontend to Tumblr. No account, no tracking, no caching. One Go
-binary with every asset embedded.
+Alternative Tumblr frontend. No account, no tracking, no caching. One Go binary,
+every asset inside.
 
 ## Run
 
@@ -11,8 +11,7 @@ Docker:
 docker compose up -d
 ```
 
-Opens the published image (`ghcr.io/dan1165/hyperblur:latest`) on
-<http://localhost:8000>. Or run it directly:
+Pulls `ghcr.io/dan1165/hyperblur:latest`, serves <http://localhost:8000>. Or:
 
 ```bash
 docker run --rm -p 8000:8000 ghcr.io/dan1165/hyperblur:latest
@@ -25,13 +24,13 @@ go build -o hyperblur ./cmd/hyperblur
 ./hyperblur
 ```
 
-Listens on `:8000`; set `HYPERBLUR_PORT` to change it. Stylesheets, scripts and
-images are embedded, so the binary runs from anywhere.
+Listens on `:8000`. `HYPERBLUR_PORT` changes it. Assets embedded, so binary runs
+from anywhere.
 
-## Use your own Tumblr token (optional)
+## Own Tumblr token (optional)
 
-hyperblur ships a default Tumblr API token. Set `HYPERBLUR_TUMBLR_API_TOKEN` to
-use your own — for example, to open blogs that require a login.
+Default token ships in. Set `HYPERBLUR_TUMBLR_API_TOKEN` to use own. Opens blogs
+that need login.
 
 Docker, in `docker-compose.yml`:
 
@@ -48,42 +47,35 @@ HYPERBLUR_TUMBLR_API_TOKEN=your-token-here ./hyperblur
 
 ## What you get
 
-- **Browse:** blogs, tags, search and explore, no account.
-- **Explore:** trending, "today on Tumblr", and per-type feeds (text, photos,
-  gifs, quotes, chats, audio, video, asks).
-- **Search:** popular/latest sorting, time-range and post-type filters, blog
-  search, blog tag browsing.
-- **Posts:** full NPF rendering — inline text (bold, italics, strikethrough,
-  small, colour, links, mentions), headings, quotes, chat, lists, images, link
-  cards, audio, video (native + embeds), polls with live results, reblog trails,
-  asks.
-- **Notes:** replies, reblogs (filterable) and likes, with paging.
-- **Media:** alt text and one-click download for images/audio/video; downloads
-  are proxied through hyperblur. NSFW posts are shown directly, unblurred.
+- **Browse:** blogs, tags, search, explore. No account.
+- **Explore:** trending, "today on Tumblr", per-type feeds (text, photos, gifs,
+  quotes, chats, audio, video, asks).
+- **Search:** popular/latest, time-range and post-type filters, blog search, blog
+  tag browsing.
+- **Posts:** full NPF render — inline text, headings, quotes, chat, lists, images,
+  link cards, audio, video, polls with live results, reblog trails, asks.
+- **Notes:** replies, reblogs (filterable), likes, paging.
+- **Media:** alt text, one-click download (proxied). NSFW shown unblurred.
 - **UI:** dark monochrome, system font, no external CDNs, posts always expanded,
-  numbered pagination. Browsing needs no JavaScript; a little adds live poll
+  numbered pagination. Browsing needs no JavaScript; small JS adds live poll
   results.
 
-Media loads straight from Tumblr's CDN, so Tumblr can see the IP of anyone
-viewing it.
+Media loads straight from Tumblr CDN, so Tumblr sees viewer IP.
 
 ## Performance
 
-One Go binary on the standard `net/http` server:
+One Go binary on standard `net/http`:
 
-- Shared HTTP transport with a 100-per-host idle pool, so concurrent requests to
-  Tumblr reuse TLS connections.
-- Media loads straight from Tumblr's CDN — no proxy round-trip; downloads are
-  proxied.
-- HTML and embedded assets are gzipped; assets carry ETags and cache in the
-  browser for a week.
-- API responses are streamed-decoded and fetched fresh every time (no response
-  caching).
+- Shared HTTP transport, 100-idle-per-host pool. Concurrent Tumblr requests reuse
+  TLS.
+- Media loads straight from Tumblr CDN, no proxy round-trip. Downloads proxied.
+- HTML and embedded assets gzipped. Assets carry ETag, cache a week.
+- API responses streamed-decoded, fetched fresh every time. No response cache.
 
 ## Image
 
-`.github/workflows/docker.yml` builds and pushes the image to the GitHub
-Container Registry on every push to `master` and on `v*` tags:
+`.github/workflows/docker.yml` builds and pushes to GitHub Container Registry on
+every `master` push and `v*` tag:
 
 ```bash
 docker pull ghcr.io/dan1165/hyperblur:latest
@@ -91,9 +83,8 @@ docker pull ghcr.io/dan1165/hyperblur:latest
 
 ## Errors
 
-Unexpected errors are logged server-side with the request and a stack trace. The
-error page shows the same details plus a link to open an issue at
-<https://github.com/dan1165/hyperblur/issues>.
+Unexpected errors log server-side with request and stack trace. Error page shows
+same details plus issue link: <https://github.com/dan1165/hyperblur/issues>.
 
 ## License
 

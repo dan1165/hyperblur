@@ -1,8 +1,8 @@
 // Package npf renders Tumblr's Neue Post Format (NPF) into HTML.
 //
-// Go port of syeopite/npf-renderer (the 0.13.x line hyperblur pins) plus
-// hyperblur's customisations. Output comes from a tiny node tree, not a ported
-// `dominate` DOM, which keeps the formatter close to the original.
+// Go port of syeopite/npf-renderer (0.13.x line hyperblur pins), plus hyperblur
+// tweaks. Output from tiny node tree, not ported `dominate` DOM. Keeps formatter
+// close to original.
 package npf
 
 import (
@@ -10,8 +10,8 @@ import (
 	"strings"
 )
 
-// Node is a minimal HTML element tree. Text nodes have an empty Tag; Raw
-// controls whether their text is escaped on render.
+// Node is minimal HTML element tree. Text nodes have empty Tag; Raw marks text
+// unescaped on render.
 type Node struct {
 	Tag   string
 	Attrs map[string]string
@@ -20,7 +20,7 @@ type Node struct {
 	Raw   bool
 }
 
-// El creates an element. Attributes are passed as alternating key/value pairs.
+// El creates element. Attributes passed as alternating key/value pairs.
 func El(tag string, attrs ...string) *Node {
 	n := &Node{Tag: tag, Attrs: map[string]string{}}
 	for i := 0; i+1 < len(attrs); i += 2 {
@@ -29,14 +29,14 @@ func El(tag string, attrs ...string) *Node {
 	return n
 }
 
-// Txt creates an escaped text node.
+// Txt creates escaped text node.
 func Txt(s string) *Node { return &Node{Text: s} }
 
-// RawHTML creates a text node that is emitted verbatim.
+// RawHTML creates text node emitted verbatim.
 func RawHTML(s string) *Node { return &Node{Text: s, Raw: true} }
 
-// SetAttr sets an attribute, normalising shorthand and dashes the way
-// dominate's clean_attribute does.
+// SetAttr sets attribute, normalising shorthand and dashes like dominate's
+// clean_attribute.
 func (n *Node) SetAttr(key, value string) *Node {
 	if n.Attrs == nil {
 		n.Attrs = map[string]string{}
@@ -45,20 +45,19 @@ func (n *Node) SetAttr(key, value string) *Node {
 	return n
 }
 
-// Add appends children and returns the receiver.
+// Add appends children, returns receiver.
 func (n *Node) Add(kids ...*Node) *Node {
 	n.Kids = append(n.Kids, kids...)
 	return n
 }
 
-// Prepend inserts a child before all others.
+// Prepend inserts child before all others.
 func (n *Node) Prepend(kid *Node) *Node {
 	n.Kids = append([]*Node{kid}, n.Kids...)
 	return n
 }
 
-// findAll returns every descendant element with the given tag name, in
-// depth-first order.
+// findAll returns every descendant element with tag name, depth-first.
 func (n *Node) findAll(tag string) []*Node {
 	var out []*Node
 	var rec func(*Node)
@@ -77,7 +76,7 @@ func (n *Node) findAll(tag string) []*Node {
 	return out
 }
 
-// Find returns the first descendant with the given tag, or nil.
+// Find returns first descendant with tag, else nil.
 func (n *Node) Find(tag string) *Node {
 	if all := n.findAll(tag); len(all) > 0 {
 		return all[0]
@@ -85,7 +84,7 @@ func (n *Node) Find(tag string) *Node {
 	return nil
 }
 
-// FindClass returns the first descendant whose class attribute equals cls.
+// FindClass returns first descendant with class attribute cls.
 func (n *Node) FindClass(cls string) *Node {
 	var found *Node
 	var rec func(*Node)
@@ -111,7 +110,7 @@ func (n *Node) FindClass(cls string) *Node {
 	return found
 }
 
-// Render returns the compact HTML for the node.
+// Render returns compact HTML for node.
 func (n *Node) Render() string {
 	var b strings.Builder
 	n.render(&b)
@@ -159,8 +158,8 @@ func (n *Node) render(b *strings.Builder) {
 	b.WriteByte('>')
 }
 
-// escape escapes &, <, > and " (but not '), like cgi.escape, allocating
-// nothing when there is nothing to escape.
+// escape escapes &, <, > and " (not '), like cgi.escape. Allocates nothing when
+// nothing to escape.
 func escape(s string) string {
 	if !strings.ContainsAny(s, `&<>"`) {
 		return s
@@ -200,7 +199,7 @@ func normalizeAttr(key string) string {
 	return key
 }
 
-// singleTags are rendered without a closing tag, matching dominate's is_single.
+// singleTags render without closing tag, matching dominate's is_single.
 var singleTags = map[string]bool{
 	"area": true, "base": true, "br": true, "col": true, "command": true,
 	"embed": true, "hr": true, "img": true, "input": true, "keygen": true,

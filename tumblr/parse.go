@@ -170,7 +170,7 @@ func parseLimitedBlog(target map[string]any) *Blog {
 func parsePost(target map[string]any) *Post {
 	blog := parseBlog(obj(target["blog"]))
 
-	// Pick the first non-empty note tab, defaulting to replies.
+	// Pick first non-empty note tab, default replies.
 	defaultTab := "replies"
 	for _, tab := range []struct {
 		name  string
@@ -322,10 +322,10 @@ func parseSignpost(target map[string]any) *Signpost {
 // Item dispatcher
 // ---------------------------------------------------------------------------
 
-// ItemParser converts one raw element into a model, or nil if it does not match.
+// ItemParser converts one raw element to model, nil if no match.
 type ItemParser func(map[string]any) any
 
-// ParseItem tries each parser in order and returns the first match.
+// ParseItem tries each parser, returns first match.
 func ParseItem(element map[string]any, parsers ...ItemParser) any {
 	for _, parser := range parsers {
 		if parsed := parser(element); parsed != nil {
@@ -335,7 +335,7 @@ func ParseItem(element map[string]any, parsers ...ItemParser) any {
 	return nil
 }
 
-// ParsePostItem parses a raw element that must be a post.
+// ParsePostItem parses raw element that must be post.
 func ParsePostItem(element map[string]any) any {
 	if str(element["objectType"]) == "post" {
 		return parsePost(element)
@@ -343,7 +343,7 @@ func ParsePostItem(element map[string]any) any {
 	return nil
 }
 
-// ParseSignpostItem parses a raw element that must be a signpost.
+// ParseSignpostItem parses raw element that must be signpost.
 func ParseSignpostItem(element map[string]any) any {
 	if str(element["objectType"]) == "signpost_cta" {
 		return parseSignpost(element)
@@ -351,7 +351,7 @@ func ParseSignpostItem(element map[string]any) any {
 	return nil
 }
 
-// ParseReplyNoteItem parses a raw element that must be a reply note.
+// ParseReplyNoteItem parses raw element that must be reply note.
 func ParseReplyNoteItem(element map[string]any) any {
 	if str(element["type"]) != "reply" {
 		return nil
@@ -359,7 +359,7 @@ func ParseReplyNoteItem(element map[string]any) any {
 	return parseReplyNote(element)
 }
 
-// ParseReblogNoteItem parses a raw element that must be a reblog note.
+// ParseReblogNoteItem parses raw element that must be reblog note.
 func ParseReblogNoteItem(element map[string]any) any {
 	if str(element["type"]) != "reblog" {
 		return nil
@@ -370,7 +370,7 @@ func ParseReblogNoteItem(element map[string]any) any {
 	return parseReblogNote(element)
 }
 
-// ParseLikeNoteItem parses a raw element that must be a like note.
+// ParseLikeNoteItem parses raw element that must be like note.
 func ParseLikeNoteItem(element map[string]any) any {
 	if str(element["type"]) != "like" {
 		return nil
@@ -378,7 +378,7 @@ func ParseLikeNoteItem(element map[string]any) any {
 	return parseLikeNote(element)
 }
 
-// ParseTimeline parses an explore/search/tag API response.
+// ParseTimeline parses explore/search/tag API response.
 func ParseTimeline(initialData map[string]any) *Timeline {
 	target := obj(initialData["timeline"])
 	if target == nil {
@@ -404,7 +404,7 @@ func ParseTimeline(initialData map[string]any) *Timeline {
 	}
 }
 
-// ParseBlogTimeline parses a blog API response.
+// ParseBlogTimeline parses blog API response.
 func ParseBlogTimeline(initialData map[string]any, isSearch bool) *BlogTimeline {
 	if _, ok := initialData["blog"]; !ok {
 		return nil
@@ -446,7 +446,7 @@ func parsePosts(target map[string]any) ([]*Post, int) {
 	return posts, len(rawPosts)
 }
 
-// ParseNoteTimeline parses a note API response.
+// ParseNoteTimeline parses note API response.
 func ParseNoteTimeline(initialData map[string]any) *NoteTimeline {
 	if timeline := obj(initialData["timeline"]); timeline != nil {
 		return parseNoteTimelineFrom(timeline, initialData)

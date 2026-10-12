@@ -1,4 +1,4 @@
-// Command hyperblur runs the hyperblur web server.
+// Command hyperblur runs hyperblur web server.
 package main
 
 import (

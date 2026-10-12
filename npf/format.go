@@ -8,13 +8,13 @@ import (
 	"time"
 )
 
-// renderInstr is a deferred render step for one parsed top-level block.
+// renderInstr is deferred render step for one parsed top-level block.
 type renderInstr struct {
 	block  any
 	render func() *Node
 }
 
-// Formatter renders parsed NPF blocks into HTML.
+// Formatter renders parsed NPF blocks to HTML.
 type Formatter struct {
 	content []any
 	layout  []any
@@ -29,8 +29,8 @@ type Formatter struct {
 	hasRenderError        bool
 	post                  *Node
 
-	// Hooks let hyperblur augment the base output (download buttons, poll
-	// data attributes, ...) without reimplementing the formatter.
+	// Hooks let hyperblur augment base output (download buttons, poll data
+	// attrs) without reimplementing formatter.
 	ImageHook func(f *Formatter, block *ImageBlock, rowLength int, overrideAspect *float64, node *Node) *Node
 	VideoHook func(f *Formatter, block *VideoBlock, node *Node) *Node
 	PollHook  func(f *Formatter, block *PollBlock, node *Node) *Node
@@ -50,10 +50,10 @@ func (f *Formatter) next() bool {
 	return true
 }
 
-// HasRenderError reports whether any block failed to render cleanly.
+// HasRenderError reports whether any block failed to render.
 func (f *Formatter) HasRenderError() bool { return f.hasRenderError }
 
-// URLHandler returns the configured URL handler.
+// URLHandler returns configured URL handler.
 func (f *Formatter) URLHandler(url string) string { return f.urlHandler(url) }
 
 // ---------------------------------------------------------------------------
@@ -474,7 +474,7 @@ func (f *Formatter) audiovisualFallback(aURL string, media, poster []MediaObject
 // Top-level formatting
 // ---------------------------------------------------------------------------
 
-// Format renders all blocks and returns the post-body node.
+// Format renders all blocks, returns post-body node.
 func (f *Formatter) Format() *Node {
 	f.post = El("div", "class", "post-body")
 
@@ -593,7 +593,7 @@ func (f *Formatter) applyLayout() {
 		}
 	}
 
-	// Edge case: only an "ask" layout was given.
+	// Edge case: only an "ask" layout given.
 	if len(f.layout) == 1 {
 		if _, ok := f.layout[0].(*AskLayout); ok {
 			for index, instruction := range f.renderInstructions {
@@ -616,7 +616,7 @@ func maxFloat(values []float64) float64 {
 	return max
 }
 
-// buildDurationString renders an ISO 8601 duration string, mirroring
+// buildDurationString renders ISO 8601 duration, mirroring
 // npf_renderer.helpers.build_duration_string.
 func buildDurationString(d time.Duration) string {
 	secs := int64(d / time.Second)
@@ -645,8 +645,8 @@ func buildDurationString(d time.Duration) string {
 	return out
 }
 
-// pyFloatStr renders a float the way Python's str() would, so a whole number
-// keeps a trailing ".0".
+// pyFloatStr renders float like Python str(), so whole number keeps trailing
+// ".0".
 func pyFloatStr(f float64) string {
 	s := fmt.Sprintf("%v", f)
 	if !strings.ContainsAny(s, ".eE") {
@@ -655,7 +655,7 @@ func pyFloatStr(f float64) string {
 	return s
 }
 
-// createSrcset renders media objects into srcset data.
+// createSrcset renders media objects to srcset data.
 func createSrcset(media []MediaObject, urlHandler func(string) string) []string {
 	out := make([]string, 0, len(media))
 	for _, m := range media {
@@ -664,8 +664,8 @@ func createSrcset(media []MediaObject, urlHandler func(string) string) []string 
 	return out
 }
 
-// formatImageContainer renders the inner <div class="image-container"> of an
-// image block, mirroring npf_renderer.format.image.format_image.
+// formatImageContainer renders inner <div class="image-container"> of image
+// block, mirroring npf_renderer.format.image.format_image.
 func formatImageContainer(block *ImageBlock, rowLength int, overrideAspect *float64, urlHandler func(string) string, loc Localizer) *Node {
 	containerStyle := ""
 	imageStyle := ""
@@ -733,8 +733,8 @@ func formatImageContainer(block *ImageBlock, rowLength int, overrideAspect *floa
 	return container
 }
 
-// round rounds f to n decimal places the way Python's round() does
-// (half-to-even), then returns it as a float.
+// round rounds f to n decimals like Python round() (half-to-even), returns
+// float.
 func round(f float64, n int) float64 {
 	s := strconv.FormatFloat(f, 'f', n, 64)
 	v, _ := strconv.ParseFloat(s, 64)
@@ -784,7 +784,7 @@ func formatUnsupportedAttribution(attr Attribution, loc Localizer) *Node {
 	return El("div", "class", "unknown-attribution").Add(El("p").Add(Txt(inner)))
 }
 
-// formatAsk renders an "ask" layout with the given pre-rendered contents.
+// formatAsk renders "ask" layout with pre-rendered contents.
 func formatAsk(attr *BlogAttribution, urlHandler func(string) string, loc Localizer, contents ...*Node) *Node {
 	var askerAttribution *Node
 	var askerAvatar *Node
@@ -827,38 +827,37 @@ func formatAsk(attr *BlogAttribution, urlHandler func(string) string, loc Locali
 	return ask
 }
 
-// Localizer supplies the human-readable strings and value formatting used
-// while rendering.
+// Localizer supplies human-readable strings and value formatting during render.
 type Localizer interface {
-	// Translate returns the (optionally substituted) string for key.
+	// Translate returns (optionally substituted) string for key.
 	Translate(key string, subst map[string]string) string
-	// TranslatePlural returns the correct plural form for number.
+	// TranslatePlural returns plural form for number.
 	TranslatePlural(key string, number int, subst map[string]string) string
 	FormatDuration(key string, d time.Duration) string
 	FormatDatetime(key string, t time.Time) string
 	FormatDecimal(key string, n float64) string
 }
 
-// Options configure NPF formatting.
+// Options configure NPF format.
 type Options struct {
-	// URLHandler rewrites every URL emitted into the HTML.
+	// URLHandler rewrites every URL emitted into HTML.
 	URLHandler func(string) string
 	// Localizer supplies translated strings and value formatting.
 	Localizer Localizer
 	// PollCallback fetches poll results, if any.
 	PollCallback PollCallback
 
-	// Hooks for hyperblur-specific augmentation.
+	// Hooks for hyperblur augmentation.
 	ImageHook func(f *Formatter, block *ImageBlock, rowLength int, overrideAspect *float64, node *Node) *Node
 	VideoHook func(f *Formatter, block *VideoBlock, node *Node) *Node
 	PollHook  func(f *Formatter, block *PollBlock, node *Node) *Node
 
-	// BlogName and PostID are exposed to PollHook for its no-JS fallback.
+	// BlogName and PostID exposed to PollHook for no-JS fallback.
 	BlogName string
 	PostID   string
 }
 
-// newFormatter builds a Formatter from already-parsed content and layout.
+// newFormatter builds Formatter from parsed content and layout.
 func newFormatter(content, layout []any, opts Options) *Formatter {
 	urlHandler := opts.URLHandler
 	if urlHandler == nil {
@@ -877,8 +876,7 @@ func newFormatter(content, layout []any, opts Options) *Formatter {
 	}
 }
 
-// Format parses and renders NPF content, returning whether the result contains
-// errors and the rendered HTML.
+// Format parses and renders NPF content, returns has-errors flag and HTML.
 func Format(content []any, layout []any, opts Options) (bool, string) {
 	parsed, err := newParser(content, opts.PollCallback).Parse()
 	if err != nil {

@@ -13,23 +13,23 @@ import (
 // Formatting helpers (babel-ish, en_US only)
 // ---------------------------------------------------------------------------
 
-// formatDate renders a date the way babel's "medium" format does.
+// formatDate renders date like babel "medium".
 func formatDate(t time.Time) string {
 	return t.Format("Jan 2, 2006")
 }
 
-// formatDatetime renders a datetime the way babel's "medium" format does.
+// formatDatetime renders datetime like babel "medium".
 func formatDatetime(t time.Time) string {
 	return t.Format("Jan 2, 2006, 3:04:05 PM")
 }
 
-// formatDecimal groups thousands, matching babel's en_US format_decimal.
+// formatDecimal groups thousands like babel en_US format_decimal.
 func formatDecimal(n int) string {
 	return Localizer{}.FormatDecimal("", float64(n))
 }
 
 // ---------------------------------------------------------------------------
-// view builds HTML with explicit escaping of dynamic values.
+// view builds HTML, escaping every dynamic value.
 // ---------------------------------------------------------------------------
 
 type view struct {
@@ -43,7 +43,7 @@ func htmlEscape(s string) string { return html.EscapeString(s) }
 
 func (v *view) string() string { return v.b.String() }
 
-// PageData is the per-page rendering context.
+// PageData is per-page render context.
 type PageData struct {
 	Path     string
 	Endpoint string
@@ -68,7 +68,7 @@ type PageData struct {
 	PostFilter      string
 	TimeFilter      string
 
-	// Blog search page needs the query in the search bar.
+	// Blog search page needs query in search bar.
 	BlogSearchQuery string
 
 	// Notes viewer.
@@ -78,7 +78,7 @@ type PageData struct {
 	ReblogFilter string
 }
 
-// renderPage wraps the given centre content in the shared chrome.
+// renderPage wraps centre content in shared chrome.
 func (a *App) renderPage(data *PageData, center func(v *view)) string {
 	v := &view{}
 	v.b.Grow(16384)
@@ -289,7 +289,7 @@ func (a *App) renderNPFError(v *view, renderErr *RenderError) {
 	v.raw(`</figure>`)
 }
 
-// logNPFError records an NPF render failure for a post.
+// logNPFError records NPF render failure for post.
 func (a *App) logNPFError(post *tumblr.Post, where string, err *RenderError) {
 	a.Logger.Printf("npf render error (%s) for post %s/%s: %s", where, post.Blog.Name, post.ID, err.Message)
 }
@@ -421,7 +421,7 @@ func (a *App) renderBlogHeader(v *view, data *PageData) {
 	v.raw(`</div></div></header>`)
 }
 
-// noteCountLabel renders a post's note count, e.g. "1 note" / "5 notes".
+// noteCountLabel renders note count, e.g. "1 note" / "5 notes".
 func noteCountLabel(n int) string {
 	if n == 1 {
 		return "1 note"
@@ -429,8 +429,8 @@ func noteCountLabel(n int) string {
 	return formatDecimal(n) + " notes"
 }
 
-// percentEncode percent-encodes s, leaving unreserved characters and any
-// characters in safe untouched.
+// percentEncode percent-encodes s, leaving unreserved chars and any char in
+// safe untouched.
 func percentEncode(s, safe string) string {
 	const unreserved = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
 	const hex = "0123456789ABCDEF"
@@ -449,7 +449,7 @@ func percentEncode(s, safe string) string {
 	return b.String()
 }
 
-// urlEscape percent-encodes a single path segment.
+// urlEscape percent-encodes one path segment.
 func urlEscape(s string) string {
 	return percentEncode(s, "")
 }
@@ -472,7 +472,7 @@ type postHeaderData struct {
 	UseThisPostURL string
 }
 
-// PostPath returns the post's path (without a leading slash).
+// PostPath returns post path, no leading slash.
 func PostPath(post *tumblr.Post) string {
 	path := post.Blog.Name + "/" + post.ID
 	if post.Slug != "" {
@@ -501,7 +501,7 @@ func (a *App) renderPostHeader(v *view, data *PageData, hd postHeaderData) {
 	v.raw(`</div></div></div>`)
 }
 
-// renderAvatarLink renders a linked blog avatar.
+// renderAvatarLink renders linked blog avatar.
 func renderAvatarLink(v *view, href, src string) {
 	v.raw(`<a href="/`)
 	v.esc(href)
@@ -510,8 +510,7 @@ func renderAvatarLink(v *view, href, src string) {
 	v.raw(`"></a>`)
 }
 
-// renderAvatar renders a blog's avatar, or an anonymous one when the blog is
-// inactive or missing.
+// renderAvatar renders blog avatar, or anonymous when blog inactive or missing.
 func renderAvatar(v *view, blog *tumblr.Blog) {
 	if blog != nil && blog.Active {
 		renderAvatarLink(v, blog.Name, URLHandler(blog.AvatarURL()))
@@ -520,8 +519,7 @@ func renderAvatar(v *view, blog *tumblr.Blog) {
 	v.raw(`<img class="avatar" alt="Blog avatar" loading="eager" src="/assets/images/anon_96px.png">`)
 }
 
-// renderBlogName renders a blog's name, styled by whether the blog is active,
-// deactivated or broken.
+// renderBlogName renders blog name, styled by active/deactivated/broken.
 func renderBlogName(v *view, blog *tumblr.Blog, broken *tumblr.BrokenBlog) {
 	switch {
 	case blog != nil && !blog.Active:
@@ -543,7 +541,7 @@ func renderBlogName(v *view, blog *tumblr.Blog, broken *tumblr.BrokenBlog) {
 	}
 }
 
-// renderPostDate renders a post timestamp, linked to postPath when given.
+// renderPostDate renders post timestamp, linked to postPath when given.
 func renderPostDate(v *view, date *time.Time, postPath string) {
 	if date == nil {
 		return
@@ -567,7 +565,7 @@ func renderPostDate(v *view, date *time.Time, postPath string) {
 	v.raw(`</span>`)
 }
 
-// renderTags renders a post's tags, scoped to blogName's tag page when given.
+// renderTags renders post tags, scoped to blogName's tag page when given.
 func renderTags(v *view, tags []string, blogName string) {
 	if len(tags) == 0 {
 		return
@@ -589,7 +587,7 @@ func renderTags(v *view, tags []string, blogName string) {
 	v.raw(`</div>`)
 }
 
-// reblogAttribution renders who the post was reblogged from.
+// reblogAttribution renders reblog source.
 func (a *App) reblogAttribution(from, root *tumblr.ReblogAttribution) string {
 	classes := []string{"link", "blog-name"}
 	name := from.BlogName
@@ -619,7 +617,7 @@ func isTumblrURL(rawURL string) bool {
 	return host == "tumblr.com" || strings.HasSuffix(host, ".tumblr.com")
 }
 
-// renderNotesViewer writes the post-notes section for a post.
+// renderNotesViewer writes post-notes section.
 func (a *App) renderNotesViewer(v *view, data *PageData) {
 	notes := data.Notes
 	if notes == nil {
@@ -751,8 +749,8 @@ func (a *App) renderReplyNote(v *view, data *PageData, note *tumblr.ReplyNote) {
 }
 
 func (a *App) renderReblogNote(v *view, data *PageData, note *tumblr.ReblogNote) {
-	// Reblog notes never expose a top-level blog_name, so this only ever renders
-	// the "blog name absent" branch.
+	// Reblog notes never expose top-level blog_name, so only "blog name absent"
+	// branch renders.
 	v.raw(`<div class="note reblog-note post" data-post-id="`)
 	v.esc(note.ID)
 	v.raw(`">`)
@@ -894,7 +892,7 @@ func searchFilterItem(selected bool, href, label string) string {
 	return `<li` + class + `><a href="` + href + `">` + htmlEscape(label) + `</a></li>`
 }
 
-// sortLabel returns "Latest" for recency sorting, otherwise topLabel.
+// sortLabel returns "Latest" for recency sort, else topLabel.
 func sortLabel(sortBy, topLabel string) string {
 	if sortBy == "recent" {
 		return "Latest"

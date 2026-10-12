@@ -7,8 +7,8 @@ import (
 	"strings"
 )
 
-// PollCallback fetches results for a poll. endTimestamp is the poll's
-// expiration time (creation + expires_after).
+// PollCallback fetches poll results. endTimestamp is poll expiration time
+// (creation + expires_after).
 type PollCallback func(pollID string, endTimestamp int64) (map[string]PollResult, error)
 
 // ---------------------------------------------------------------------------
@@ -250,7 +250,7 @@ func parseAttribution(m map[string]any) Attribution {
 // Parser
 // ---------------------------------------------------------------------------
 
-// Parser converts NPF content blocks into parsed objects.
+// Parser converts NPF content blocks to parsed objects.
 type Parser struct {
 	content      []map[string]any
 	idx          int
@@ -259,7 +259,7 @@ type Parser struct {
 	pollCallback PollCallback
 }
 
-// newParser builds a parser over raw NPF content blocks.
+// newParser builds parser over raw NPF content blocks.
 func newParser(content []any, cb PollCallback) *Parser {
 	blocks := make([]map[string]any, 0, len(content))
 	for _, c := range content {
@@ -287,7 +287,7 @@ func (p *Parser) peek() map[string]any {
 	return p.content[p.idx]
 }
 
-// Parse runs the parser and returns the parsed top-level blocks.
+// Parse runs parser, returns parsed top-level blocks.
 func (p *Parser) Parse() ([]any, error) {
 	for p.next() {
 		if err := p.parseBlock(); err != nil {
@@ -536,7 +536,7 @@ func (p *Parser) parsePollBlock() (*PollBlock, error) {
 // Layout parser
 // ---------------------------------------------------------------------------
 
-// LayoutParser parses NPF layout information.
+// LayoutParser parses NPF layout info.
 type LayoutParser struct {
 	layouts    []map[string]any
 	idx        int
@@ -545,7 +545,7 @@ type LayoutParser struct {
 	result     []any
 }
 
-// newLayoutParser builds a parser over raw layout blocks.
+// newLayoutParser builds parser over raw layout blocks.
 func newLayoutParser(layouts []any) *LayoutParser {
 	blocks := make([]map[string]any, 0, len(layouts))
 	for _, l := range layouts {
@@ -577,7 +577,7 @@ func intList(v any) []int {
 	return out
 }
 
-// Parse returns the parsed layout blocks.
+// Parse returns parsed layout blocks.
 func (p *LayoutParser) Parse() []any {
 	for p.next() {
 		switch str(get(p.current, "type")) {

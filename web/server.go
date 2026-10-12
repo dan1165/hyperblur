@@ -26,7 +26,7 @@ import (
 	"github.com/dan1165/hyperblur/tumblr"
 )
 
-// Handler builds the HTTP handler for the application.
+// Handler builds HTTP handler for app.
 func (a *App) Handler() http.Handler {
 	mux := http.NewServeMux()
 
@@ -47,16 +47,15 @@ func (a *App) Handler() http.Handler {
 	// API.
 	mux.HandleFunc("GET /api/v1/poll/{blog}/{post_id}/{poll_id}/results", a.handleAPIPollResults)
 
-	// Blog pages are dispatched by the fallback handler because Go's
-	// ServeMux rejects the wildcard patterns they need next to /assets/.
+	// Blog pages go through fallback handler: ServeMux rejects their wildcard
+	// patterns next to /assets/.
 	mux.HandleFunc("GET /", a.handleFallback)
 
 	return a.middleware(mux)
 }
 
-// handleFallback dispatches explore/search/tagged/blog paths, which are not
-// ServeMux patterns because their wildcards conflict with each other and with
-// /assets/.
+// handleFallback dispatches explore/search/tagged/blog paths. Not ServeMux
+// patterns: wildcards clash with each other and /assets/.
 func (a *App) handleFallback(w http.ResponseWriter, r *http.Request) {
 	trimmed := strings.Trim(r.URL.Path, "/")
 	if trimmed == "" {
@@ -264,7 +263,7 @@ func (a *App) messageError(w http.ResponseWriter, r *http.Request, status int, h
 	})
 }
 
-// renderErrorPage renders the shared error-page chrome around center.
+// renderErrorPage renders shared error-page chrome around center.
 func (a *App) renderErrorPage(w http.ResponseWriter, r *http.Request, status int, style string, center func(v *view)) {
 	data := a.newPageData(r)
 	data.Title = "Error"
@@ -298,7 +297,7 @@ func errorMessage(err error) (string, string, string) {
 	return name, message, contextText
 }
 
-// handleAPIError maps Tumblr API errors to user-facing pages.
+// handleAPIError maps Tumblr API errors to user pages.
 func (a *App) handleAPIError(w http.ResponseWriter, r *http.Request, err error) bool {
 	var apiErr *tumblr.APIError
 	if !errors.As(err, &apiErr) {
@@ -330,12 +329,12 @@ func (a *App) fail(w http.ResponseWriter, r *http.Request, err error) {
 	a.genericError(w, r, err)
 }
 
-// newPageData builds page data with request-level fields populated.
+// newPageData builds page data with request fields.
 func (a *App) newPageData(r *http.Request) *PageData {
 	return &PageData{Path: r.URL.Path}
 }
 
-// App holds the shared server state.
+// App holds shared server state.
 type App struct {
 	API    *tumblr.API
 	Media  *http.Client
@@ -343,7 +342,7 @@ type App struct {
 	assets map[string]*assetEntry
 }
 
-// NewApp builds the application, creating the Tumblr API client.
+// NewApp builds app and Tumblr API client.
 func NewApp(logger *log.Logger) *App {
 	transport := newTransport()
 	return &App{
@@ -354,9 +353,8 @@ func NewApp(logger *log.Logger) *App {
 	}
 }
 
-// newTransport returns an HTTP transport with a larger idle pool than the
-// default (2 per host), so concurrent Tumblr requests reuse TLS connections
-// instead of re-handshaking.
+// newTransport returns HTTP transport with bigger idle pool than default
+// (2 per host). Concurrent Tumblr requests reuse TLS instead of re-handshaking.
 func newTransport() *http.Transport {
 	return &http.Transport{
 		Proxy:                 http.ProxyFromEnvironment,
@@ -370,7 +368,7 @@ func newTransport() *http.Transport {
 	}
 }
 
-// FormatNPF renders post content and returns an optional render error.
+// FormatNPF renders post content, returns optional render error.
 func (a *App) FormatNPF(content, layout []any, blogName, postID string, fetchPolls bool) (*RenderError, string) {
 	params := Params{
 		BlogName: blogName,
@@ -411,7 +409,7 @@ func toFloat(v any) float64 {
 	return 0
 }
 
-// assetEntry is a precomputed embedded file, gzipped when it is compressible.
+// assetEntry is precomputed embedded file, gzipped when compressible.
 type assetEntry struct {
 	body  []byte
 	gz    []byte
@@ -422,7 +420,7 @@ type assetEntry struct {
 //go:embed assets
 var assetsFS embed.FS
 
-// loadAssets reads every embedded asset once, at startup.
+// loadAssets reads every embedded asset once at startup.
 func loadAssets() map[string]*assetEntry {
 	out := map[string]*assetEntry{}
 	_ = fs.WalkDir(assetsFS, "assets", func(p string, d fs.DirEntry, err error) error {
@@ -468,8 +466,7 @@ func compressible(ct string) bool {
 		strings.Contains(ct, "svg")
 }
 
-// handleAsset serves an embedded asset with long-lived caching, ETag
-// revalidation and gzip.
+// handleAsset serves embedded asset with long cache, ETag revalidation, gzip.
 func (a *App) handleAsset(w http.ResponseWriter, r *http.Request) {
 	entry := a.assets[r.PathValue("path")]
 	if entry == nil {
@@ -511,12 +508,12 @@ var mediaRequestHeaders = map[string]string{
 
 var forwardedRequestHeaders = []string{"range", "if-range", "if-none-match", "if-modified-since"}
 
-// Headers hyperblur never forwards from upstream media responses.
+// Headers hyperblur never forwards from upstream media.
 var blacklistResponseHeaders = map[string]bool{
 	"access-control-allow-origin": true,
 	"alt-svc":                     true,
 	"server":                      true,
-	// These are set by our own middleware and must not be duplicated.
+	// Set by our middleware; never duplicate.
 	"cache-control":           true,
 	"pragma":                  true,
 	"expires":                 true,
@@ -557,8 +554,7 @@ func (a *App) handleMediaStatic(w http.ResponseWriter, r *http.Request) {
 	a.serveMedia(w, r, "https://static.tumblr.com", nil)
 }
 
-// serveMedia redirects a media request to its origin, or proxies it when a
-// forced download is requested.
+// serveMedia redirects media request to origin, or proxies on forced download.
 func (a *App) serveMedia(w http.ResponseWriter, r *http.Request, origin string, extraHeaders map[string]string) {
 	path := r.PathValue("path")
 	if !validMediaPath(path) {
@@ -676,7 +672,7 @@ func downloadRequested(r *http.Request) bool {
 	return truthyQuery(r.URL.Query().Get("download"))
 }
 
-// quotePath percent-encodes a path, keeping "/" separators.
+// quotePath percent-encodes path, keeps "/" separators.
 func quotePath(path string) string {
 	return percentEncode(path, "/")
 }

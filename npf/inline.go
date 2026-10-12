@@ -2,9 +2,9 @@ package npf
 
 import "sort"
 
-// parseInlineText converts raw NPF inline formatting intervals into a sorted,
-// non-overlapping set of style intervals, replacing npf-renderer's interval
-// tree with an equivalent boundary split.
+// parseInlineText converts raw NPF inline intervals into sorted, non-overlapping
+// style intervals. Replaces npf-renderer's interval tree with equivalent boundary
+// split.
 func (p *Parser) parseInlineText(raw []any) []StyleInterval {
 	type iv struct {
 		begin, end int
@@ -71,7 +71,7 @@ func (p *Parser) parseInlineText(raw []any) []StyleInterval {
 			discrete = append(discrete, latch)
 		}
 	} else {
-		// Mirrors npf-renderer's slightly odd tail validation.
+		// Mirrors npf-renderer's odd tail validation.
 		lastRaw := split[len(split)-1]
 		lastProc := discrete[len(discrete)-1]
 		if lastRaw.begin != lastProc.begin && lastRaw.end != lastProc.end {
@@ -260,7 +260,7 @@ func createTextTag(block *TextBlock, additional string) *Node {
 	return El("p", "class", "text-block")
 }
 
-// formatText renders a TextBlock (or ListGrouping) into HTML.
+// formatText renders TextBlock (or ListGrouping) to HTML.
 func formatText(block *TextBlock, urlHandler func(string) string) *Node {
 	var textTag *Node
 	additional := ""

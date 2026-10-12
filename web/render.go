@@ -11,27 +11,27 @@ import (
 	"github.com/dan1165/hyperblur/npf"
 )
 
-// downloadIcon is overlaid on every downloadable media element.
+// downloadIcon overlays every downloadable media element.
 const downloadIcon = `<svg class="icon" xmlns="http://www.w3.org/2000/svg" height="20" width="20" viewBox="0 -960 960 960"><path d="M480-320 280-520l56-58 104 104v-326h80v326l104-104 56 58-200 200ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z"/></svg>`
 
-// RenderError describes a post-render failure, mirroring the tuple returned by
-// hyperblur's create_user_friendly_error_message.
+// RenderError describes post-render failure, mirroring hyperblur's
+// create_user_friendly_error_message.
 type RenderError struct {
 	Name    string
 	Message string
 }
 
-// Params configure post rendering.
+// Params configure post render.
 type Params struct {
-	// BlogName and PostID are used for the poll no-JS fallback link.
+	// BlogName and PostID feed poll no-JS fallback link.
 	BlogName string
 	PostID   string
 	// PollCallback fetches poll results.
 	PollCallback npf.PollCallback
 }
 
-// FormatNPF renders NPF content to hyperblur HTML. On failure it returns a
-// RenderError and an error placeholder body; otherwise nil and the post body.
+// FormatNPF renders NPF content to hyperblur HTML. Failure returns RenderError
+// and error placeholder body; success returns nil and post body.
 func FormatNPF(content, layout []any, p Params) (*RenderError, string) {
 	opts := npf.Options{
 		URLHandler:   URLHandler,
@@ -127,8 +127,8 @@ func addDownloadButton(container *npf.Node, mediaURL string) {
 	).Add(npf.RawHTML(downloadIcon)))
 }
 
-// URLHandler rewrites Tumblr URLs found in posts into hyperblur's own
-// privacy-friendly paths.
+// URLHandler rewrites Tumblr URLs in posts to hyperblur's privacy-friendly
+// paths.
 func URLHandler(rawURL string) string {
 	u, err := url.Parse(rawURL)
 	if err != nil {
@@ -141,8 +141,8 @@ func URLHandler(rawURL string) string {
 		path = u.Path
 	}
 
-	// Redirect links can hold malformed URLs (e.g. https://href.li/?http://);
-	// recurse into the wrapped URL.
+	// Redirect links can hold malformed URLs (e.g. https://href.li/?http://).
+	// Recurse into wrapped URL.
 	if strings.HasSuffix(hostname, "href.li") {
 		return URLHandler(u.RawQuery)
 	}
@@ -155,9 +155,8 @@ func URLHandler(rawURL string) string {
 	}
 
 	if hostname != "" && strings.HasSuffix(hostname, "tumblr.com") {
-		// Leave media, asset and static hosts pointing straight at Tumblr's CDN
-		// so the browser skips a proxy round-trip; downloads go through
-		// DownloadURL.
+		// Leave media/asset/static hosts on Tumblr CDN, so browser skips proxy
+		// round-trip. Downloads go through DownloadURL.
 		if strings.Contains(hostname, ".media.tumblr.com") ||
 			strings.HasSuffix(hostname, "assets.tumblr.com") ||
 			strings.HasSuffix(hostname, "static.tumblr.com") ||
@@ -183,8 +182,8 @@ func URLHandler(rawURL string) string {
 	return u.String()
 }
 
-// proxyPath maps a Tumblr media/asset URL to the /tblr/... path served by the
-// media proxy, or "" when the URL is not proxied media.
+// proxyPath maps Tumblr media/asset URL to /tblr/... proxy path, or "" when not
+// proxied media.
 func proxyPath(rawURL string) string {
 	u, err := url.Parse(rawURL)
 	if err != nil {
@@ -220,7 +219,7 @@ func proxyPath(rawURL string) string {
 	return ""
 }
 
-// DownloadURL rewrites a media URL to the proxied path that forces a download.
+// DownloadURL rewrites media URL to proxied path forcing download.
 func DownloadURL(rawURL string) string {
 	if p := proxyPath(rawURL); p != "" {
 		return p + "?download=1"
@@ -228,8 +227,8 @@ func DownloadURL(rawURL string) string {
 	return rawURL + "?download=1"
 }
 
-// Localizer provides hyperblur's English strings and formatting to the
-// npf.Localizer interface.
+// Localizer provides hyperblur's English strings and formatting to
+// npf.Localizer.
 type Localizer struct{}
 
 // Translate implements npf.Localizer.
@@ -256,7 +255,7 @@ func substitute(text string, subst map[string]string) string {
 	return text
 }
 
-// npfString holds the strings the NPF formatter asks the localizer for.
+// npfString holds strings NPF formatter asks localizer for.
 func npfString(key string) string {
 	switch key {
 	case "asker_with_no_attribution":
@@ -305,9 +304,8 @@ func npfString(key string) string {
 
 // FormatDuration implements npf.Localizer.
 //
-// ponytail: approximates babel's format_timedelta(threshold=1.1) with the
-// largest unit whose value is >= 1.1. Swap for golang.org/x/text if the exact
-// babel wording is ever needed.
+// ponytail: approximates babel's format_timedelta(threshold=1.1) with largest
+// unit whose value >= 1.1. Swap golang.org/x/text for exact babel wording.
 func (Localizer) FormatDuration(key string, d time.Duration) string {
 	units := []struct {
 		seconds float64
@@ -335,8 +333,8 @@ func (Localizer) FormatDuration(key string, d time.Duration) string {
 	return "0 seconds"
 }
 
-// FormatDatetime implements npf.Localizer. babel's en_US "short" format is
-// M/d/yy, h:mm a with a narrow no-break space (U+202F) before AM/PM.
+// FormatDatetime implements npf.Localizer. babel en_US "short": M/d/yy, h:mm a,
+// narrow no-break space (U+202F) before AM/PM.
 func (Localizer) FormatDatetime(key string, t time.Time) string {
 	return t.Format("1/2/06, 3:04") + "\u202f" + t.Format("PM")
 }

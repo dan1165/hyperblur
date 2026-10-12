@@ -24,7 +24,7 @@ const (
 	ExploreAsks   ExplorePostType = "asks"
 )
 
-// Post type filters used by search.
+// Post-type filters for search.
 type PostTypeFilter string
 
 const (
@@ -40,7 +40,7 @@ const (
 	FilterPoll   PostTypeFilter = "poll"
 )
 
-// ReblogNoteTypes selects the reblog note viewer filter.
+// ReblogNoteTypes selects reblog note viewer filter.
 type ReblogNoteTypes string
 
 const (
@@ -49,7 +49,7 @@ const (
 	ReblogsOnly                ReblogNoteTypes = "reblogs_only"
 )
 
-// ErrorKind classifies an API error for the web layer.
+// ErrorKind classifies API error for web layer.
 type ErrorKind int
 
 const (
@@ -102,12 +102,11 @@ type API struct {
 	headers map[string]string
 }
 
-// DefaultUserAgent is the user agent hyperblur sends to Tumblr.
+// DefaultUserAgent is user agent hyperblur sends to Tumblr.
 const DefaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:136.0) Gecko/20100101 Firefox/136.0"
 
-// NewAPI builds a Tumblr API client, using a custom token from the environment
-// when set. transport is shared with the caller so the API and media clients
-// pool connections.
+// NewAPI builds Tumblr API client, using custom token from environment when set.
+// transport shared with caller so API and media clients pool connections.
 func NewAPI(transport http.RoundTripper, timeout time.Duration) *API {
 	token := strings.TrimSpace(os.Getenv(authorizationEnvVar))
 	if strings.HasPrefix(strings.ToLower(token), "bearer ") {
@@ -130,7 +129,7 @@ func NewAPI(transport http.RoundTripper, timeout time.Duration) *API {
 	}
 }
 
-// getJSON requests an endpoint, retrying transient network failures.
+// getJSON requests endpoint, retries transient network failures.
 func (a *API) getJSON(endpoint string, params url.Values) (map[string]any, error) {
 	target := "https://www.tumblr.com/api/v2/" + endpoint
 	if len(params) > 0 {
@@ -163,7 +162,7 @@ func (a *API) requestJSON(target string) (map[string]any, bool, error) {
 
 	response, err := a.client.Do(request)
 	if err != nil {
-		// Network-level failure: retryable.
+		// Network failure: retryable.
 		return nil, true, err
 	}
 	defer response.Body.Close()

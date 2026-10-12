@@ -1,16 +1,16 @@
-// Package tumblr wraps Tumblr's API and parses its JSON into hyperblur's models.
+// Package tumblr wraps Tumblr's API, parses JSON into hyperblur models.
 package tumblr
 
 import "time"
 
-// Avatar is one entry of a blog's avatar list.
+// Avatar is one blog avatar entry.
 type Avatar struct {
 	URL    string `json:"url"`
 	Width  int    `json:"width"`
 	Height int    `json:"height"`
 }
 
-// Blog is a Tumblr blog.
+// Blog is Tumblr blog.
 type Blog struct {
 	Name                  string
 	Avatar                []Avatar
@@ -21,7 +21,7 @@ type Blog struct {
 	RequiresAccountToView bool
 }
 
-// AvatarURL returns the highest-resolution avatar URL, if any.
+// AvatarURL returns highest-res avatar URL, if any.
 func (b *Blog) AvatarURL() string {
 	if b == nil || len(b.Avatar) == 0 {
 		return ""
@@ -29,25 +29,25 @@ func (b *Blog) AvatarURL() string {
 	return b.Avatar[len(b.Avatar)-1].URL
 }
 
-// BrokenBlog is a blog that Tumblr no longer returns details for.
+// BrokenBlog is blog Tumblr no longer returns details for.
 type BrokenBlog struct {
 	Name string
 }
 
-// Signpost is an advisory card shown inside a timeline.
+// Signpost is advisory card inside timeline.
 type Signpost struct {
 	Title       string
 	Description string
 }
 
-// ReblogAttribution describes who a post was reblogged from.
+// ReblogAttribution describes reblog source.
 type ReblogAttribution struct {
 	PostID   string
 	PostURL  string
 	BlogName string
 }
 
-// PostTrail is one earlier version of a reblogged post.
+// PostTrail is one earlier version of reblogged post.
 type PostTrail struct {
 	ID         string
 	Blog       *Blog
@@ -57,7 +57,7 @@ type PostTrail struct {
 	Layout     []any
 }
 
-// BlogName returns the trail blog's name regardless of whether it is broken.
+// BlogName returns trail blog name, broken or not.
 func (t PostTrail) BlogName() string {
 	if t.Blog != nil {
 		return t.Blog.Name
@@ -68,7 +68,7 @@ func (t PostTrail) BlogName() string {
 	return ""
 }
 
-// Post is a Tumblr post.
+// Post is Tumblr post.
 type Post struct {
 	Blog *Blog
 
@@ -91,7 +91,7 @@ type Post struct {
 	ReblogRoot *ReblogAttribution
 }
 
-// ReplyNote is a reply left on a post.
+// ReplyNote is reply on post.
 type ReplyNote struct {
 	ReplyID string
 	Date    *time.Time
@@ -100,7 +100,7 @@ type ReplyNote struct {
 	Blog    *Blog
 }
 
-// ReblogNote is a reblog of a post.
+// ReblogNote is reblog of post.
 type ReblogNote struct {
 	ID   string
 	Blog *Blog
@@ -112,17 +112,16 @@ type ReblogNote struct {
 	Date *time.Time
 }
 
-// LikeNote is a like on a post.
+// LikeNote is like on post.
 type LikeNote struct {
 	BlogName  string
 	BlogTitle string
 	Date      *time.Time
-	// Avatar is keyed by size ("128", "512", ...) as Tumblr returns it.
+	// Avatar keyed by size ("128", "512", ...) as Tumblr returns it.
 	Avatar map[string]string
 }
 
-// BlogTimeline is a blog page. Next is a continuation cursor, empty when there
-// is no next page.
+// BlogTimeline is blog page. Next is continuation cursor, empty on last page.
 type BlogTimeline struct {
 	BlogInfo   *Blog
 	Posts      []*Post
@@ -130,7 +129,7 @@ type BlogTimeline struct {
 	Next       string
 }
 
-// NoteTimeline is a page of post notes.
+// NoteTimeline is page of post notes.
 type NoteTimeline struct {
 	Notes []any
 
