@@ -66,7 +66,8 @@ hyperblur is an installable progressive web app. Open it and use your browser's
 "Install" / "Add to Home Screen". A service worker caches the shell and assets,
 so repeat loads are instant and the last pages work offline.
 
-Media loads straight from Tumblr CDN, so Tumblr sees viewer IP.
+All media is proxied through hyperblur, so the browser never contacts Tumblr's
+CDN and Tumblr never sees the viewer's IP.
 
 ## Performance
 
@@ -74,7 +75,8 @@ One Go binary on standard `net/http`:
 
 - Shared HTTP transport, 100-idle-per-host pool. Concurrent Tumblr requests reuse
   TLS.
-- Media loads straight from Tumblr CDN, no proxy round-trip. Downloads proxied.
+- Media is proxied through hyperblur (zero CDN), streamed and cached in the
+  browser; downloads add a filename.
 - HTML and embedded assets gzipped. Stylesheets inlined, so a page renders with
   no stylesheet request. Other assets carry ETag, cache a week.
 - API responses streamed-decoded, fetched fresh every time. No response cache.

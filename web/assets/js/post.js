@@ -117,6 +117,43 @@ function populate_polls() {
 // TODO lazy load polls
 populate_polls();
 
+// Control-bar dropdowns open on hover (CSS) and on click/tap (here), so they
+// work with touch and keyboard as well as a mouse.
+(function () {
+    const actions = document.querySelectorAll(".control-bar-action");
+    if (!actions.length) return;
+
+    function closeAll(except) {
+        actions.forEach(function (action) {
+            if (action !== except) action.classList.remove("open");
+        });
+    }
+
+    actions.forEach(function (action) {
+        const menu = action.querySelector(".control-bar-dropdown-menu");
+        if (menu) {
+            action.setAttribute("aria-haspopup", "true");
+            action.setAttribute("aria-expanded", "false");
+        }
+        action.addEventListener("click", function (event) {
+            if (event.target.closest("a")) return; // menu link: navigate
+            event.preventDefault();
+            const willOpen = !action.classList.contains("open");
+            closeAll(action);
+            action.classList.toggle("open", willOpen);
+            action.setAttribute("aria-expanded", willOpen ? "true" : "false");
+        });
+    });
+
+    document.addEventListener("click", function (event) {
+        if (event.target.closest && event.target.closest(".control-bar-action")) return;
+        closeAll(null);
+    });
+    document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") closeAll(null);
+    });
+})();
+
 // Offline shell + fast repeat loads (progressive web app).
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {

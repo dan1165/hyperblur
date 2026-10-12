@@ -60,7 +60,11 @@ self.addEventListener('fetch', (event) => {
       }
       return res;
     }).catch(() =>
-      caches.match(req).then((hit) => hit || caches.match('/offline'))
+      caches.match(req).then((hit) => {
+        if (hit) return hit;
+        if (req.mode === 'navigate') return caches.match('/offline');
+        return Response.error();
+      })
     )
   );
 });

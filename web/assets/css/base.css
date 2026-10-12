@@ -421,6 +421,13 @@ li.no-js .control-bar-dropdown-menu {
     top: 40px;
 }
 
+/* Click/tap to open, next to hover. */
+li.control-bar-action.open .control-bar-dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transition: all 50ms ease-in-out;
+}
+
 
 @media screen and (max-width: 768px) {
     #timeline-control-bar {

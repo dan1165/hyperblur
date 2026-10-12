@@ -155,12 +155,15 @@ func URLHandler(rawURL string) string {
 	}
 
 	if hostname != "" && strings.HasSuffix(hostname, "tumblr.com") {
-		// Leave media/asset/static hosts on Tumblr CDN, so browser skips proxy
-		// round-trip. Downloads go through DownloadURL.
+		// Route media/asset/static hosts through the local proxy so the browser
+		// never contacts Tumblr's CDN (zero CDN). Downloads use DownloadURL.
 		if strings.Contains(hostname, ".media.tumblr.com") ||
 			strings.HasSuffix(hostname, "assets.tumblr.com") ||
 			strings.HasSuffix(hostname, "static.tumblr.com") ||
 			strings.HasPrefix(hostname, "a.") {
+			if p := proxyPath(rawURL); p != "" {
+				return p
+			}
 			return u.String()
 		}
 

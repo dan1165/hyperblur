@@ -201,12 +201,12 @@ func (a *App) middleware(next http.Handler) http.Handler {
 			"default-src 'none'",
 			"script-src 'self'",
 			"style-src 'self' 'unsafe-inline'",
-			"img-src 'self' data: https://*.tumblr.com",
+			"img-src 'self' data:",
 			"font-src 'self' data:",
 			"connect-src 'self'",
 			"manifest-src 'self'",
 			"worker-src 'self'",
-			"media-src 'self' https://*.tumblr.com",
+			"media-src 'self'",
 			"child-src 'self' blob:",
 		}, "; "))
 
@@ -595,7 +595,8 @@ func (a *App) handleMediaStatic(w http.ResponseWriter, r *http.Request) {
 	a.serveMedia(w, r, "https://static.tumblr.com", nil)
 }
 
-// serveMedia redirects media request to origin, or proxies on forced download.
+// serveMedia proxies media through hyperblur, so the browser never contacts
+// Tumblr's CDN; a forced download adds a content-disposition filename.
 func (a *App) serveMedia(w http.ResponseWriter, r *http.Request, origin string, extraHeaders map[string]string) {
 	path := r.PathValue("path")
 	if !validMediaPath(path) {
@@ -604,11 +605,11 @@ func (a *App) serveMedia(w http.ResponseWriter, r *http.Request, origin string, 
 	}
 
 	target := origin + "/" + quotePath(path)
-	if !downloadRequested(r) {
-		http.Redirect(w, r, target, http.StatusFound)
-		return
+	disposition := ""
+	if downloadRequested(r) {
+		disposition = buildContentDisposition(path)
 	}
-	a.streamMedia(w, r, target, extraHeaders, buildContentDisposition(path))
+	a.streamMedia(w, r, target, extraHeaders, disposition)
 }
 
 func (a *App) handleAtLinks(w http.ResponseWriter, r *http.Request) {
@@ -662,6 +663,9 @@ func (a *App) streamMedia(w http.ResponseWriter, r *http.Request, origin string,
 	}
 	defer response.Body.Close()
 
+	// Cache proxied media in the browser: honour upstream caching, else a day.
+	upstreamCacheControl := response.Header.Get("cache-control")
+
 	for key, values := range response.Header {
 		if blacklistResponseHeaders[strings.ToLower(key)] {
 			continue
@@ -670,6 +674,12 @@ func (a *App) streamMedia(w http.ResponseWriter, r *http.Request, origin string,
 			w.Header().Add(key, value)
 		}
 	}
+	if upstreamCacheControl == "" {
+		upstreamCacheControl = "public, max-age=86400"
+	}
+	w.Header().Set("cache-control", upstreamCacheControl)
+	w.Header().Del("pragma")
+	w.Header().Del("expires")
 	if downloadFilename != "" {
 		w.Header().Set("content-disposition", downloadFilename)
 	}
