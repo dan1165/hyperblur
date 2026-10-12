@@ -160,14 +160,29 @@ func (n *Node) render(b *strings.Builder) {
 	b.WriteByte('>')
 }
 
-// escape mirrors dominate.util.escape (which is the stdlib cgi.escape): it
-// escapes &, <, > and " (but not ').
+// escape escapes &, <, > and " (but not '), like the stdlib cgi.escape. It
+// allocates nothing when there is nothing to escape.
 func escape(s string) string {
-	s = strings.ReplaceAll(s, "&", "&amp;")
-	s = strings.ReplaceAll(s, "<", "&lt;")
-	s = strings.ReplaceAll(s, ">", "&gt;")
-	s = strings.ReplaceAll(s, `"`, "&quot;")
-	return s
+	if !strings.ContainsAny(s, `&<>"`) {
+		return s
+	}
+	var b strings.Builder
+	b.Grow(len(s) + 8)
+	for i := 0; i < len(s); i++ {
+		switch c := s[i]; c {
+		case '&':
+			b.WriteString("&amp;")
+		case '<':
+			b.WriteString("&lt;")
+		case '>':
+			b.WriteString("&gt;")
+		case '"':
+			b.WriteString("&quot;")
+		default:
+			b.WriteByte(c)
+		}
+	}
+	return b.String()
 }
 
 func normalizeAttr(key string) string {

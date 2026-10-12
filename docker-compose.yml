@@ -2,7 +2,7 @@ services:
   hyperblur:
     image: ghcr.io/dan1165/hyperblur:latest
     container_name: hyperblur
-    restart: unless-stopped
+    restart: always
     environment:
       # Optional: your own Tumblr API token. Leave empty to use the bundled one.
       HYPERBLUR_TUMBLR_API_TOKEN: ""

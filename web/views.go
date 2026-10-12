@@ -82,6 +82,7 @@ type PageData struct {
 // renderPage wraps the given centre content in the shared chrome.
 func (a *App) renderPage(data *PageData, center func(v *view)) string {
 	v := &view{}
+	v.b.Grow(16384)
 	v.raw("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n")
 	v.raw("<meta charset=\"utf-8\">\n")
 	v.raw("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n")

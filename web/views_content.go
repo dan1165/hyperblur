@@ -1,7 +1,6 @@
 package web
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/dan1165/hyperblur/render"
@@ -282,14 +281,18 @@ func noteCountLabel(n int) string {
 // characters in safe untouched.
 func percentEncode(s, safe string) string {
 	const unreserved = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
+	const hex = "0123456789ABCDEF"
 	var b strings.Builder
+	b.Grow(len(s))
 	for i := 0; i < len(s); i++ {
 		c := s[i]
 		if strings.IndexByte(unreserved, c) >= 0 || strings.IndexByte(safe, c) >= 0 {
 			b.WriteByte(c)
-		} else {
-			fmt.Fprintf(&b, "%%%02X", c)
+			continue
 		}
+		b.WriteByte('%')
+		b.WriteByte(hex[c>>4])
+		b.WriteByte(hex[c&0xf])
 	}
 	return b.String()
 }

@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/dan1165/hyperblur/web"
 )
@@ -17,10 +18,15 @@ func main() {
 		port = "8000"
 	}
 
-	app := web.NewApp(logger)
+	server := &http.Server{
+		Addr:              ":" + port,
+		Handler:           web.NewApp(logger).Handler(),
+		ReadHeaderTimeout: 10 * time.Second,
+		IdleTimeout:       90 * time.Second,
+	}
 
 	logger.Println("Starting up hyperblur")
-	if err := http.ListenAndServe(":"+port, app.Handler()); err != nil {
+	if err := server.ListenAndServe(); err != nil {
 		logger.Fatal(err)
 	}
 }

@@ -107,8 +107,9 @@ type API struct {
 const DefaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:136.0) Gecko/20100101 Firefox/136.0"
 
 // NewAPI builds a Tumblr API client, using a custom token from the
-// environment when one is set.
-func NewAPI(timeout time.Duration) *API {
+// environment when one is set. transport is shared with the caller so
+// connections are pooled across the API and media clients.
+func NewAPI(transport http.RoundTripper, timeout time.Duration) *API {
 	token := strings.TrimSpace(os.Getenv(authorizationEnvVar))
 	if strings.HasPrefix(strings.ToLower(token), "bearer ") {
 		token = strings.TrimSpace(token[len("bearer "):])
@@ -118,7 +119,7 @@ func NewAPI(timeout time.Duration) *API {
 	}
 
 	return &API{
-		client: &http.Client{Timeout: timeout},
+		client: &http.Client{Transport: transport, Timeout: timeout},
 		headers: map[string]string{
 			"accept":        "application/json;format=camelcase",
 			"user-agent":    DefaultUserAgent,

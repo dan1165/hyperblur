@@ -3,6 +3,7 @@ package web
 
 import (
 	"log"
+	"net"
 	"net/http"
 	"time"
 
@@ -20,10 +21,27 @@ type App struct {
 
 // NewApp builds the application, creating the Tumblr API client.
 func NewApp(logger *log.Logger) *App {
+	transport := newTransport()
 	return &App{
-		API:    tumblr.NewAPI(10 * time.Second),
-		Media:  &http.Client{Timeout: 30 * time.Second},
+		API:    tumblr.NewAPI(transport, 10*time.Second),
+		Media:  &http.Client{Transport: transport, Timeout: 30 * time.Second},
 		Logger: logger,
+	}
+}
+
+// newTransport returns an HTTP transport with a larger idle pool than the
+// default (which keeps only 2 idle connections per host) so that concurrent
+// requests to Tumblr reuse TLS connections instead of re-handshaking.
+func newTransport() *http.Transport {
+	return &http.Transport{
+		Proxy:                 http.ProxyFromEnvironment,
+		DialContext:           (&net.Dialer{Timeout: 10 * time.Second, KeepAlive: 30 * time.Second}).DialContext,
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          200,
+		MaxIdleConnsPerHost:   100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: time.Second,
 	}
 }
 
