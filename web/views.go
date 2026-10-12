@@ -141,7 +141,7 @@ func primaryNav() []navItem {
 		{"gifs", "/explore/gifs", "Gifs", iconLoop},
 		{"video", "/explore/video", "Video", iconPlay},
 		{"audio", "/explore/audio", "Audio", iconMusic},
-		{"quotes", "/explore/quotes", "Quotes", iconText},
+		{"quotes", "/explore/quotes", "Quotes", iconQuote},
 		{"chats", "/explore/chats", "Chats", iconReply},
 		{"text", "/explore/text", "Text", iconText},
 		{"asks", "/explore/asks", "Asks", iconReply},
@@ -149,7 +149,7 @@ func primaryNav() []navItem {
 }
 
 func (a *App) renderAppBar(v *view, data *PageData) {
-	v.raw(`<header class="appbar"><a class="brand" href="/explore/trending"><span class="brand-mark" aria-hidden="true"></span>hyperblur</a>`)
+	v.raw(`<header class="appbar"><div class="appbar-inner"><a class="brand" href="/explore/trending"><span class="brand-mark" aria-hidden="true"></span>hyperblur</a>`)
 	v.raw(`<form class="search" role="search" method="get" action="/search" autocomplete="off">`)
 	v.raw(searchIcon)
 
@@ -168,7 +168,7 @@ func (a *App) renderAppBar(v *view, data *PageData) {
 	}
 	v.raw(` placeholder="`)
 	v.esc("Search Tumblr")
-	v.raw(`"></form></header>`)
+	v.raw(`"></form></div></header>`)
 }
 
 func (a *App) renderRail(v *view, data *PageData) {
@@ -218,6 +218,7 @@ const (
 	iconPlay     = `<svg viewBox="0 -960 960 960" aria-hidden="true"><path d="M320-200v-560l440 280-440 280Z"/></svg>`
 	iconMusic    = `<svg viewBox="0 -960 960 960" aria-hidden="true"><path d="M400-120q-66 0-113-47t-47-113q0-66 47-113t113-47q23 0 42.5 5.5T480-418v-422h240v160H560v400q0 66-47 113t-113 47Z"/></svg>`
 	iconText     = `<svg viewBox="0 -960 960 960" aria-hidden="true"><path d="M120-160v-80h480v80H120Zm0-280v-80h720v80H120Zm0-280v-80h720v80H120Z"/></svg>`
+	iconQuote    = `<svg viewBox="0 -960 960 960" aria-hidden="true"><path d="M580-240q-42 0-71-29t-29-71v-200q0-83 58.5-141.5T680-740h80q17 0 28.5 11.5T800-700q0 17-11.5 28.5T760-660h-80q-42 0-71 29t-29 71v10h120q42 0 71 29t29 71v140q0 42-29 71t-71 29H580Zm-360 0q-42 0-71-29t-29-71v-200q0-83 58.5-141.5T320-740h80q17 0 28.5 11.5T440-700q0 17-11.5 28.5T400-660h-80q-42 0-71 29t-29 71v10h120q42 0 71 29t29 71v140q0 42-29 71t-71 29H220Z"/></svg>`
 	iconReply    = `<svg viewBox="0 -960 960 960" aria-hidden="true"><path d="M80-80v-733.33q0-27 19.83-46.84Q119.67-880 146.67-880h666.66q27 0 46.84 19.83Q880-840.33 880-813.33v506.66q0 27-19.83 46.84Q840.33-240 813.33-240H240L80-80Zm131.33-226.67h602v-506.66H146.67v575l64.66-68.34Zm-64.66 0v-506.66 506.66Z"/></svg>`
 )
 

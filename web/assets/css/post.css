@@ -5,7 +5,7 @@
   flex-direction: column;
   gap: 16px;
   width: 100%;
-  padding: 18px;
+  padding: 20px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -234,4 +234,24 @@ a.hidden-reblog { font-weight: 500; }
   .post { border-radius: var(--radius-md); padding: 14px; }
   .post-notes { padding: 12px; }
   .post-notes-nav { gap: 4px; justify-content: space-between; }
+}
+
+/* Media chrome stays out of the way until you point at it. */
+.media-download { opacity: 0; }
+
+.image-block:hover .media-download,
+.image-container:hover .media-download,
+.video-block:hover .media-download,
+.audio-block:hover .media-download,
+.media-download:focus-visible { opacity: 0.92; }
+
+.img-alt-text { opacity: 0; }
+
+.image-block:hover .img-alt-text,
+.image-container:hover .img-alt-text,
+.img-alt-text:has(details[open]) { opacity: 1; }
+
+@media (hover: none) {
+  .media-download { opacity: 0.85; }
+  .img-alt-text { opacity: 0.3; }
 }

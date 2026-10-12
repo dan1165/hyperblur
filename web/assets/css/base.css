@@ -152,6 +152,15 @@ button, input, select, textarea { font: inherit; }
   border-bottom: 1px solid var(--border);
 }
 
+.appbar-inner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+}
+
 .brand {
   display: inline-flex;
   align-items: center;
@@ -267,7 +276,7 @@ button, input, select, textarea { font: inherit; }
 
 .feed {
   width: 100%;
-  max-width: 640px;
+  max-width: 580px;
   display: flex;
   flex-direction: column;
   gap: 18px;
