@@ -15,6 +15,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
 	"regexp"
 	"runtime/debug"
@@ -197,16 +198,23 @@ func (a *App) middleware(next http.Handler) http.Handler {
 		header.Set("cache-control", "no-store, no-cache, must-revalidate, max-age=0")
 		header.Set("pragma", "no-cache")
 		header.Set("expires", "0")
+		imgSrc := "'self' data:"
+		mediaSrc := "'self'"
+		if !ProxyMedia {
+			// Direct mode: media is loaded straight from Tumblr's CDN.
+			imgSrc += " https://*.tumblr.com"
+			mediaSrc += " https://*.tumblr.com"
+		}
 		header.Set("content-security-policy", strings.Join([]string{
 			"default-src 'none'",
 			"script-src 'self'",
 			"style-src 'self' 'unsafe-inline'",
-			"img-src 'self' data:",
+			"img-src " + imgSrc,
 			"font-src 'self' data:",
 			"connect-src 'self'",
 			"manifest-src 'self'",
 			"worker-src 'self'",
-			"media-src 'self'",
+			"media-src " + mediaSrc,
 			"child-src 'self' blob:",
 		}, "; "))
 
@@ -231,6 +239,17 @@ func (a *App) handleRobots(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("content-type", "text/plain; charset=utf-8")
 	w.Header().Set("Content-Length", strconv.Itoa(len(entry.body)))
 	_, _ = w.Write(entry.body)
+}
+
+// applyMediaMode reads HYPERBLUR_PROXY_MEDIA. Unset or truthy proxies media;
+// a falsey value loads it straight from Tumblr's CDN.
+func applyMediaMode() {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(proxyMediaEnvVar))) {
+	case "0", "false", "no", "off":
+		ProxyMedia = false
+	default:
+		ProxyMedia = true
+	}
 }
 
 func (a *App) handleManifest(w http.ResponseWriter, r *http.Request) {
@@ -385,6 +404,7 @@ type App struct {
 
 // NewApp builds app and Tumblr API client.
 func NewApp(logger *log.Logger) *App {
+	applyMediaMode()
 	transport := newTransport()
 	return &App{
 		API:    tumblr.NewAPI(transport, 10*time.Second),

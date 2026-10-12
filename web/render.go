@@ -127,6 +127,12 @@ func addDownloadButton(container *npf.Node, mediaURL string) {
 	).Add(npf.RawHTML(downloadIcon)))
 }
 
+// ProxyMedia routes post media through hyperblur when true. When false, media
+// loads straight from Tumblr's CDN. Set from HYPERBLUR_PROXY_MEDIA.
+var ProxyMedia = true
+
+const proxyMediaEnvVar = "HYPERBLUR_PROXY_MEDIA"
+
 // URLHandler rewrites Tumblr URLs in posts to hyperblur's privacy-friendly
 // paths.
 func URLHandler(rawURL string) string {
@@ -161,8 +167,10 @@ func URLHandler(rawURL string) string {
 			strings.HasSuffix(hostname, "assets.tumblr.com") ||
 			strings.HasSuffix(hostname, "static.tumblr.com") ||
 			strings.HasPrefix(hostname, "a.") {
-			if p := proxyPath(rawURL); p != "" {
-				return p
+			if ProxyMedia {
+				if p := proxyPath(rawURL); p != "" {
+					return p
+				}
 			}
 			return u.String()
 		}

@@ -27,22 +27,28 @@ go build -o hyperblur ./cmd/hyperblur
 Listens on `:8000`. `HYPERBLUR_PORT` changes it. Assets embedded, so binary runs
 from anywhere.
 
-## Own Tumblr token (optional)
+## Configure
 
-Default token ships in. Set `HYPERBLUR_TUMBLR_API_TOKEN` to use own. Opens blogs
-that need login.
+`docker compose` reads `.env` automatically. Edit it, or set the same variables
+by hand.
 
-Docker, in `docker-compose.yml`:
+| Variable | Default | Meaning |
+|---|---|---|
+| `HYPERBLUR_PORT` | `8000` | Listen port. |
+| `HYPERBLUR_PROXY_MEDIA` | `true` | `true` proxies all media through hyperblur — zero CDN, Tumblr never sees the viewer IP. `false` loads media straight from Tumblr's CDN — faster, lighter on your server, viewer IP exposed. |
+| `HYPERBLUR_TUMBLR_API_TOKEN` | bundled | Your own Tumblr API token, to open blogs that require login. |
 
-```yaml
-environment:
-  HYPERBLUR_TUMBLR_API_TOKEN: "your-token-here"
+Docker, in `.env`:
+
+```ini
+HYPERBLUR_PROXY_MEDIA=false
+HYPERBLUR_TUMBLR_API_TOKEN=your-token-here
 ```
 
 Manual:
 
 ```bash
-HYPERBLUR_TUMBLR_API_TOKEN=your-token-here ./hyperblur
+HYPERBLUR_PROXY_MEDIA=false HYPERBLUR_TUMBLR_API_TOKEN=your-token-here ./hyperblur
 ```
 
 ## What you get
@@ -66,8 +72,9 @@ hyperblur is an installable progressive web app. Open it and use your browser's
 "Install" / "Add to Home Screen". A service worker caches the shell and assets,
 so repeat loads are instant and the last pages work offline.
 
-All media is proxied through hyperblur, so the browser never contacts Tumblr's
-CDN and Tumblr never sees the viewer's IP.
+Media is proxied through hyperblur by default, so the browser never contacts
+Tumblr's CDN and Tumblr never sees the viewer's IP. Set
+`HYPERBLUR_PROXY_MEDIA=false` to load it straight from the CDN instead.
 
 ## Performance
 
@@ -75,8 +82,9 @@ One Go binary on standard `net/http`:
 
 - Shared HTTP transport, 100-idle-per-host pool. Concurrent Tumblr requests reuse
   TLS.
-- Media is proxied through hyperblur (zero CDN), streamed and cached in the
-  browser; downloads add a filename.
+- Media is proxied through hyperblur by default (zero CDN), streamed and cached
+  in the browser; downloads add a filename. `HYPERBLUR_PROXY_MEDIA=false` skips
+  the proxy and loads media straight from Tumblr.
 - HTML and embedded assets gzipped. Stylesheets inlined, so a page renders with
   no stylesheet request. Other assets carry ETag, cache a week.
 - API responses streamed-decoded, fetched fresh every time. No response cache.
@@ -94,6 +102,11 @@ docker pull ghcr.io/dan1165/hyperblur:latest
 
 Unexpected errors log server-side with request and stack trace. Error page shows
 same details plus issue link: <https://github.com/dan1165/hyperblur/issues>.
+
+## Disclaimer
+
+Built with the assistance of [opencode](https://opencode.ai), running the latest
+DeepSeek Flash model.
 
 ## License
 
