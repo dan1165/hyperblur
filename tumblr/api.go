@@ -105,9 +105,9 @@ type API struct {
 // DefaultUserAgent is the user agent hyperblur sends to Tumblr.
 const DefaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:136.0) Gecko/20100101 Firefox/136.0"
 
-// NewAPI builds a Tumblr API client, using a custom token from the
-// environment when one is set. transport is shared with the caller so
-// connections are pooled across the API and media clients.
+// NewAPI builds a Tumblr API client, using a custom token from the environment
+// when set. transport is shared with the caller so the API and media clients
+// pool connections.
 func NewAPI(transport http.RoundTripper, timeout time.Duration) *API {
 	token := strings.TrimSpace(os.Getenv(authorizationEnvVar))
 	if strings.HasPrefix(strings.ToLower(token), "bearer ") {

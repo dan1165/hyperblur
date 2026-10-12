@@ -3,8 +3,8 @@ package npf
 import "sort"
 
 // parseInlineText converts raw NPF inline formatting intervals into a sorted,
-// non-overlapping set of style intervals. This replaces npf-renderer's use of
-// an interval tree with an equivalent boundary split.
+// non-overlapping set of style intervals, replacing npf-renderer's interval
+// tree with an equivalent boundary split.
 func (p *Parser) parseInlineText(raw []any) []StyleInterval {
 	type iv struct {
 		begin, end int

@@ -54,9 +54,9 @@ func (a *App) Handler() http.Handler {
 	return a.middleware(mux)
 }
 
-// handleFallback dispatches explore/search/tagged/blog paths. They are handled
-// here rather than as ServeMux patterns because the wildcard patterns they need
-// conflict with each other and with /assets/.
+// handleFallback dispatches explore/search/tagged/blog paths, which are not
+// ServeMux patterns because their wildcards conflict with each other and with
+// /assets/.
 func (a *App) handleFallback(w http.ResponseWriter, r *http.Request) {
 	trimmed := strings.Trim(r.URL.Path, "/")
 	if trimmed == "" {
@@ -355,8 +355,8 @@ func NewApp(logger *log.Logger) *App {
 }
 
 // newTransport returns an HTTP transport with a larger idle pool than the
-// default (which keeps only 2 idle connections per host) so that concurrent
-// requests to Tumblr reuse TLS connections instead of re-handshaking.
+// default (2 per host), so concurrent Tumblr requests reuse TLS connections
+// instead of re-handshaking.
 func newTransport() *http.Transport {
 	return &http.Transport{
 		Proxy:                 http.ProxyFromEnvironment,

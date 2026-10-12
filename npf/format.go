@@ -877,8 +877,8 @@ func newFormatter(content, layout []any, opts Options) *Formatter {
 	}
 }
 
-// Format parses and renders NPF content. It returns whether the rendered
-// result contains errors, and the rendered HTML.
+// Format parses and renders NPF content, returning whether the result contains
+// errors and the rendered HTML.
 func Format(content []any, layout []any, opts Options) (bool, string) {
 	parsed, err := newParser(content, opts.PollCallback).Parse()
 	if err != nil {

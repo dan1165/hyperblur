@@ -751,8 +751,8 @@ func (a *App) renderReplyNote(v *view, data *PageData, note *tumblr.ReplyNote) {
 }
 
 func (a *App) renderReblogNote(v *view, data *PageData, note *tumblr.ReblogNote) {
-	// The template only ever renders the "blog name absent" branch, since
-	// reblog notes never expose a top-level blog_name.
+	// Reblog notes never expose a top-level blog_name, so this only ever renders
+	// the "blog name absent" branch.
 	v.raw(`<div class="note reblog-note post" data-post-id="`)
 	v.esc(note.ID)
 	v.raw(`">`)

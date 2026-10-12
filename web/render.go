@@ -30,8 +30,8 @@ type Params struct {
 	PollCallback npf.PollCallback
 }
 
-// FormatNPF renders NPF content to hyperblur HTML. It returns a RenderError and
-// an error placeholder body when rendering fails, or nil and the post body.
+// FormatNPF renders NPF content to hyperblur HTML. On failure it returns a
+// RenderError and an error placeholder body; otherwise nil and the post body.
 func FormatNPF(content, layout []any, p Params) (*RenderError, string) {
 	opts := npf.Options{
 		URLHandler:   URLHandler,
@@ -155,9 +155,9 @@ func URLHandler(rawURL string) string {
 	}
 
 	if hostname != "" && strings.HasSuffix(hostname, "tumblr.com") {
-		// Media, asset and static hosts are left pointing straight at Tumblr's
-		// CDN so the browser skips a proxy round-trip; downloads go through
-		// DownloadURL instead.
+		// Leave media, asset and static hosts pointing straight at Tumblr's CDN
+		// so the browser skips a proxy round-trip; downloads go through
+		// DownloadURL.
 		if strings.Contains(hostname, ".media.tumblr.com") ||
 			strings.HasSuffix(hostname, "assets.tumblr.com") ||
 			strings.HasSuffix(hostname, "static.tumblr.com") ||
@@ -305,7 +305,7 @@ func npfString(key string) string {
 
 // FormatDuration implements npf.Localizer.
 //
-// ponytail: approximates babel's format_timedelta(threshold=1.1) by picking the
+// ponytail: approximates babel's format_timedelta(threshold=1.1) with the
 // largest unit whose value is >= 1.1. Swap for golang.org/x/text if the exact
 // babel wording is ever needed.
 func (Localizer) FormatDuration(key string, d time.Duration) string {

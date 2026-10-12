@@ -35,8 +35,8 @@ const (
 	FMTColor
 )
 
-// Instruction is a single inline formatting operation. Only the fields
-// relevant to its Type are populated.
+// Instruction is a single inline formatting operation. Only the fields relevant
+// to its Type are set.
 type Instruction struct {
 	Type FMTType
 	URL  string
