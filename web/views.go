@@ -505,7 +505,7 @@ func (a *App) renderPostHeader(v *view, data *PageData, hd postHeaderData) {
 func renderAvatarLink(v *view, href, src string) {
 	v.raw(`<a href="/`)
 	v.esc(href)
-	v.raw(`"><img class="avatar" alt="Blog avatar" loading="lazy" src="`)
+	v.raw(`"><img class="avatar" alt="Blog avatar" loading="eager" src="`)
 	v.esc(src)
 	v.raw(`"></a>`)
 }
@@ -517,7 +517,7 @@ func renderAvatar(v *view, blog *tumblr.Blog) {
 		renderAvatarLink(v, blog.Name, URLHandler(blog.AvatarURL()))
 		return
 	}
-	v.raw(`<img class="avatar" alt="Blog avatar" loading="lazy" src="/assets/images/anon_96px.png">`)
+	v.raw(`<img class="avatar" alt="Blog avatar" loading="eager" src="/assets/images/anon_96px.png">`)
 }
 
 // renderBlogName renders a blog's name, styled by whether the blog is active,

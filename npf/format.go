@@ -261,6 +261,7 @@ func (f *Formatter) formatVideo(block *VideoBlock) *Node {
 		video.SetAttr("width", strconv.Itoa(width))
 		video.SetAttr("height", strconv.Itoa(height))
 		video.SetAttr("controls", "controls")
+		video.SetAttr("preload", "auto")
 		if len(block.Poster) > 0 {
 			video.SetAttr("poster", f.urlHandler(block.Poster[0].URL))
 		}
@@ -346,7 +347,7 @@ func (f *Formatter) formatAudio(block *AudioBlock) *Node {
 			container.Add(heading)
 		}
 
-		container.Add(El("audio", "controls", "controls").
+		container.Add(El("audio", "controls", "controls", "preload", "auto").
 			Add(El("source", "src", f.urlHandler(mediaURL), "type", block.Media[0].Type)))
 		audio = container
 	}
@@ -722,7 +723,7 @@ func formatImageContainer(block *ImageBlock, rowLength int, overrideAspect *floa
 	img.SetAttr("src", urlHandler(original.URL))
 	img.SetAttr("srcset", strings.Join(createSrcset(processed, urlHandler), ", "))
 	img.SetAttr("class", "image")
-	img.SetAttr("loading", "lazy")
+	img.SetAttr("loading", "eager")
 	img.SetAttr("alt", alt)
 	img.SetAttr("sizes", fmt.Sprintf("(max-width: 540px) %dvh, %dpx", 100/rowLength, 540/rowLength))
 	if imageStyle != "" {
@@ -794,7 +795,7 @@ func formatAsk(attr *BlogAttribution, urlHandler func(string) string, loc Locali
 		askerAttribution = El("p", "class", "asker").Add(RawHTML(asked))
 		askerAvatar = El("img",
 			"src", urlHandler("https://assets.tumblr.com/images/anonymous_avatar_96.gif"),
-			"loading", "lazy",
+			"loading", "eager",
 			"class", "avatar asker-avatar image")
 	} else {
 		nameHTML := El("a",
@@ -807,7 +808,7 @@ func formatAsk(attr *BlogAttribution, urlHandler func(string) string, loc Locali
 		if len(attr.Avatar) > 0 {
 			askerAvatar = El("img",
 				"src", urlHandler(attr.Avatar[0].URL),
-				"loading", "lazy",
+				"loading", "eager",
 				"class", "avatar asker-avatar image")
 		}
 	}
