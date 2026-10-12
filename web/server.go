@@ -127,16 +127,16 @@ func (a *App) routeExplore(w http.ResponseWriter, r *http.Request, segments []st
 	}
 	switch segments[1] {
 	case "trending":
-		a.handleExplore(w, r, exploreTrending, "", "trending")
+		a.handleExplore(w, r, exploreTrending, "")
 	case "today":
-		a.handleExplore(w, r, exploreToday, "", "today")
+		a.handleExplore(w, r, exploreToday, "")
 	default:
 		postType, ok := exploreTypes[segments[1]]
 		if !ok {
 			http.NotFound(w, r)
 			return
 		}
-		a.handleExplore(w, r, explorePost, postType, segments[1])
+		a.handleExplore(w, r, explorePost, postType)
 	}
 }
 

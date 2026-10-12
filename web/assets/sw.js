@@ -8,6 +8,7 @@ const CORE = [
   '/assets/css/base-post-layout.css',
   '/assets/css/post.css',
   '/assets/css/blog.css',
+  '/assets/css/timeline.css',
   '/assets/js/post.js',
   '/assets/images/anon_96px.png',
   '/assets/images/icon-192.png',

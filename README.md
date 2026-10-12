@@ -56,9 +56,9 @@ HYPERBLUR_TUMBLR_API_TOKEN=your-token-here ./hyperblur
   link cards, audio, video, polls with live results, reblog trails, asks.
 - **Notes:** replies, reblogs (filterable), likes, paging.
 - **Media:** alt text, one-click download (proxied). NSFW shown unblurred.
-- **UI:** minimalist dark theme, system font, no external CDNs, posts always
-  expanded, numbered pagination. Nav rail on desktop, bottom tab bar on mobile.
-  Browsing needs no JavaScript; small JS adds live poll results and offline mode.
+- **UI:** dark monochrome, system font, no external CDNs, posts always expanded,
+  numbered pagination. Browsing needs no JavaScript; small JS adds live poll
+  results and offline mode.
 
 ### Install as an app (PWA)
 

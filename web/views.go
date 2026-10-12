@@ -85,9 +85,10 @@ func (a *App) renderPage(data *PageData, center func(v *view)) string {
 	v.raw("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n")
 	v.raw("<meta charset=\"utf-8\">\n")
 	v.raw("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">\n")
+	v.raw("<meta name=\"referrer\" content=\"never\">\n")
 	v.raw("<meta name=\"referrer\" content=\"no-referrer\">\n")
 	v.raw("<meta name=\"color-scheme\" content=\"dark\">\n")
-	v.raw("<meta name=\"theme-color\" content=\"#0a0a0c\">\n")
+	v.raw("<meta name=\"theme-color\" content=\"#0d0d0d\">\n")
 	v.raw("<link rel=\"manifest\" href=\"/manifest.webmanifest\">\n")
 	v.raw("<meta name=\"mobile-web-app-capable\" content=\"yes\">\n")
 	v.raw("<meta name=\"apple-mobile-web-app-capable\" content=\"yes\">\n")
@@ -97,11 +98,12 @@ func (a *App) renderPage(data *PageData, center func(v *view)) string {
 	v.raw("<link rel=\"apple-touch-icon\" href=\"/assets/images/apple-touch-icon.png\">\n")
 	v.raw("<link rel=\"preload\" href=\"/assets/css/base.css\" as=\"style\">\n")
 	v.raw("<link rel=\"preload\" href=\"/assets/css/base-post-layout.css\" as=\"style\">\n")
-	v.raw("<link rel=\"stylesheet\" href=\"/assets/css/base.css\">\n")
-	v.raw("<link rel=\"stylesheet\" href=\"/assets/css/base-post-layout.css\">\n")
-	v.raw("<link rel=\"stylesheet\" href=\"/assets/css/post.css\">\n")
+	v.raw("<link rel=\"stylesheet\" type=\"text/css\" href=\"/assets/css/base.css\">\n")
+	v.raw("<link rel=\"stylesheet\" type=\"text/css\" href=\"/assets/css/base-post-layout.css\">\n")
+	v.raw("<link rel=\"stylesheet\" type=\"text/css\" href=\"/assets/css/post.css\">\n")
+	v.raw("<script src=\"/assets/js/post.js\" defer></script>\n")
 	for _, css := range data.ExtraCSS {
-		v.raw("<link rel=\"stylesheet\" href=\"")
+		v.raw("<link rel=\"stylesheet\" type=\"text/css\" href=\"")
 		v.esc(css)
 		v.raw("\">\n")
 	}
@@ -115,112 +117,56 @@ func (a *App) renderPage(data *PageData, center func(v *view)) string {
 	v.raw(" ")
 	v.esc("- hyperblur")
 	v.raw(" </title>\n</head>\n")
-	v.raw("<body>\n<div class=\"app\">\n")
-	a.renderAppBar(v, data)
-	v.raw("<div class=\"shell\">\n")
-	a.renderRail(v, data)
-	v.raw("<main class=\"main\"><div class=\"feed\">\n")
+	v.raw("<body class=\"dark-theme\">\n")
+	v.raw("<div class=\"container\">\n")
+	a.renderNavbar(v, data)
+	v.raw("<div class=\"contents\">\n<div class=\"left-column\"></div>\n<div class=\"center-column\">\n")
 	center(v)
-	v.raw("</div></main>\n</div>\n")
+	v.raw("</div>\n<div class=\"right-column\"></div>\n</div>\n")
+	v.raw("<div class=\"buffer\"></div>\n")
 	v.raw("<footer class=\"site-footer\"><a href=\"https://github.com/dan1165/hyperblur\">hyperblur on GitHub</a></footer>\n")
-	a.renderTabBar(v, data)
-	v.raw("</div>\n")
-	v.raw("<script src=\"/assets/js/post.js\" defer></script>\n")
-	v.raw("</body>\n</html>\n")
+	v.raw("</div>\n</body>\n</html>\n")
 	return v.string()
 }
 
-// navItem is one primary destination in the rail and tab bar.
-type navItem struct{ slug, href, label, icon string }
-
-func primaryNav() []navItem {
-	return []navItem{
-		{"today", "/explore/today", "Today", iconCalendar},
-		{"trending", "/explore/trending", "Trending", iconTrending},
-		{"photos", "/explore/photos", "Photos", iconImage},
-		{"gifs", "/explore/gifs", "Gifs", iconLoop},
-		{"video", "/explore/video", "Video", iconPlay},
-		{"audio", "/explore/audio", "Audio", iconMusic},
-		{"quotes", "/explore/quotes", "Quotes", iconQuote},
-		{"chats", "/explore/chats", "Chats", iconReply},
-		{"text", "/explore/text", "Text", iconText},
-		{"asks", "/explore/asks", "Asks", iconReply},
-	}
-}
-
-func (a *App) renderAppBar(v *view, data *PageData) {
-	v.raw(`<header class="appbar"><div class="appbar-inner"><a class="brand" href="/explore/trending"><span class="brand-mark" aria-hidden="true"></span>hyperblur</a>`)
-	v.raw(`<form class="search" role="search" method="get" action="/search" autocomplete="off">`)
+func (a *App) renderNavbar(v *view, data *PageData) {
+	searchIcon := `<svg class="icon" xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20"><path d="M765-144 526-383q-30 22-65.792 34.5T384.035-336Q284-336 214-406t-70-170q0-100 70-170t170-70q100 0 170 70t70 170.035q0 40.381-12.5 76.173T577-434l239 239-51 51ZM384-408q70 0 119-49t49-119q0-70-49-119t-119-49q-70 0-119 49t-49 119q0 70 49 119t119 49Z"/></svg>`
+	v.raw(`<nav class="navbar"><div class="left-section"><a class="logo" href="/explore/trending">hyperblur</a>`)
+	v.raw(`<form class="search-bar" method="get" action="/search" autocomplete="off">`)
 	v.raw(searchIcon)
 
-	value := ""
+	var value string
 	switch {
 	case data.Query != "":
 		value = data.Query
 	case data.Tag != "":
-		value = data.Tag
+		value = "#" + data.Tag
 	}
-	v.raw(`<input name="q" type="search" aria-label="Search Tumblr"`)
+	v.raw(`<input name="q" type="text"`)
 	if value != "" {
 		v.raw(` value="`)
 		v.esc(value)
 		v.raw(`"`)
 	}
 	v.raw(` placeholder="`)
-	v.esc("Search Tumblr")
-	v.raw(`"></form></div></header>`)
-}
-
-func (a *App) renderRail(v *view, data *PageData) {
-	v.raw(`<aside class="rail"><nav class="nav" aria-label="Explore">`)
-	v.raw(`<div class="nav-title">Explore</div>`)
-	for _, item := range primaryNav() {
-		v.raw(`<a href="`)
-		v.esc(item.href)
-		v.raw(`"`)
-		if data.Endpoint == item.slug {
-			v.raw(` class="selected" aria-current="page"`)
-		}
-		v.raw(`>`)
-		v.raw(item.icon)
-		v.raw(`<span>`)
-		v.esc(item.label)
-		v.raw(`</span></a>`)
+	v.esc("Search")
+	v.raw(`"></input></form></div><div class="center-section">`)
+	v.raw(`<a class="nav-tab`)
+	if data.Endpoint == "today" {
+		v.raw(` selected-tab`)
 	}
-	v.raw(`</nav></aside>`)
-}
-
-func (a *App) renderTabBar(v *view, data *PageData) {
-	v.raw(`<nav class="tabbar" aria-label="Primary">`)
-	for _, item := range primaryNav()[:5] {
-		v.raw(`<a href="`)
-		v.esc(item.href)
-		v.raw(`"`)
-		if data.Endpoint == item.slug {
-			v.raw(` class="selected" aria-current="page"`)
-		}
-		v.raw(`>`)
-		v.raw(item.icon)
-		v.raw(`<span>`)
-		v.esc(item.label)
-		v.raw(`</span></a>`)
+	v.raw(`" href="/explore/today" title="`)
+	v.esc("Today on Tumblr")
+	v.raw(`"><svg xmlns="http://www.w3.org/2000/svg" height="30" viewBox="0 -960 960 960" width="30"><path d="M686.588-120q-47.254 0-80.254-33.055-33-33.056-33-80.278 0-46.667 33.078-80t80.333-33.333q47.255 0 80.255 33.333Q800-280 800-233t-33.078 80q-33.079 33-80.334 33Zm-23.254-273.333v-73.333H710v73.333h-46.666Zm0 393.333v-73.333H710V0h-46.666Zm152.333-329.667-33-33.333L835-415.333l33.333 33-52.666 52.666Zm-278 278L505-84.333 557.334-136 590-104l-52.333 52.333Zm309-158.333v-46.666H920V-210h-73.333Zm-393.333 0v-46.666h73.333V-210h-73.333ZM835.667-51.667l-52-53 32.666-32.666 52.334 52-33 33.666ZM556.334-330 505-381.666 537.667-415l51.666 52-32.999 33ZM186.666-80q-27 0-46.833-19.833T120-146.666v-600.001q0-27 19.833-46.833 19.833-19.834 46.833-19.834h56.667V-880h70v66.666h333.334V-880h70v66.666h56.667q27 0 46.833 19.834Q840-773.667 840-746.667v180H186.666v420.001h166.667V-80H186.666Zm0-553.333h586.668v-113.334H186.666v113.334Zm0 0v-113.334 113.334Z"></path></svg></a>`)
+	v.raw(`<a class="nav-tab`)
+	if data.Endpoint == "trending" {
+		v.raw(` selected-tab`)
 	}
-	v.raw(`</nav>`)
+	v.raw(`" href="/explore/trending" title="`)
+	v.esc("Trending")
+	v.raw(`"><svg xmlns="http://www.w3.org/2000/svg" height="30" viewBox="0 -960 960 960" width="30"><path d="m136-240-56-56 296-298 160 160 208-206H640v-80h240v240h-80v-104L536-320 376-480 136-240Z"/></svg></a>`)
+	v.raw(`</div><div class="right-section"></div></nav>`)
 }
-
-const searchIcon = `<svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" aria-hidden="true"><path d="M765-144 526-383q-30 22-65.792 34.5T384.035-336Q284-336 214-406t-70-170q0-100 70-170t170-70q100 0 170 70t70 170.035q0 40.381-12.5 76.173T577-434l239 239-51 51ZM384-408q70 0 119-49t49-119q0-70-49-119t-119-49q-70 0-119 49t-49 119q0 70 49 119t119 49Z"/></svg>`
-
-const (
-	iconCalendar = `<svg viewBox="0 -960 960 960" aria-hidden="true"><path d="M186.666-80q-27 0-46.833-19.833T120-146.666v-600.001q0-27 19.833-46.833 19.833-19.834 46.833-19.834h56.667V-880h70v66.666h333.334V-880h70v66.666h56.667q27 0 46.833 19.834Q840-773.667 840-746.667v600.001q0 27-19.833 46.833Q800.334-80 773.334-80H186.666Zm0-80h586.668v-420.001H186.666V-160Zm0-500.001h586.668v-113.334H186.666v113.334Z"/></svg>`
-	iconTrending = `<svg viewBox="0 -960 960 960" aria-hidden="true"><path d="m136-240-56-56 296-298 160 160 208-206H640v-80h240v240h-80v-104L536-320 376-480 136-240Z"/></svg>`
-	iconImage    = `<svg viewBox="0 -960 960 960" aria-hidden="true"><path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560H200v560Zm40-80h480L570-480 450-320l-90-120-120 160Z"/></svg>`
-	iconLoop     = `<svg viewBox="0 -960 960 960" aria-hidden="true"><path d="M280-80 120-240l160-160 56 58-62 62h406v-160h80v240H274l62 62-56 58Zm-80-440v-240h486l-62-62 56-58 160 160-160 160-56-58 62-62H280v160h-80Z"/></svg>`
-	iconPlay     = `<svg viewBox="0 -960 960 960" aria-hidden="true"><path d="M320-200v-560l440 280-440 280Z"/></svg>`
-	iconMusic    = `<svg viewBox="0 -960 960 960" aria-hidden="true"><path d="M400-120q-66 0-113-47t-47-113q0-66 47-113t113-47q23 0 42.5 5.5T480-418v-422h240v160H560v400q0 66-47 113t-113 47Z"/></svg>`
-	iconText     = `<svg viewBox="0 -960 960 960" aria-hidden="true"><path d="M120-160v-80h480v80H120Zm0-280v-80h720v80H120Zm0-280v-80h720v80H120Z"/></svg>`
-	iconQuote    = `<svg viewBox="0 -960 960 960" aria-hidden="true"><path d="M580-240q-42 0-71-29t-29-71v-200q0-83 58.5-141.5T680-740h80q17 0 28.5 11.5T800-700q0 17-11.5 28.5T760-660h-80q-42 0-71 29t-29 71v10h120q42 0 71 29t29 71v140q0 42-29 71t-71 29H580Zm-360 0q-42 0-71-29t-29-71v-200q0-83 58.5-141.5T320-740h80q17 0 28.5 11.5T440-700q0 17-11.5 28.5T400-660h-80q-42 0-71 29t-29 71v10h120q42 0 71 29t29 71v140q0 42-29 71t-71 29H220Z"/></svg>`
-	iconReply    = `<svg viewBox="0 -960 960 960" aria-hidden="true"><path d="M80-80v-733.33q0-27 19.83-46.84Q119.67-880 146.67-880h666.66q27 0 46.84 19.83Q880-840.33 880-813.33v506.66q0 27-19.83 46.84Q840.33-240 813.33-240H240L80-80Zm131.33-226.67h602v-506.66H146.67v575l64.66-68.34Zm-64.66 0v-506.66 506.66Z"/></svg>`
-)
 
 // ---------------------------------------------------------------------------
 // Posts

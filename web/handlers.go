@@ -29,7 +29,7 @@ func (a *App) handleExploreIndex(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/explore/trending", http.StatusFound)
 }
 
-func (a *App) handleExplore(w http.ResponseWriter, r *http.Request, target exploreTarget, postType tumblr.ExplorePostType, endpoint string) {
+func (a *App) handleExplore(w http.ResponseWriter, r *http.Request, target exploreTarget, postType tumblr.ExplorePostType) {
 	data := a.newPageData(r)
 
 	continuation := unquoteQuery(r.URL.Query().Get("continuation"))
@@ -48,7 +48,6 @@ func (a *App) handleExplore(w http.ResponseWriter, r *http.Request, target explo
 	default:
 		raw, err = a.API.ExplorePost(postType, continuation)
 		data.Title = "Trending topics"
-		data.Endpoint = endpoint
 	}
 	if err != nil {
 		a.fail(w, r, err)
@@ -509,7 +508,7 @@ func (a *App) renderBlogPage(w http.ResponseWriter, r *http.Request, br blogRend
 
 	html := a.renderPage(data, func(v *view) {
 		a.renderBlogHeader(v, data)
-		v.raw(`<form class="search blog-search-bar" method="get" action="/`)
+		v.raw(`<form class="blog-search-bar search-bar" method="get" action="/`)
 		v.esc(br.timeline.BlogInfo.Name)
 		v.raw(`/search" autocomplete="off"><svg class="icon" xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20"><path d="M765-144 526-383q-30 22-65.792 34.5T384.035-336Q284-336 214-406t-70-170q0-100 70-170t170-70q100 0 170 70t70 170.035q0 40.381-12.5 76.173T577-434l239 239-51 51ZM384-408q70 0 119-49t49-119q0-70-49-119t-119-49q-70 0-119 49t-49 119q0 70 49 119t119 49Z"/></svg><input name="q" type="text"`)
 		if br.searchQuery != "" {
