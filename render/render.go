@@ -120,7 +120,7 @@ func addDownloadButton(container *npf.Node, mediaURL string) {
 		return
 	}
 	container.Add(npf.El("a",
-		"href", mediaURL+"?download=1",
+		"href", DownloadURL(mediaURL),
 		"download", "",
 		"class", "media-download",
 		"title", "Download",
@@ -156,39 +156,75 @@ func URLHandler(rawURL string) string {
 	}
 
 	if hostname != "" && strings.HasSuffix(hostname, "tumblr.com") {
-		if strings.HasSuffix(hostname, ".media.tumblr.com") {
-			subDomains := strings.Split(hostname, ".")
-			if len(subDomains) > 1 && subDomains[1] == "media" {
-				return "/tblr/media/" + subDomains[0] + path
-			}
-			if len(subDomains) > 2 && subDomains[0] == "www" && subDomains[2] == "media" {
-				return "/tblr/media/" + subDomains[1] + path
-			}
+		// Media, asset and static hosts are left pointing straight at Tumblr's
+		// CDN so the browser skips a proxy round-trip; downloads go through
+		// DownloadURL instead.
+		if strings.Contains(hostname, ".media.tumblr.com") ||
+			strings.HasSuffix(hostname, "assets.tumblr.com") ||
+			strings.HasSuffix(hostname, "static.tumblr.com") ||
+			strings.HasPrefix(hostname, "a.") {
+			return u.String()
 		}
 
-		switch {
-		case strings.HasSuffix(hostname, "assets.tumblr.com"):
-			return "/tblr/assets" + path
-		case strings.HasSuffix(hostname, "static.tumblr.com"):
-			return "/tblr/static" + path
-		case strings.HasPrefix(hostname, "a."):
-			return "/tblr/a" + path
-		default:
-			subDomains := strings.Split(hostname, ".")
-			potentialBlogName := subDomains[0]
-			if subDomains[0] == "www" && len(subDomains) > 1 {
-				potentialBlogName = subDomains[1]
-			}
-
-			if potentialBlogName != "tumblr" {
-				if strings.HasPrefix(path, "/post") {
-					return "/" + potentialBlogName + path[5:]
-				}
-				return "/" + potentialBlogName + path
-			}
-			return path
+		subDomains := strings.Split(hostname, ".")
+		potentialBlogName := subDomains[0]
+		if subDomains[0] == "www" && len(subDomains) > 1 {
+			potentialBlogName = subDomains[1]
 		}
+
+		if potentialBlogName != "tumblr" {
+			if strings.HasPrefix(path, "/post") {
+				return "/" + potentialBlogName + path[5:]
+			}
+			return "/" + potentialBlogName + path
+		}
+		return path
 	}
 
 	return u.String()
+}
+
+// proxyPath maps a Tumblr media/asset URL to the /tblr/... path served by the
+// media proxy, or "" when the URL is not proxied media.
+func proxyPath(rawURL string) string {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return ""
+	}
+	hostname := strings.ToLower(u.Hostname())
+	path := u.EscapedPath()
+	if path == "" {
+		path = u.Path
+	}
+	if hostname == "" || !strings.HasSuffix(hostname, "tumblr.com") {
+		return ""
+	}
+
+	if strings.HasSuffix(hostname, ".media.tumblr.com") {
+		subDomains := strings.Split(hostname, ".")
+		if len(subDomains) > 1 && subDomains[1] == "media" {
+			return "/tblr/media/" + subDomains[0] + path
+		}
+		if len(subDomains) > 2 && subDomains[0] == "www" && subDomains[2] == "media" {
+			return "/tblr/media/" + subDomains[1] + path
+		}
+	}
+
+	switch {
+	case strings.HasSuffix(hostname, "assets.tumblr.com"):
+		return "/tblr/assets" + path
+	case strings.HasSuffix(hostname, "static.tumblr.com"):
+		return "/tblr/static" + path
+	case strings.HasPrefix(hostname, "a."):
+		return "/tblr/a" + path
+	}
+	return ""
+}
+
+// DownloadURL rewrites a media URL to the proxied path that forces a download.
+func DownloadURL(rawURL string) string {
+	if p := proxyPath(rawURL); p != "" {
+		return p + "?download=1"
+	}
+	return rawURL + "?download=1"
 }

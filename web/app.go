@@ -17,6 +17,7 @@ type App struct {
 	API    *tumblr.API
 	Media  *http.Client
 	Logger *log.Logger
+	assets map[string]*assetEntry
 }
 
 // NewApp builds the application, creating the Tumblr API client.
@@ -26,6 +27,7 @@ func NewApp(logger *log.Logger) *App {
 		API:    tumblr.NewAPI(transport, 10*time.Second),
 		Media:  &http.Client{Transport: transport, Timeout: 30 * time.Second},
 		Logger: logger,
+		assets: loadAssets(),
 	}
 }
 

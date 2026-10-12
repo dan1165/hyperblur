@@ -75,8 +75,16 @@ HYPERBLUR_TUMBLR_API_TOKEN=your-token-here ./hyperblur
 
 ## Performance
 
-A single Go binary on the standard `net/http` server, with pooled keep-alive
-connections. Every request is fetched fresh from Tumblr (no caching).
+A single Go binary on the standard `net/http` server, tuned for throughput:
+
+- Shared HTTP transport with a large idle-connection pool (100 per host), so
+  concurrent requests to Tumblr reuse TLS connections.
+- Media loads straight from Tumblr's CDN — no proxy round-trip — while
+  downloads are proxied.
+- HTML and embedded assets are gzipped; assets carry ETags and are cached by
+  the browser for a week.
+- API responses are streamed-decoded; every request is fetched fresh from
+  Tumblr (no response caching).
 
 ## Image
 

@@ -59,18 +59,18 @@ func (a *App) handleExplore(w http.ResponseWriter, r *http.Request, target explo
 		return
 	}
 
-	a.renderTimelinePage(w, data, nil, func(v *view) {
+	a.renderTimelinePage(w, r, data, nil, func(v *view) {
 		a.renderNextPagePaging(v, data)
 	})
 }
 
 // renderTimelinePage renders a timeline page with the given control bar and
 // paging blocks.
-func (a *App) renderTimelinePage(w http.ResponseWriter, data *PageData, controlBar, paging func(v *view)) {
+func (a *App) renderTimelinePage(w http.ResponseWriter, r *http.Request, data *PageData, controlBar, paging func(v *view)) {
 	html := a.renderPage(data, func(v *view) {
 		a.renderTimelineCenter(v, data, controlBar, paging)
 	})
-	a.writePage(w, http.StatusOK, html)
+	a.writePage(w, r, http.StatusOK, html)
 }
 
 func (a *App) renderNextPagePaging(v *view, data *PageData) {
@@ -186,7 +186,7 @@ func (a *App) renderSearch(w http.ResponseWriter, r *http.Request, timeline *tum
 	data.TimeFilter = timeFilter
 	data.QueryArgs = r.URL.Query()
 
-	a.renderTimelinePage(w, data, func(v *view) {
+	a.renderTimelinePage(w, r, data, func(v *view) {
 		a.renderSearchControlBar(v, data)
 	}, func(v *view) {
 		a.renderSearchPaging(v, data)
@@ -221,7 +221,7 @@ func (a *App) handleTagged(w http.ResponseWriter, r *http.Request) {
 	data.Timeline = tumblr.ParseTimeline(responseOf(raw))
 	data.QueryArgs = r.URL.Query()
 
-	a.renderTimelinePage(w, data, func(v *view) {
+	a.renderTimelinePage(w, r, data, func(v *view) {
 		a.renderTaggedControlBar(v, data)
 	}, func(v *view) {
 		a.renderNextPagePaging(v, data)
@@ -413,7 +413,7 @@ func (a *App) serveBlogPost(w http.ResponseWriter, r *http.Request, slug string)
 		a.renderPost(v, data, post)
 		v.raw(`</div>`)
 	})
-	a.writePage(w, http.StatusOK, html)
+	a.writePage(w, r, http.StatusOK, html)
 }
 
 func (a *App) handleRedirectPostNoSlug(w http.ResponseWriter, r *http.Request) {
@@ -484,7 +484,7 @@ func (a *App) serveNotesViewer(w http.ResponseWriter, r *http.Request, post *tum
 	html := a.renderPage(data, func(v *view) {
 		a.renderNotesViewer(v, data)
 	})
-	a.writePage(w, http.StatusOK, html)
+	a.writePage(w, r, http.StatusOK, html)
 }
 
 type blogRender struct {
@@ -541,7 +541,7 @@ func (a *App) renderBlogPage(w http.ResponseWriter, r *http.Request, br blogRend
 			v.raw(`</a></div>`)
 		}
 	})
-	a.writePage(w, http.StatusOK, html)
+	a.writePage(w, r, http.StatusOK, html)
 }
 
 func (a *App) renderNumberedPaging(v *view, data *PageData) {

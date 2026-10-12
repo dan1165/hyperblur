@@ -3,7 +3,6 @@ package tumblr
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -169,13 +168,8 @@ func (a *API) requestJSON(target string) (map[string]any, bool, error) {
 	}
 	defer response.Body.Close()
 
-	body, err := io.ReadAll(response.Body)
-	if err != nil {
-		return nil, true, err
-	}
-
 	var result map[string]any
-	if err := json.Unmarshal(body, &result); err != nil {
+	if err := json.NewDecoder(response.Body).Decode(&result); err != nil {
 		if response.StatusCode != http.StatusOK {
 			return nil, false, &APIError{
 				Kind:     ErrNon200NorJSON,

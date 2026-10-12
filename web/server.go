@@ -1,16 +1,16 @@
 package web
 
 import (
+	"bytes"
+	"compress/gzip"
 	"errors"
 	"fmt"
-	"io/fs"
 	"net/http"
 	"regexp"
 	"runtime/debug"
 	"strconv"
 	"strings"
 
-	"github.com/dan1165/hyperblur/assets"
 	"github.com/dan1165/hyperblur/tumblr"
 )
 
@@ -18,8 +18,7 @@ import (
 func (a *App) Handler() http.Handler {
 	mux := http.NewServeMux()
 
-	assetServer := http.StripPrefix("/assets/", http.FileServer(http.FS(assets.FS)))
-	mux.Handle("GET /assets/", assetServer)
+	mux.HandleFunc("GET /assets/{path...}", a.handleAsset)
 
 	mux.HandleFunc("GET /{$}", a.handleRoot)
 	mux.HandleFunc("GET /robots.txt", a.handleRobots)
@@ -209,22 +208,38 @@ func (a *App) handleRoot(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) handleRobots(w http.ResponseWriter, r *http.Request) {
-	data, err := fs.ReadFile(assets.FS, "robots.txt")
-	if err != nil {
+	entry := a.assets["robots.txt"]
+	if entry == nil {
 		http.NotFound(w, r)
 		return
 	}
 	w.Header().Set("content-type", "text/plain; charset=utf-8")
-	_, _ = w.Write(data)
+	w.Header().Set("Content-Length", strconv.Itoa(len(entry.body)))
+	_, _ = w.Write(entry.body)
 }
 
 // ---------------------------------------------------------------------------
 // Error rendering
 // ---------------------------------------------------------------------------
 
-func (a *App) writePage(w http.ResponseWriter, status int, html string) {
+func (a *App) writePage(w http.ResponseWriter, r *http.Request, status int, html string) {
+	header := w.Header()
+	header.Set("Content-Type", "text/html; charset=utf-8")
+
+	body := []byte(html)
+	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		var buf bytes.Buffer
+		writer, _ := gzip.NewWriterLevel(&buf, gzip.BestSpeed)
+		_, _ = writer.Write(body)
+		_ = writer.Close()
+		header.Set("Content-Encoding", "gzip")
+		header.Add("Vary", "Accept-Encoding")
+		body = buf.Bytes()
+	}
+
+	header.Set("Content-Length", strconv.Itoa(len(body)))
 	w.WriteHeader(status)
-	_, _ = w.Write([]byte(html))
+	_, _ = w.Write(body)
 }
 
 func (a *App) messageError(w http.ResponseWriter, r *http.Request, status int, heading, description string) {
@@ -242,7 +257,7 @@ func (a *App) renderErrorPage(w http.ResponseWriter, r *http.Request, status int
 	data := a.newPageData(r)
 	data.Title = "Error"
 	data.InlineStyle = style
-	a.writePage(w, status, a.renderPage(data, center))
+	a.writePage(w, r, status, a.renderPage(data, center))
 }
 
 func (a *App) genericError(w http.ResponseWriter, r *http.Request, err error) {
