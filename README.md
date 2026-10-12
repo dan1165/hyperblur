@@ -56,9 +56,15 @@ HYPERBLUR_TUMBLR_API_TOKEN=your-token-here ./hyperblur
   link cards, audio, video, polls with live results, reblog trails, asks.
 - **Notes:** replies, reblogs (filterable), likes, paging.
 - **Media:** alt text, one-click download (proxied). NSFW shown unblurred.
-- **UI:** dark monochrome, system font, no external CDNs, posts always expanded,
-  numbered pagination. Browsing needs no JavaScript; small JS adds live poll
-  results.
+- **UI:** minimalist dark theme, system font, no external CDNs, posts always
+  expanded, numbered pagination. Nav rail on desktop, bottom tab bar on mobile.
+  Browsing needs no JavaScript; small JS adds live poll results and offline mode.
+
+### Install as an app (PWA)
+
+hyperblur is an installable progressive web app. Open it and use your browser's
+"Install" / "Add to Home Screen". A service worker caches the shell and assets,
+so repeat loads are instant and the last pages work offline.
 
 Media loads straight from Tumblr CDN, so Tumblr sees viewer IP.
 

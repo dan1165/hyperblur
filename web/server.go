@@ -34,6 +34,9 @@ func (a *App) Handler() http.Handler {
 
 	mux.HandleFunc("GET /{$}", a.handleRoot)
 	mux.HandleFunc("GET /robots.txt", a.handleRobots)
+	mux.HandleFunc("GET /manifest.webmanifest", a.handleManifest)
+	mux.HandleFunc("GET /sw.js", a.handleServiceWorker)
+	mux.HandleFunc("GET /offline", a.handleOffline)
 
 	// Media proxying.
 	mux.HandleFunc("GET /tblr/media/{cdn}/{path...}", a.handleMediaCDN)
@@ -124,16 +127,16 @@ func (a *App) routeExplore(w http.ResponseWriter, r *http.Request, segments []st
 	}
 	switch segments[1] {
 	case "trending":
-		a.handleExplore(w, r, exploreTrending, "")
+		a.handleExplore(w, r, exploreTrending, "", "trending")
 	case "today":
-		a.handleExplore(w, r, exploreToday, "")
+		a.handleExplore(w, r, exploreToday, "", "today")
 	default:
 		postType, ok := exploreTypes[segments[1]]
 		if !ok {
 			http.NotFound(w, r)
 			return
 		}
-		a.handleExplore(w, r, explorePost, postType)
+		a.handleExplore(w, r, explorePost, postType, segments[1])
 	}
 }
 
@@ -202,6 +205,7 @@ func (a *App) middleware(next http.Handler) http.Handler {
 			"font-src 'self' data:",
 			"connect-src 'self'",
 			"manifest-src 'self'",
+			"worker-src 'self'",
 			"media-src 'self' https://*.tumblr.com",
 			"child-src 'self' blob:",
 		}, "; "))
@@ -227,6 +231,43 @@ func (a *App) handleRobots(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("content-type", "text/plain; charset=utf-8")
 	w.Header().Set("Content-Length", strconv.Itoa(len(entry.body)))
 	_, _ = w.Write(entry.body)
+}
+
+func (a *App) handleManifest(w http.ResponseWriter, r *http.Request) {
+	entry := a.assets["manifest.webmanifest"]
+	if entry == nil {
+		http.NotFound(w, r)
+		return
+	}
+	w.Header().Set("content-type", "application/manifest+json; charset=utf-8")
+	w.Header().Set("cache-control", "no-cache")
+	w.Header().Set("Content-Length", strconv.Itoa(len(entry.body)))
+	_, _ = w.Write(entry.body)
+}
+
+func (a *App) handleServiceWorker(w http.ResponseWriter, r *http.Request) {
+	entry := a.assets["sw.js"]
+	if entry == nil {
+		http.NotFound(w, r)
+		return
+	}
+	w.Header().Set("content-type", "text/javascript; charset=utf-8")
+	w.Header().Set("cache-control", "no-cache")
+	w.Header().Set("service-worker-allowed", "/")
+	w.Header().Set("Content-Length", strconv.Itoa(len(entry.body)))
+	_, _ = w.Write(entry.body)
+}
+
+func (a *App) handleOffline(w http.ResponseWriter, r *http.Request) {
+	data := a.newPageData(r)
+	data.Title = "Offline"
+	a.writePage(w, r, http.StatusOK, a.renderPage(data, func(v *view) {
+		v.raw(`<section id="hyperblur-error"><div><h1>`)
+		v.esc("You are offline")
+		v.raw(`</h1><p>`)
+		v.esc("hyperblur needs a connection to reach Tumblr. Reconnect and try again.")
+		v.raw(`</p></div></section>`)
+	}))
 }
 
 // ---------------------------------------------------------------------------

@@ -116,3 +116,10 @@ function populate_polls() {
 
 // TODO lazy load polls
 populate_polls();
+
+// Offline shell + fast repeat loads (progressive web app).
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function () {});
+    });
+}
