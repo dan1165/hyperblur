@@ -96,17 +96,10 @@ func (a *App) renderPage(data *PageData, center func(v *view)) string {
 	v.raw("<meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black-translucent\">\n")
 	v.raw("<link rel=\"icon\" type=\"image/png\" href=\"/assets/images/icon-192.png\">\n")
 	v.raw("<link rel=\"apple-touch-icon\" href=\"/assets/images/apple-touch-icon.png\">\n")
-	v.raw("<link rel=\"preload\" href=\"/assets/css/base.css\" as=\"style\">\n")
-	v.raw("<link rel=\"preload\" href=\"/assets/css/base-post-layout.css\" as=\"style\">\n")
-	v.raw("<link rel=\"stylesheet\" type=\"text/css\" href=\"/assets/css/base.css\">\n")
-	v.raw("<link rel=\"stylesheet\" type=\"text/css\" href=\"/assets/css/base-post-layout.css\">\n")
-	v.raw("<link rel=\"stylesheet\" type=\"text/css\" href=\"/assets/css/post.css\">\n")
+	v.raw("<style>")
+	v.raw(a.inlineStyle(data.ExtraCSS))
+	v.raw("</style>\n")
 	v.raw("<script src=\"/assets/js/post.js\" defer></script>\n")
-	for _, css := range data.ExtraCSS {
-		v.raw("<link rel=\"stylesheet\" type=\"text/css\" href=\"")
-		v.esc(css)
-		v.raw("\">\n")
-	}
 	if data.InlineStyle != "" {
 		v.raw("<style>")
 		v.raw(data.InlineStyle)
@@ -127,6 +120,26 @@ func (a *App) renderPage(data *PageData, center func(v *view)) string {
 	v.raw("<footer class=\"site-footer\"><a href=\"https://github.com/dan1165/hyperblur\">hyperblur on GitHub</a></footer>\n")
 	v.raw("</div>\n</body>\n</html>\n")
 	return v.string()
+}
+
+// inlineStyle concatenates the embedded stylesheets into one <style> block, so
+// a page renders with no stylesheet request.
+func (a *App) inlineStyle(extra []string) string {
+	var b strings.Builder
+	for _, key := range []string{"css/base.css", "css/base-post-layout.css", "css/post.css"} {
+		b.WriteString(a.assetBody(key))
+	}
+	for _, css := range extra {
+		b.WriteString(a.assetBody(strings.TrimPrefix(css, "/assets/")))
+	}
+	return b.String()
+}
+
+func (a *App) assetBody(key string) string {
+	if e := a.assets[key]; e != nil {
+		return string(e.body)
+	}
+	return ""
 }
 
 func (a *App) renderNavbar(v *view, data *PageData) {

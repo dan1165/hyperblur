@@ -75,7 +75,8 @@ One Go binary on standard `net/http`:
 - Shared HTTP transport, 100-idle-per-host pool. Concurrent Tumblr requests reuse
   TLS.
 - Media loads straight from Tumblr CDN, no proxy round-trip. Downloads proxied.
-- HTML and embedded assets gzipped. Assets carry ETag, cache a week.
+- HTML and embedded assets gzipped. Stylesheets inlined, so a page renders with
+  no stylesheet request. Other assets carry ETag, cache a week.
 - API responses streamed-decoded, fetched fresh every time. No response cache.
 
 ## Image

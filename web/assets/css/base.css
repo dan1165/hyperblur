@@ -1,53 +1,14 @@
 
 /* Color palettes */
 body {
-    --color-gray-900: hsl(0, 0%, 15%);
-    --color-gray-800: hsl(0, 0%, 25%);
-    --color-gray-700: hsl(0, 0%, 35%);
-    --color-gray-600: hsl(0, 0%, 45%);
     --color-gray-500: hsl(0, 0%, 55%);
-    --color-gray-400: hsl(0, 0%, 68%);
-    --color-gray-300: hsl(0, 0%, 80%);
     --color-gray-250: hsl(0, 0%, 86%);
     --color-gray-200: hsl(0, 0%, 91%);
-    --color-gray-175: hsl(0, 0%, 92%);
-    --color-gray-150: hsl(0, 0%, 95%);
-    --color-gray-125: hsl(0, 0%, 97%);
     --color-gray-100: hsl(0, 0%, 98%);
-    --color-gray-0: white;
 
-    --color-primary-900: hsl(0, 0%, 15%);
-    --color-primary-800: hsl(0, 0%, 30%);
     --color-primary-700: hsl(0, 0%, 40%);
-    --color-primary-650: hsl(0, 0%, 42%);
-    --color-primary-600: hsl(0, 0%, 45%);
-    --color-primary-500: hsl(0, 0%, 50%);
-    --color-primary-400: hsl(0, 0%, 60%);
-    --color-primary-300: hsl(0, 0%, 70%);
-    --color-primary-200: hsl(0, 0%, 85%);
-    --color-primary-100: hsl(0, 0%, 95%);
 
-    --color-accent-1-900: hsl(0, 0%, 25%);
-    --color-accent-1-850: hsl(0, 0%, 30%);
-    --color-accent-1-800: hsl(0, 0%, 40%);
-    --color-accent-1-700: hsl(0, 0%, 50%);
-    --color-accent-1-600: hsl(0, 0%, 65%);
-    --color-accent-1-500: hsl(0, 0%, 72%);
-    --color-accent-1-400: hsl(0, 0%, 77%);
-    --color-accent-1-300: hsl(0, 0%, 85%);
-    --color-accent-1-200: hsl(0, 0%, 92%);
-    --color-accent-1-100: hsl(0, 0%, 98%);
 
-    --color-accent-2-900: hsl(0, 0%, 20%);
-    --color-accent-2-800: hsl(0, 0%, 28%);
-    --color-accent-2-700: hsl(0, 0%, 35%);
-    --color-accent-2-600: hsl(0, 0%, 40%);
-    --color-accent-2-500: hsl(0, 0%, 45%);
-    --color-accent-2-400: hsl(0, 0%, 60%);
-    --color-accent-2-300: hsl(0, 0%, 70%);
-    --color-accent-2-200: hsl(0, 0%, 80%);
-    --color-accent-2-150: hsl(0, 0%, 95%);
-    --color-accent-2-100: hsl(0, 0%, 98%) ;
 
     --color-dt-gray-900: hsl(0, 0%, 4%);
     --color-dt-gray-800: hsl(0, 0%, 5%);
@@ -115,20 +76,14 @@ body {
     --color-secondary-button-hover: var(--color-dt-gray-600);
     --color-button-secondary-text: var(--color-gray-200);
 
-    --color-tertiary-button-color: var(--color-dt-gray-250);
     
     --color-dropdown-menu-bg: var(--color-dt-gray-550);
-    --color-dropdown-action-select: var(--color-dt-gray-500);
     --color-dropdown-action-hover: var(--color-dt-gray-500);
     --color-control-bar-action-text: var(--color-gray-500);
     --color-dropdown-menu-item-selected: var(--color-dt-gray-475);
     --color-dropdown-menu-item-hover: var(--color-dt-gray-400);
 
     --color-blog-header-blog-name: var(--color-dt-gray-200);
-    --color-setting-top-heading: var(--color-dt-gray-100);
-    --color-setting-option-separator: var(--color-dt-gray-450);
-    --color-setting-option: var(--color-dt-gray-100);
-    --color-setting-option-desc: var(--color-dt-gray-250);
 
     --tumblr-signpost-bg: var(--color-dt-gray-700);
     --tumblr-signpost-border: var(--color-dt-gray-500);
@@ -145,6 +100,7 @@ body {
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-size: 14px;
     background: var(--color-background);
+    color-scheme: dark;
     margin: 0;
 }
 
