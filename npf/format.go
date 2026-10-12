@@ -2,6 +2,7 @@ package npf
 
 import (
 	"fmt"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -651,4 +652,244 @@ func pyFloatStr(f float64) string {
 		s += ".0"
 	}
 	return s
+}
+
+// createSrcset renders media objects into srcset data.
+func createSrcset(media []MediaObject, urlHandler func(string) string) []string {
+	out := make([]string, 0, len(media))
+	for _, m := range media {
+		out = append(out, fmt.Sprintf("%s %dw", urlHandler(m.URL), m.Width))
+	}
+	return out
+}
+
+// formatImageContainer renders the inner <div class="image-container"> of an
+// image block, mirroring npf_renderer.format.image.format_image.
+func formatImageContainer(block *ImageBlock, rowLength int, overrideAspect *float64, urlHandler func(string) string, loc Localizer) *Node {
+	containerStyle := ""
+	imageStyle := ""
+	var processed []MediaObject
+	var original *MediaObject
+	withAspect := true
+
+	for i := range block.Media {
+		m := block.Media[i]
+		if m.Cropped {
+			continue
+		}
+		processed = append(processed, m)
+		if m.HasOriginalDimensions {
+			orig := processed[len(processed)-1]
+			original = &orig
+		}
+	}
+
+	if original == nil {
+		switch {
+		case len(processed) > 0:
+			orig := processed[0]
+			original = &orig
+		case len(block.Media) > 0:
+			orig := block.Media[0]
+			original = &orig
+			imageStyle = fmt.Sprintf("width: %dpx; height: %dpx;", original.Width, original.Height)
+			withAspect = false
+		default:
+			return El("div", "class", "image-container")
+		}
+	}
+
+	if withAspect {
+		if overrideAspect != nil {
+			containerStyle = "aspect-ratio: " + pyFloatStr(*overrideAspect) + ";"
+		} else {
+			ratio := round(float64(original.Width)/float64(original.Height), 4)
+			containerStyle = "aspect-ratio: " + pyFloatStr(ratio) + ";"
+		}
+	}
+
+	container := El("div", "class", "image-container")
+	if containerStyle != "" {
+		container.SetAttr("style", containerStyle)
+	}
+
+	alt := block.AltText
+	if alt == "" {
+		alt = loc.Translate("generic_image_alt_text", nil)
+	}
+
+	img := El("img")
+	img.SetAttr("src", urlHandler(original.URL))
+	img.SetAttr("srcset", strings.Join(createSrcset(processed, urlHandler), ", "))
+	img.SetAttr("class", "image")
+	img.SetAttr("loading", "lazy")
+	img.SetAttr("alt", alt)
+	img.SetAttr("sizes", fmt.Sprintf("(max-width: 540px) %dvh, %dpx", 100/rowLength, 540/rowLength))
+	if imageStyle != "" {
+		img.SetAttr("style", imageStyle)
+	}
+	container.Add(img)
+	return container
+}
+
+// round rounds f to n decimal places the way Python's round() does
+// (half-to-even), then returns it as a float.
+func round(f float64, n int) float64 {
+	s := strconv.FormatFloat(f, 'f', n, 64)
+	v, _ := strconv.ParseFloat(s, 64)
+	return v
+}
+
+func hostname(rawURL string) string {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return ""
+	}
+	return u.Hostname()
+}
+
+func formatLinkAttribution(attr Attribution, urlHandler func(string) string) *Node {
+	return El("div", "class", "link-attribution").
+		Add(El("a", "href", urlHandler(attr.URL)).Add(Txt(hostname(attr.URL))))
+}
+
+func formatPostAttribution(attr Attribution, urlHandler func(string) string, loc Localizer) *Node {
+	name := El("b").Add(Txt(attr.Blog.Name)).Render()
+	inner := loc.Translate("post_attribution", map[string]string{"author": name})
+	return El("div", "class", "post-attribution").
+		Add(El("a", "href", urlHandler(attr.URL)).Add(RawHTML(inner)))
+}
+
+func formatBlogAttribution(attr Attribution, urlHandler func(string) string, loc Localizer) *Node {
+	name := attr.Blog.Name
+	if name == "" {
+		name = "Anonymous"
+	}
+	author := El("b").Add(Txt(name)).Render()
+	inner := loc.Translate("blog_attribution", map[string]string{"author": author})
+	return El("div", "class", "blog-attribution").
+		Add(El("a", "href", urlHandler(attr.URL)).Add(RawHTML(inner)))
+}
+
+func formatAppAttribution(attr Attribution, urlHandler func(string) string, loc Localizer) *Node {
+	app := El("b").Add(Txt(attr.AppName)).Render()
+	inner := loc.Translate("app_attribution", map[string]string{"platform": app})
+	return El("div", "class", "post-attribution").
+		Add(El("a", "href", urlHandler(attr.URL)).Add(RawHTML(inner)))
+}
+
+func formatUnsupportedAttribution(attr Attribution, loc Localizer) *Node {
+	inner := loc.Translate("unsupported_attribution", map[string]string{"attributee": attr.TypeStr})
+	return El("div", "class", "unknown-attribution").Add(El("p").Add(Txt(inner)))
+}
+
+// formatAsk renders an "ask" layout with the given pre-rendered contents.
+func formatAsk(attr *BlogAttribution, urlHandler func(string) string, loc Localizer, contents ...*Node) *Node {
+	var askerAttribution *Node
+	var askerAvatar *Node
+
+	if attr == nil {
+		name := El("strong", "class", "asker-name").Add(Txt(loc.Translate("asker_with_no_attribution", nil)))
+		asked := loc.Translate("asker_and_ask_verb", map[string]string{"name": name.Render()})
+		askerAttribution = El("p", "class", "asker").Add(RawHTML(asked))
+		askerAvatar = El("img",
+			"src", urlHandler("https://assets.tumblr.com/images/anonymous_avatar_96.gif"),
+			"loading", "lazy",
+			"class", "avatar asker-avatar image")
+	} else {
+		nameHTML := El("a",
+			"href", urlHandler(fmt.Sprintf("https://%s.tumblr.com/", attr.Name)),
+			"class", "asker-attribution").
+			Add(El("strong", "class", "asker-name").Add(Txt(attr.Name))).Render()
+		asked := loc.Translate("asker_and_ask_verb", map[string]string{"name": nameHTML})
+		askerAttribution = El("p", "class", "asker").Add(RawHTML(asked))
+
+		if len(attr.Avatar) > 0 {
+			askerAvatar = El("img",
+				"src", urlHandler(attr.Avatar[0].URL),
+				"loading", "lazy",
+				"class", "avatar asker-avatar image")
+		}
+	}
+
+	ask := El("div", "class", "ask")
+	body := El("div", "class", "ask-body")
+	header := El("div", "class", "ask-header")
+	header.Add(askerAttribution)
+	content := El("div", "class", "ask-content")
+	content.Add(contents...)
+	body.Add(header, content)
+	ask.Add(body)
+	if askerAvatar != nil {
+		ask.Add(askerAvatar)
+	}
+	return ask
+}
+
+// Localizer supplies the human-readable strings and value formatting used
+// while rendering.
+type Localizer interface {
+	// Translate returns the (optionally substituted) string for key.
+	Translate(key string, subst map[string]string) string
+	// TranslatePlural returns the correct plural form for number.
+	TranslatePlural(key string, number int, subst map[string]string) string
+	FormatDuration(key string, d time.Duration) string
+	FormatDatetime(key string, t time.Time) string
+	FormatDecimal(key string, n float64) string
+}
+
+// Options configure NPF formatting.
+type Options struct {
+	// URLHandler rewrites every URL emitted into the HTML.
+	URLHandler func(string) string
+	// Localizer supplies translated strings and value formatting.
+	Localizer Localizer
+	// PollCallback fetches poll results, if any.
+	PollCallback PollCallback
+
+	// Hooks for hyperblur-specific augmentation.
+	ImageHook func(f *Formatter, block *ImageBlock, rowLength int, overrideAspect *float64, node *Node) *Node
+	VideoHook func(f *Formatter, block *VideoBlock, node *Node) *Node
+	PollHook  func(f *Formatter, block *PollBlock, node *Node) *Node
+
+	// BlogName and PostID are exposed to PollHook for its no-JS fallback.
+	BlogName string
+	PostID   string
+}
+
+// newFormatter builds a Formatter from already-parsed content and layout.
+func newFormatter(content, layout []any, opts Options) *Formatter {
+	urlHandler := opts.URLHandler
+	if urlHandler == nil {
+		urlHandler = func(u string) string { return u }
+	}
+	return &Formatter{
+		content:    content,
+		layout:     layout,
+		localizer:  opts.Localizer,
+		urlHandler: urlHandler,
+		ImageHook:  opts.ImageHook,
+		VideoHook:  opts.VideoHook,
+		PollHook:   opts.PollHook,
+		BlogName:   opts.BlogName,
+		PostID:     opts.PostID,
+	}
+}
+
+// Format parses and renders NPF content. It returns whether the rendered
+// result contains errors, and the rendered HTML.
+func Format(content []any, layout []any, opts Options) (bool, string) {
+	parsed, err := newParser(content, opts.PollCallback).Parse()
+	if err != nil {
+		return true, `<div class="post-body"></div>`
+	}
+
+	var parsedLayout []any
+	if len(layout) > 0 {
+		parsedLayout = newLayoutParser(layout).Parse()
+	}
+
+	formatter := newFormatter(parsed, parsedLayout, opts)
+	node := formatter.Format()
+	return formatter.HasRenderError(), node.Render()
 }
