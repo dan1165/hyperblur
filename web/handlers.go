@@ -1,12 +1,14 @@
 package web
 
 import (
-	"encoding/json"
+	"bytes"
 	"errors"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+
+	json "github.com/goccy/go-json"
 
 	"github.com/dan1165/hyperblur/tumblr"
 )
@@ -589,14 +591,32 @@ func (a *App) handleAPIPollResults(w http.ResponseWriter, r *http.Request) {
 	postID := r.PathValue("post_id")
 	pollID := unquotePath(r.PathValue("poll_id"))
 
+	// Poll results are fetched live by the client; a very short cache keeps that
+	// cheap without showing stale results.
+	key := blog + "/" + postID + "/" + pollID
+	if a.polls != nil {
+		if body, ok := a.polls.Get(key); ok {
+			w.Header().Set("content-type", "application/json")
+			_, _ = w.Write(body)
+			return
+		}
+	}
+
 	result, err := a.API.PollResults(blog, postID, pollID)
 	if err != nil {
 		a.fail(w, r, err)
 		return
 	}
 
+	var buf bytes.Buffer
+	_ = json.NewEncoder(&buf).Encode(result["response"])
+	body := buf.Bytes()
+	if a.polls != nil {
+		a.polls.Add(key, body)
+	}
+
 	w.Header().Set("content-type", "application/json")
-	_ = json.NewEncoder(w).Encode(result["response"])
+	_, _ = w.Write(body)
 }
 
 // ---------------------------------------------------------------------------

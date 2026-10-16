@@ -1,13 +1,14 @@
 package tumblr
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
 	"time"
+
+	json "github.com/goccy/go-json"
 )
 
 // Explore post-type filters.

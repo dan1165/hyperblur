@@ -23,9 +23,10 @@ func main() {
 		Handler:           web.NewApp(logger).Handler(),
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       90 * time.Second,
+		MaxHeaderBytes:    1 << 16,
 	}
 
-	logger.Println("Starting up hyperblur")
+	logger.Printf("Starting up hyperblur %s", web.Version)
 	if err := server.ListenAndServe(); err != nil {
 		logger.Fatal(err)
 	}

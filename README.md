@@ -37,6 +37,9 @@ by hand.
 | `HYPERBLUR_PORT` | `8000` | Listen port. |
 | `HYPERBLUR_PROXY_MEDIA` | `true` | `true` proxies all media through hyperblur — zero CDN, Tumblr never sees the viewer IP. `false` loads media straight from Tumblr's CDN — faster, lighter on your server, viewer IP exposed. |
 | `HYPERBLUR_TUMBLR_API_TOKEN` | bundled | Your own Tumblr API token, to open blogs that require login. |
+| `HYPERBLUR_CACHE` | `true` | In-memory page cache. Toggle off for always-fresh responses. |
+| `HYPERBLUR_CACHE_TTL` | `60` | Seconds a cached page is served without revalidating. |
+| `HYPERBLUR_CACHE_STALE` | `600` | Extra seconds a stale page may be served while it refreshes in the background. |
 
 Docker, in `.env`:
 
@@ -87,7 +90,15 @@ One Go binary on standard `net/http`:
   the proxy and loads media straight from Tumblr.
 - HTML and embedded assets gzipped. Stylesheets inlined, so a page renders with
   no stylesheet request. Other assets carry ETag, cache a week.
-- API responses streamed-decoded, fetched fresh every time. No response cache.
+- **In-memory page cache** with TTL and **stale-while-revalidate**: warm pages
+  are served from memory; stale pages are served immediately while a background
+  goroutine refreshes them. **Single-flight** collapses concurrent misses of the
+  same page into one upstream request. Set `HYPERBLUR_CACHE=false` to disable.
+- **Faster libraries**: `klauspost/compress` gzip, `goccy/go-json`, and an
+  expirable LRU (`hashicorp/golang-lru`). The inline stylesheet is precomputed
+  once at startup instead of per render.
+- `GET /healthz` reports status, version and cache size; the build version is
+  shown in the page footer.
 
 ## Image
 

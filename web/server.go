@@ -2,7 +2,6 @@ package web
 
 import (
 	"bytes"
-	"compress/gzip"
 	"crypto/sha256"
 	"embed"
 	"encoding/hex"
@@ -25,6 +24,9 @@ import (
 
 	"github.com/dan1165/hyperblur/npf"
 	"github.com/dan1165/hyperblur/tumblr"
+	"github.com/hashicorp/golang-lru/v2/expirable"
+	"github.com/klauspost/compress/gzip"
+	"golang.org/x/sync/singleflight"
 )
 
 // Handler builds HTTP handler for app.
@@ -38,6 +40,7 @@ func (a *App) Handler() http.Handler {
 	mux.HandleFunc("GET /manifest.webmanifest", a.handleManifest)
 	mux.HandleFunc("GET /sw.js", a.handleServiceWorker)
 	mux.HandleFunc("GET /offline", a.handleOffline)
+	mux.HandleFunc("GET /healthz", a.handleHealth)
 
 	// Media proxying.
 	mux.HandleFunc("GET /tblr/media/{cdn}/{path...}", a.handleMediaCDN)
@@ -55,7 +58,10 @@ func (a *App) Handler() http.Handler {
 	// patterns next to /assets/.
 	mux.HandleFunc("GET /", a.handleFallback)
 
-	return a.middleware(mux)
+	// Security headers wrap the app; the page cache sits outside so cached
+	// responses carry the same headers without re-running the middleware.
+	a.inner = a.middleware(mux)
+	return a.pageCache(a.inner)
 }
 
 // handleFallback dispatches explore/search/tagged/blog paths. Not ServeMux
@@ -400,18 +406,100 @@ type App struct {
 	Media  *http.Client
 	Logger *log.Logger
 	assets map[string]*assetEntry
+
+	// Caching + background refresh.
+	inner      http.Handler
+	pages      *expirable.LRU[string, *pageResponse]
+	polls      *expirable.LRU[string, []byte]
+	sf         singleflight.Group
+	refreshSF  singleflight.Group
+	caching    bool
+	cacheTTL   time.Duration
+	cacheStale time.Duration
+
+	// Precomputed inline stylesheets.
+	css     string
+	cssBlog string
 }
 
 // NewApp builds app and Tumblr API client.
 func NewApp(logger *log.Logger) *App {
 	applyMediaMode()
 	transport := newTransport()
-	return &App{
-		API:    tumblr.NewAPI(transport, 10*time.Second),
-		Media:  &http.Client{Transport: transport, Timeout: 30 * time.Second},
-		Logger: logger,
-		assets: loadAssets(),
+	assets := loadAssets()
+
+	app := &App{
+		API:        tumblr.NewAPI(transport, 10*time.Second),
+		Media:      &http.Client{Transport: transport, Timeout: 30 * time.Second},
+		Logger:     logger,
+		assets:     assets,
+		caching:    envBool("HYPERBLUR_CACHE", true),
+		cacheTTL:   envSeconds("HYPERBLUR_CACHE_TTL", 60),
+		cacheStale: envSeconds("HYPERBLUR_CACHE_STALE", 600),
+		css:        inlineCSS(assets, ""),
+		cssBlog:    inlineCSS(assets, "css/blog.css"),
 	}
+	if app.caching {
+		app.pages = expirable.NewLRU[string, *pageResponse](512, nil, app.cacheTTL+app.cacheStale)
+		app.polls = expirable.NewLRU[string, []byte](512, nil, 18*time.Second)
+	}
+	return app
+}
+
+// inlineCSS concatenates the embedded stylesheets once, so a page render never
+// builds them per request.
+func inlineCSS(assets map[string]*assetEntry, extra string) string {
+	var b strings.Builder
+	for _, key := range []string{"css/base.css", "css/base-post-layout.css", "css/post.css"} {
+		if e := assets[key]; e != nil {
+			b.Write(e.body)
+		}
+	}
+	if extra != "" {
+		if e := assets[extra]; e != nil {
+			b.Write(e.body)
+		}
+	}
+	return b.String()
+}
+
+// pageCSS returns the precomputed stylesheet for a page.
+func (a *App) pageCSS(blog bool) string {
+	if blog {
+		return a.cssBlog
+	}
+	return a.css
+}
+
+func envBool(name string, fallback bool) bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(name))) {
+	case "0", "false", "no", "off":
+		return false
+	case "1", "true", "yes", "on":
+		return true
+	}
+	return fallback
+}
+
+func envSeconds(name string, fallback int) time.Duration {
+	if v, err := strconv.Atoi(strings.TrimSpace(os.Getenv(name))); err == nil && v > 0 {
+		return time.Duration(v) * time.Second
+	}
+	return time.Duration(fallback) * time.Second
+}
+
+// handleHealth is a tiny health/observability endpoint.
+func (a *App) handleHealth(w http.ResponseWriter, r *http.Request) {
+	pages, polls := 0, 0
+	if a.pages != nil {
+		pages = a.pages.Len()
+	}
+	if a.polls != nil {
+		polls = a.polls.Len()
+	}
+	w.Header().Set("content-type", "text/plain; charset=utf-8")
+	w.Header().Set("x-hyperblur-version", Version)
+	fmt.Fprintf(w, "ok\nversion: %s\ncache: %t\npage entries: %d\npoll entries: %d\n", Version, a.caching, pages, polls)
 }
 
 // newTransport returns HTTP transport with bigger idle pool than default
