@@ -4,15 +4,18 @@ import (
 	"bytes"
 	"context"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 )
 
-// pageResponse is a fully materialised HTML response, cached by URL.
+// pageResponse is a cached HTML response: the raw body plus a precomputed gzip
+// variant, so any client encoding is served without recompressing.
 type pageResponse struct {
 	status int
 	header http.Header
-	body   []byte
+	raw    []byte
+	gz     []byte
 	stored time.Time
 	ttl    time.Duration
 	stale  time.Duration
@@ -22,25 +25,34 @@ func (p *pageResponse) age() time.Duration { return time.Since(p.stored) }
 func (p *pageResponse) fresh() bool        { return p.age() <= p.ttl }
 func (p *pageResponse) usable() bool       { return p.age() <= p.ttl+p.stale }
 
-// write replays the cached response, adding a cache-state header for 200s.
-func (p *pageResponse) write(w http.ResponseWriter, state string) {
-	dst := w.Header()
+// write replays the cached response, choosing the encoding for this client.
+func (p *pageResponse) write(w http.ResponseWriter, r *http.Request, state string) {
+	h := w.Header()
 	for key, values := range p.header {
 		for _, value := range values {
-			dst.Add(key, value)
+			h.Add(key, value)
 		}
 	}
+	h.Del("Content-Length")
+
+	body := p.raw
+	if len(p.gz) > 0 && acceptsGzip(r) {
+		body = p.gz
+		h.Set("Content-Encoding", "gzip")
+	}
+	h.Set("Vary", "Accept-Encoding")
+	h.Set("Content-Length", strconv.Itoa(len(body)))
 	if p.status == http.StatusOK {
-		dst.Set("x-hyperblur-cache", state)
+		h.Set("x-hyperblur-cache", state)
 	}
 	w.WriteHeader(p.status)
 	if p.status != http.StatusNotModified {
-		_, _ = w.Write(p.body)
+		_, _ = w.Write(body)
 	}
 }
 
 // recorder captures a handler's response so it can be cached and/or replayed.
-// It is only used for cacheable page paths, which never stream.
+// It is only used for cacheable paths, which never stream.
 type recorder struct {
 	header  http.Header
 	status  int
@@ -73,24 +85,28 @@ func (r *recorder) response(ttl, stale time.Duration) *pageResponse {
 	if status == 0 {
 		status = http.StatusOK
 	}
-	return &pageResponse{
+	// Own the bytes so the recorder can be discarded.
+	raw := append([]byte(nil), r.buf.Bytes()...)
+	resp := &pageResponse{
 		status: status,
 		header: r.header,
-		body:   r.buf.Bytes(),
+		raw:    raw,
 		stored: time.Now(),
 		ttl:    ttl,
 		stale:  stale,
 	}
+	if status == http.StatusOK {
+		resp.gz = gzipCompress(raw)
+	}
+	return resp
 }
 
-// cacheKey returns the URL plus the client's encoding, since the cached body is
-// already encoded for the client that filled it.
+// cacheKey is the page's URL. Encoding is negotiated at serve time.
 func cacheKey(r *http.Request) string {
-	key := r.URL.Path + "?" + r.URL.RawQuery
-	if acceptsGzip(r) {
-		key += "|gz"
+	if r.URL.RawQuery == "" {
+		return r.URL.Path
 	}
-	return key
+	return r.URL.Path + "?" + r.URL.RawQuery
 }
 
 func cacheablePath(path string) bool {
@@ -135,7 +151,7 @@ func (a *App) pageCache(next http.Handler) http.Handler {
 					state = "stale"
 					a.refresh(key, r)
 				}
-				item.write(w, state)
+				item.write(w, r, state)
 				return
 			}
 		}
@@ -154,7 +170,7 @@ func (a *App) pageCache(next http.Handler) http.Handler {
 		})
 
 		if resp, ok := value.(*pageResponse); ok && resp != nil {
-			resp.write(w, "miss")
+			resp.write(w, r, "miss")
 			return
 		}
 		http.Error(w, "internal server error", http.StatusInternalServerError)

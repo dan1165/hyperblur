@@ -4,6 +4,7 @@ import (
 	"html"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/dan1165/hyperblur/tumblr"
@@ -43,6 +44,15 @@ func htmlEscape(s string) string { return html.EscapeString(s) }
 
 func (v *view) string() string { return v.b.String() }
 
+// viewPool recycles render buffers across requests, cutting GC on page renders.
+var viewPool = sync.Pool{
+	New: func() any {
+		v := &view{}
+		v.b.Grow(16384)
+		return v
+	},
+}
+
 // PageData is per-page render context.
 type PageData struct {
 	Path     string
@@ -80,8 +90,7 @@ type PageData struct {
 
 // renderPage wraps centre content in shared chrome.
 func (a *App) renderPage(data *PageData, center func(v *view)) string {
-	v := &view{}
-	v.b.Grow(16384)
+	v := viewPool.Get().(*view)
 	v.raw("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n")
 	v.raw("<meta charset=\"utf-8\">\n")
 	v.raw("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">\n")
@@ -121,7 +130,10 @@ func (a *App) renderPage(data *PageData, center func(v *view)) string {
 	v.esc(Version)
 	v.raw("</span></footer>\n")
 	v.raw("</div>\n</body>\n</html>\n")
-	return v.string()
+	out := v.string()
+	v.b.Reset()
+	viewPool.Put(v)
+	return out
 }
 
 func (a *App) renderNavbar(v *view, data *PageData) {

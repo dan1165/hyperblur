@@ -20,12 +20,14 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/dan1165/hyperblur/npf"
 	"github.com/dan1165/hyperblur/tumblr"
 	"github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/klauspost/compress/gzip"
+	"golang.org/x/net/http2"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -61,6 +63,7 @@ func (a *App) Handler() http.Handler {
 	// Security headers wrap the app; the page cache sits outside so cached
 	// responses carry the same headers without re-running the middleware.
 	a.inner = a.middleware(mux)
+	a.prewarm()
 	return a.pageCache(a.inner)
 }
 
@@ -304,14 +307,19 @@ func (a *App) writePage(w http.ResponseWriter, r *http.Request, status int, html
 	header.Set("Content-Type", "text/html; charset=utf-8")
 
 	body := []byte(html)
-	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
-		var buf bytes.Buffer
-		writer, _ := gzip.NewWriterLevel(&buf, gzip.BestSpeed)
-		_, _ = writer.Write(body)
-		_ = writer.Close()
+	// Cacheable pages are buffered raw by the page cache, which negotiates the
+	// client encoding from the precomputed gzip variant.
+	if a.caching && cacheablePath(r.URL.Path) {
+		header.Set("Content-Length", strconv.Itoa(len(body)))
+		w.WriteHeader(status)
+		_, _ = w.Write(body)
+		return
+	}
+
+	if acceptsGzip(r) {
+		body = gzipCompress(body)
 		header.Set("Content-Encoding", "gzip")
 		header.Add("Vary", "Accept-Encoding")
-		body = buf.Bytes()
 	}
 
 	header.Set("Content-Length", strconv.Itoa(len(body)))
@@ -471,6 +479,23 @@ func (a *App) pageCSS(blog bool) string {
 	return a.css
 }
 
+// prewarm fetches the common entry points into the cache in the background, so
+// the first visitor already hits a warm cache.
+func (a *App) prewarm() {
+	if !a.caching {
+		return
+	}
+	for _, path := range []string{"/explore/trending", "/explore/today"} {
+		req := &http.Request{
+			Method: http.MethodGet,
+			URL:    &url.URL{Path: path},
+			Header: make(http.Header),
+		}
+		req.Header.Set("Accept-Encoding", "gzip")
+		a.refresh(cacheKey(req), req)
+	}
+}
+
 func envBool(name string, fallback bool) bool {
 	switch strings.ToLower(strings.TrimSpace(os.Getenv(name))) {
 	case "0", "false", "no", "off":
@@ -502,19 +527,29 @@ func (a *App) handleHealth(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "ok\nversion: %s\ncache: %t\npage entries: %d\npoll entries: %d\n", Version, a.caching, pages, polls)
 }
 
-// newTransport returns HTTP transport with bigger idle pool than default
-// (2 per host). Concurrent Tumblr requests reuse TLS instead of re-handshaking.
+// newTransport returns an HTTP transport tuned for many concurrent Tumblr
+// requests: a large idle pool, larger socket buffers, and HTTP/2 with idle
+// pings so connections stay warm and dead peers are detected quickly.
 func newTransport() *http.Transport {
-	return &http.Transport{
-		Proxy:                 http.ProxyFromEnvironment,
-		DialContext:           (&net.Dialer{Timeout: 10 * time.Second, KeepAlive: 30 * time.Second}).DialContext,
-		ForceAttemptHTTP2:     true,
-		MaxIdleConns:          200,
-		MaxIdleConnsPerHost:   100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: time.Second,
+	transport := &http.Transport{
+		Proxy:                  http.ProxyFromEnvironment,
+		DialContext:            (&net.Dialer{Timeout: 10 * time.Second, KeepAlive: 30 * time.Second}).DialContext,
+		ForceAttemptHTTP2:      true,
+		MaxIdleConns:           512,
+		MaxIdleConnsPerHost:    100,
+		IdleConnTimeout:        90 * time.Second,
+		TLSHandshakeTimeout:    10 * time.Second,
+		ExpectContinueTimeout:  time.Second,
+		ResponseHeaderTimeout:  20 * time.Second,
+		MaxResponseHeaderBytes: 64 << 10,
+		WriteBufferSize:        64 << 10,
+		ReadBufferSize:         64 << 10,
 	}
+	if h2, err := http2.ConfigureTransports(transport); err == nil {
+		h2.ReadIdleTimeout = 30 * time.Second
+		h2.PingTimeout = 15 * time.Second
+	}
+	return transport
 }
 
 // FormatNPF renders post content, returns optional render error.
@@ -615,6 +650,34 @@ func compressible(ct string) bool {
 		strings.Contains(ct, "svg")
 }
 
+// gzipWriters recycles gzip writers across requests.
+var gzipWriters = sync.Pool{
+	New: func() any {
+		writer, _ := gzip.NewWriterLevel(io.Discard, gzip.BestSpeed)
+		return writer
+	},
+}
+
+// gzipCompress gzips data with a pooled writer.
+func gzipCompress(data []byte) []byte {
+	var buf bytes.Buffer
+	buf.Grow(len(data)/2 + 64)
+	writer := gzipWriters.Get().(*gzip.Writer)
+	writer.Reset(&buf)
+	_, _ = writer.Write(data)
+	_ = writer.Close()
+	gzipWriters.Put(writer)
+	return buf.Bytes()
+}
+
+// copyBuffers recycles buffers used when streaming proxied media.
+var copyBuffers = sync.Pool{
+	New: func() any {
+		buf := make([]byte, 32<<10)
+		return &buf
+	},
+}
+
 // handleAsset serves embedded asset with long cache, ETag revalidation, gzip.
 func (a *App) handleAsset(w http.ResponseWriter, r *http.Request) {
 	entry := a.assets[r.PathValue("path")]
@@ -625,7 +688,7 @@ func (a *App) handleAsset(w http.ResponseWriter, r *http.Request) {
 
 	header := w.Header()
 	header.Set("ETag", entry.etag)
-	header.Set("Cache-Control", "public, max-age=604800")
+	header.Set("Cache-Control", "public, max-age=604800, immutable")
 	header.Del("pragma")
 	header.Del("expires")
 
@@ -793,9 +856,11 @@ func (a *App) streamMedia(w http.ResponseWriter, r *http.Request, origin string,
 	}
 
 	w.WriteHeader(response.StatusCode)
-	if _, err := io.Copy(w, response.Body); err != nil {
+	buf := copyBuffers.Get().(*[]byte)
+	if _, err := io.CopyBuffer(w, response.Body, *buf); err != nil {
 		a.Logger.Printf("media stream interrupted for %s: %v", origin, err)
 	}
+	copyBuffers.Put(buf)
 }
 
 func validCDNName(cdn string) bool {
