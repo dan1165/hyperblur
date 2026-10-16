@@ -56,6 +56,30 @@ func TestParseSimpleReblogNoteAvatarOrder(t *testing.T) {
 	}
 }
 
+// TestAvatarSliceSortsByWidth keeps AvatarURL's "last is largest" contract, and
+// the blog header's Avatar[len-2], independent of API ordering.
+func TestAvatarSliceSortsByWidth(t *testing.T) {
+	raw := []any{
+		map[string]any{"url": "big", "width": float64(512), "height": float64(512)},
+		map[string]any{"url": "small", "width": float64(16), "height": float64(16)},
+		map[string]any{"url": "mid", "width": float64(128), "height": float64(128)},
+	}
+
+	blog := parseBlog(map[string]any{"name": "someone", "avatar": raw})
+	want := []string{"small", "mid", "big"}
+	if len(blog.Avatar) != len(want) {
+		t.Fatalf("got %d avatars, want %d", len(blog.Avatar), len(want))
+	}
+	for i, url := range want {
+		if blog.Avatar[i].URL != url {
+			t.Fatalf("avatar %d = %q, want %q (ascending width)", i, blog.Avatar[i].URL, url)
+		}
+	}
+	if got := blog.AvatarURL(); got != "big" {
+		t.Fatalf("AvatarURL() = %q, want the largest", got)
+	}
+}
+
 func TestMapErrorResponse(t *testing.T) {
 	tests := []struct {
 		name       string

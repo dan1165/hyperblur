@@ -89,8 +89,10 @@ func (r *recorder) response(ttl, stale time.Duration) *pageResponse {
 	if status == 0 {
 		status = http.StatusOK
 	}
-	// Own the bytes so the recorder can be discarded.
-	raw := append([]byte(nil), r.buf.Bytes()...)
+	// The recorder is discarded after this call and nothing else writes to its
+	// buffer, so the bytes can be handed over without copying (a 500 KB page
+	// saves an allocation and a full copy on every fill).
+	raw := r.buf.Bytes()
 	resp := &pageResponse{
 		status: status,
 		header: r.header,

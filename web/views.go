@@ -39,17 +39,27 @@ type view struct {
 }
 
 func (v *view) raw(s string) *view { v.b.WriteString(s); return v }
-func (v *view) esc(s string) *view { v.b.WriteString(html.EscapeString(s)); return v }
+func (v *view) esc(s string) *view { v.b.WriteString(escapeHTML(s)); return v }
 
-func htmlEscape(s string) string { return html.EscapeString(s) }
+// escapeHTML is html.EscapeString with a fast path for the common case: page
+// renders escape a value per element, and most values hold nothing to escape.
+func escapeHTML(s string) string {
+	if !strings.ContainsAny(s, `&<>"'`) {
+		return s
+	}
+	return html.EscapeString(s)
+}
+
+func htmlEscape(s string) string { return escapeHTML(s) }
 
 func (v *view) string() string { return v.b.String() }
 
 // viewPool recycles render buffers across requests, cutting GC on page renders.
+// Pages run 200-500 KB, so the buffer starts well above the first growth step.
 var viewPool = sync.Pool{
 	New: func() any {
 		v := &view{}
-		v.b.Grow(16384)
+		v.b.Grow(64 << 10)
 		return v
 	},
 }

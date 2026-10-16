@@ -4,6 +4,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -15,12 +16,18 @@ import (
 )
 
 func main() {
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "-healthcheck", "--healthcheck":
+			// Docker healthcheck for the scratch image, which has no shell or
+			// curl to probe with.
+			os.Exit(healthcheck())
+		}
+	}
+
 	logger := log.New(os.Stdout, "", log.LstdFlags)
 
-	port := os.Getenv("HYPERBLUR_PORT")
-	if port == "" {
-		port = "8000"
-	}
+	port := envPort()
 
 	server := &http.Server{
 		Addr:              ":" + port,
@@ -52,4 +59,28 @@ func main() {
 	if err := server.Shutdown(shutdownCtx); err != nil {
 		logger.Printf("shutdown error: %v", err)
 	}
+}
+
+func envPort() string {
+	if port := os.Getenv("HYPERBLUR_PORT"); port != "" {
+		return port
+	}
+	return "8000"
+}
+
+// healthcheck requests the local /healthz endpoint and reports it as an exit
+// code, for use as a Docker HEALTHCHECK command.
+func healthcheck() int {
+	client := &http.Client{Timeout: 5 * time.Second}
+	response, err := client.Get("http://127.0.0.1:" + envPort() + "/healthz")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "healthcheck: %v\n", err)
+		return 1
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		fmt.Fprintf(os.Stderr, "healthcheck: HTTP %d\n", response.StatusCode)
+		return 1
+	}
+	return 0
 }

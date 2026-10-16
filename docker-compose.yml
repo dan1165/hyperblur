@@ -16,3 +16,10 @@ services:
       HYPERBLUR_CACHE_STALE: "${HYPERBLUR_CACHE_STALE:-600}"
     ports:
       - "${HYPERBLUR_PORT:-8000}:${HYPERBLUR_PORT:-8000}"
+    # The image is scratch, so the probe is the binary itself.
+    healthcheck:
+      test: ["CMD", "/hyperblur", "-healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s

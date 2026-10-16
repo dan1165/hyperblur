@@ -17,7 +17,7 @@ Pulls `ghcr.io/dan1165/hyperblur:latest`, serves <http://localhost:8000>. Or:
 docker run --rm -p 8000:8000 ghcr.io/dan1165/hyperblur:latest
 ```
 
-Manual (Go 1.26+):
+Manual (Go 1.27+):
 
 ```bash
 go build -o hyperblur ./cmd/hyperblur
@@ -83,24 +83,47 @@ original filename.
 
 ## Performance
 
-One Go binary on standard `net/http`:
+One Go binary on standard `net/http` — no web framework, no CDN, four
+dependencies:
 
-- Shared HTTP transport, 100-idle-per-host pool. Concurrent Tumblr requests reuse
-  TLS.
-- Media is proxied through hyperblur by default (zero CDN), streamed and cached
-  in the browser; downloads add a filename. `HYPERBLUR_PROXY_MEDIA=false` skips
-  the proxy and loads media straight from Tumblr.
-- HTML and embedded assets gzipped. Stylesheets inlined, so a page renders with
-  no stylesheet request. Other assets carry ETag, cache a week.
+- Shared HTTP transport: HTTP/1.1 + HTTP/2 with idle pings (standard library,
+  no `golang.org/x/net`), 100-idle-per-host pool, larger socket buffers.
+  Concurrent Tumblr requests reuse TLS.
+- Media is proxied through hyperblur by default (zero CDN), streamed through a
+  pooled copy buffer and cached in the browser; `Range` and conditional headers
+  pass through, so video seeking and revalidation work. Downloads add a
+  filename. `HYPERBLUR_PROXY_MEDIA=false` loads media straight from Tumblr.
+- HTML is gzipped once per cached page, at a compression level chosen by
+  measurement: level 6 costs ~0.4 ms more than `BestSpeed` on a 535 KB page and
+  ships ~10 % fewer bytes (98 KB vs 109 KB). Encoding is negotiated per client
+  from one cache entry, so gzip and non-gzip visitors share a fill.
+- Stylesheets inlined, so a page renders with no stylesheet request. Other
+  assets carry ETag and cache a week.
 - **In-memory page cache** with TTL and **stale-while-revalidate**: warm pages
   are served from memory; stale pages are served immediately while a background
   goroutine refreshes them. **Single-flight** collapses concurrent misses of the
-  same page into one upstream request. Set `HYPERBLUR_CACHE=false` to disable.
-- **Faster libraries**: `klauspost/compress` gzip, `goccy/go-json`, and an
-  expirable LRU (`hashicorp/golang-lru`). The inline stylesheet is precomputed
-  once at startup instead of per render.
+  same page into one upstream request, and the two entry points are prewarmed at
+  startup. Set `HYPERBLUR_CACHE=false` to disable.
+- **Faster libraries**: `klauspost/compress` gzip with pooled writers,
+  `goccy/go-json`, and an expirable LRU (`hashicorp/golang-lru`). Stylesheets,
+  asset gzip and ETags are computed once at startup; render buffers are pooled;
+  poll results are cached for 18 s and single-flighted.
 - `GET /healthz` reports status, version and cache size; the build version is
-  shown in the page footer.
+  shown in the page footer. `hyperblur -healthcheck` probes it, which is what the
+  compose healthcheck uses (the image is `scratch`, so there is no shell).
+
+## Development
+
+```bash
+go vet ./...
+go test -race ./...
+```
+
+Tests cover URL rewriting and download links, media-path and poll-reference
+validation, cache keys and encoding negotiation, NPF formatting, and the
+reblog-note parser — plus an integration suite that drives the whole handler
+stack against a fake Tumblr upstream. CI runs vet and the race-enabled tests
+before building the image.
 
 ## Image
 

@@ -40,7 +40,7 @@ func (a *App) handleExploreIndex(w http.ResponseWriter, r *http.Request) {
 func (a *App) handleExplore(w http.ResponseWriter, r *http.Request, target exploreTarget, postType tumblr.ExplorePostType) {
 	data := a.newPageData(r)
 
-	continuation := unquoteQuery(r.URL.Query().Get("continuation"))
+	continuation := r.URL.Query().Get("continuation")
 	ctx := r.Context()
 
 	var raw map[string]any
@@ -107,7 +107,7 @@ func (a *App) handleSearchRedirect(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) handleSearch(w http.ResponseWriter, r *http.Request) {
-	query := unquotePath(r.PathValue("query"))
+	query := r.PathValue("query")
 	timeFilter := normalizeTimeFilter(r.URL.Query().Get("t"))
 	timeline, err := a.querySearch(r, query, timeFilter, nil, false)
 	if err != nil {
@@ -118,7 +118,7 @@ func (a *App) handleSearch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) handleSearchRecent(w http.ResponseWriter, r *http.Request) {
-	query := unquotePath(r.PathValue("query"))
+	query := r.PathValue("query")
 	timeFilter := normalizeTimeFilter(r.URL.Query().Get("t"))
 	timeline, err := a.querySearch(r, query, timeFilter, nil, true)
 	if err != nil {
@@ -137,8 +137,8 @@ func (a *App) handleSearchRecentFilter(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) searchFilter(w http.ResponseWriter, r *http.Request, latest bool) {
-	query := unquotePath(r.PathValue("query"))
-	postFilterRaw := unquotePath(r.PathValue("post_filter"))
+	query := r.PathValue("query")
+	postFilterRaw := r.PathValue("post_filter")
 	timeFilter := normalizeTimeFilter(r.URL.Query().Get("t"))
 
 	filter := parsePostFilter(postFilterRaw)
@@ -169,7 +169,7 @@ func (a *App) searchFilter(w http.ResponseWriter, r *http.Request, latest bool) 
 }
 
 func (a *App) querySearch(r *http.Request, query, timeFilter string, filter *tumblr.PostTypeFilter, latest bool) (*tumblr.Timeline, error) {
-	continuation := unquoteQuery(r.URL.Query().Get("continuation"))
+	continuation := r.URL.Query().Get("continuation")
 	days, _ := strconv.Atoi(timeFilter)
 
 	postFilter := tumblr.PostTypeFilter("")
@@ -206,7 +206,7 @@ func (a *App) renderSearch(w http.ResponseWriter, r *http.Request, timeline *tum
 // ---------------------------------------------------------------------------
 
 func (a *App) handleTagged(w http.ResponseWriter, r *http.Request) {
-	tag := unquotePath(r.PathValue("tag"))
+	tag := r.PathValue("tag")
 	sortBy := r.URL.Query().Get("sort")
 	latest := false
 	if sortBy == "recent" {
@@ -215,7 +215,7 @@ func (a *App) handleTagged(w http.ResponseWriter, r *http.Request) {
 		sortBy = "top"
 	}
 
-	continuation := unquoteQuery(r.URL.Query().Get("continuation"))
+	continuation := r.URL.Query().Get("continuation")
 	raw, err := a.API.HubsTimeline(r.Context(), tag, continuation, latest)
 	if err != nil {
 		a.fail(w, r, err)
@@ -241,7 +241,7 @@ func (a *App) handleTagged(w http.ResponseWriter, r *http.Request) {
 // ---------------------------------------------------------------------------
 
 func (a *App) handleBlogIndex(w http.ResponseWriter, r *http.Request) {
-	blog := unquotePath(r.PathValue("blog"))
+	blog := r.PathValue("blog")
 	if !validBlogName(blog) {
 		http.NotFound(w, r)
 		return
@@ -297,13 +297,13 @@ func (a *App) handleBlogIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) handleBlogTags(w http.ResponseWriter, r *http.Request) {
-	blog := unquotePath(r.PathValue("blog"))
-	tag := unquotePath(r.PathValue("tag"))
+	blog := r.PathValue("blog")
+	tag := r.PathValue("tag")
 	if !validBlogName(blog) {
 		http.NotFound(w, r)
 		return
 	}
-	continuation := unquoteQuery(r.URL.Query().Get("continuation"))
+	continuation := r.URL.Query().Get("continuation")
 
 	timeline, err := a.getBlogPosts(r.Context(), blog, continuation, tag, "", "")
 	if err != nil {
@@ -315,7 +315,7 @@ func (a *App) handleBlogTags(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) handleBlogSearchRedirect(w http.ResponseWriter, r *http.Request) {
-	blog := unquotePath(r.PathValue("blog"))
+	blog := r.PathValue("blog")
 	if !validBlogName(blog) {
 		http.NotFound(w, r)
 		return
@@ -328,13 +328,13 @@ func (a *App) handleBlogSearchRedirect(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) handleBlogSearch(w http.ResponseWriter, r *http.Request) {
-	blog := unquotePath(r.PathValue("blog"))
-	query := unquotePath(r.PathValue("query"))
+	blog := r.PathValue("blog")
+	query := r.PathValue("query")
 	if !validBlogName(blog) {
 		http.NotFound(w, r)
 		return
 	}
-	continuation := unquoteQuery(r.URL.Query().Get("continuation"))
+	continuation := r.URL.Query().Get("continuation")
 	ctx := r.Context()
 
 	raw, err := a.API.BlogSearch(ctx, blog, query, continuation)
@@ -361,11 +361,11 @@ func (a *App) handleBlogPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) handleBlogPostWithSlug(w http.ResponseWriter, r *http.Request) {
-	a.serveBlogPost(w, r, unquotePath(r.PathValue("slug")))
+	a.serveBlogPost(w, r, r.PathValue("slug"))
 }
 
 func (a *App) serveBlogPost(w http.ResponseWriter, r *http.Request, slug string) {
-	blog := unquotePath(r.PathValue("blog"))
+	blog := r.PathValue("blog")
 	postID := r.PathValue("post_id")
 	if !validBlogName(blog) || !numericPostID(postID) {
 		http.NotFound(w, r)
@@ -430,7 +430,7 @@ func (a *App) serveBlogPost(w http.ResponseWriter, r *http.Request, slug string)
 }
 
 func (a *App) handleRedirectPostNoSlug(w http.ResponseWriter, r *http.Request) {
-	blog := unquotePath(r.PathValue("blog"))
+	blog := r.PathValue("blog")
 	if !validBlogName(blog) {
 		http.NotFound(w, r)
 		return
@@ -439,12 +439,12 @@ func (a *App) handleRedirectPostNoSlug(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) handleRedirectPost(w http.ResponseWriter, r *http.Request) {
-	blog := unquotePath(r.PathValue("blog"))
+	blog := r.PathValue("blog")
 	if !validBlogName(blog) {
 		http.NotFound(w, r)
 		return
 	}
-	http.Redirect(w, r, "/"+blog+"/"+r.PathValue("post_id")+"/"+urlEscape(unquotePath(r.PathValue("slug"))), http.StatusFound)
+	http.Redirect(w, r, "/"+blog+"/"+r.PathValue("post_id")+"/"+urlEscape(r.PathValue("slug")), http.StatusFound)
 }
 
 // serveNotesViewer renders replies/reblogs/likes viewer for post.
@@ -629,9 +629,9 @@ func writeJSONError(w http.ResponseWriter, status int, message string) {
 }
 
 func (a *App) handleAPIPollResults(w http.ResponseWriter, r *http.Request) {
-	blog := unquotePath(r.PathValue("blog"))
+	blog := r.PathValue("blog")
 	postID := r.PathValue("post_id")
-	pollID := unquotePath(r.PathValue("poll_id"))
+	pollID := r.PathValue("poll_id")
 
 	if blog == "" || !validBlogName(blog) || !numericPostID(postID) || !validPollID(pollID) {
 		writeJSONError(w, http.StatusBadRequest, "invalid poll reference")
@@ -714,22 +714,6 @@ func (a *App) getBlogPost(ctx context.Context, blog, postID string) (*tumblr.Pos
 }
 
 func intPtr(v int) *int { return &v }
-
-func unquotePath(s string) string {
-	decoded, err := url.PathUnescape(s)
-	if err != nil {
-		return s
-	}
-	return decoded
-}
-
-func unquoteQuery(s string) string {
-	decoded, err := url.QueryUnescape(s)
-	if err != nil {
-		return s
-	}
-	return decoded
-}
 
 func truthyQuery(s string) bool {
 	switch strings.ToLower(s) {

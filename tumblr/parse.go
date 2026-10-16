@@ -66,6 +66,8 @@ func stringSlice(v any) []string {
 	return out
 }
 
+// avatarSlice parses avatars smallest-first, so AvatarURL's "last is largest"
+// assumption holds whatever order the API returns them in.
 func avatarSlice(v any) []Avatar {
 	l := slice(v)
 	out := make([]Avatar, 0, len(l))
@@ -73,6 +75,7 @@ func avatarSlice(v any) []Avatar {
 		a := obj(item)
 		out = append(out, Avatar{URL: str(a["url"]), Width: integer(a["width"]), Height: integer(a["height"])})
 	}
+	sort.SliceStable(out, func(i, j int) bool { return out[i].Width < out[j].Width })
 	return out
 }
 
