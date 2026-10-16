@@ -414,8 +414,11 @@ func (a *App) newPageData(r *http.Request) *PageData {
 
 // App holds shared server state.
 type App struct {
-	API    *tumblr.API
-	Media  *http.Client
+	API   *tumblr.API
+	Media *http.Client
+	// At resolves at.tumblr.com links. It must not follow redirects, so the
+	// 301 can be inspected.
+	At     *http.Client
 	Logger *log.Logger
 	assets map[string]*assetEntry
 
@@ -444,6 +447,7 @@ func NewApp(logger *log.Logger) *App {
 	app := &App{
 		API:        tumblr.NewAPI(transport, 10*time.Second),
 		Media:      &http.Client{Transport: transport, Timeout: 30 * time.Second},
+		At:         &http.Client{Transport: transport, Timeout: 30 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }},
 		Logger:     logger,
 		assets:     assets,
 		caching:    envBool("HYPERBLUR_CACHE", true),
@@ -854,7 +858,7 @@ func (a *App) handleAtLinks(w http.ResponseWriter, r *http.Request) {
 	}
 	request.Header.Set("user-agent", tumblr.DefaultUserAgent)
 
-	response, err := a.Media.Do(request)
+	response, err := a.At.Do(request)
 	if err != nil {
 		a.messageError(w, r, http.StatusBadGateway, "Error: could not reach Tumblr to resolve this link", "")
 		return
