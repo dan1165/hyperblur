@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/dan1165/hyperblur/tumblr"
-	"github.com/hashicorp/golang-lru/v2/expirable"
 )
 
 // fakeUpstream answers hyperblur's Tumblr requests with canned data and counts
@@ -114,28 +113,20 @@ func newTestApp(t *testing.T, upstream *fakeUpstream) *App {
 	t.Helper()
 	assets := loadAssets()
 	app := &App{
-		API:        tumblr.NewAPI(upstream, 5*time.Second),
-		Media:      &http.Client{Transport: upstream, Timeout: 5 * time.Second},
-		Logger:     log.New(io.Discard, "", 0),
-		assets:     assets,
-		caching:    true,
-		cacheTTL:   time.Minute,
-		cacheStale: 5 * time.Minute,
-		css:        inlineCSS(assets, ""),
-		cssBlog:    inlineCSS(assets, "css/blog.css"),
+		API:     tumblr.NewAPI(upstream, 5*time.Second),
+		Media:   &http.Client{Transport: upstream, Timeout: 5 * time.Second},
+		Logger:  log.New(io.Discard, "", 0),
+		assets:  assets,
+		polls:   newTTLCache(32, 18*time.Second),
+		css:     inlineCSS(assets, ""),
+		cssBlog: inlineCSS(assets, "css/blog.css"),
 	}
-	app.pages = expirable.NewLRU[string, *pageResponse](32, nil, app.cacheTTL+app.cacheStale)
-	app.polls = expirable.NewLRU[string, []byte](32, nil, 18*time.Second)
 	return app
 }
 
 // newTestServer starts the full handler stack against the fake upstream.
 func newTestServer(t *testing.T) (*httptest.Server, *fakeUpstream) {
 	t.Helper()
-	old := ProxyMedia
-	ProxyMedia = true
-	t.Cleanup(func() { ProxyMedia = old })
-
 	upstream := newFakeUpstream()
 	server := httptest.NewServer(newTestApp(t, upstream).Handler())
 	t.Cleanup(server.Close)
@@ -177,34 +168,24 @@ func bodyOf(t *testing.T, resp *http.Response) string {
 	return string(body)
 }
 
-func TestPageCacheServesAndReuses(t *testing.T) {
+func TestTaggedPageRendersOneUpstreamCall(t *testing.T) {
 	server, upstream := newTestServer(t)
-	// The fake API has no blog routes: /tagged is a distinct path from the
-	// prewarmed explore pages, so call counts stay deterministic.
-	url := server.URL + "/tagged/cats"
 
-	first := get(t, http.DefaultClient, url, nil)
-	if first.StatusCode != http.StatusOK {
-		t.Fatalf("status = %d, want 200", first.StatusCode)
+	resp := get(t, http.DefaultClient, server.URL+"/tagged/cats", nil)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want 200", resp.StatusCode)
 	}
-	if got := first.Header.Get("x-hyperblur-cache"); got != "miss" {
-		t.Fatalf("cache state = %q, want miss", got)
-	}
-	if !strings.Contains(bodyOf(t, first), "body text") {
+	if !strings.Contains(bodyOf(t, resp), "body text") {
 		t.Fatal("page body missing rendered post content")
 	}
-
-	second := get(t, http.DefaultClient, url, nil)
-	if got := second.Header.Get("x-hyperblur-cache"); got != "hit" {
-		t.Fatalf("cache state = %q, want hit", got)
-	}
+	// No page cache: one page view, one upstream fetch.
 	if calls := upstream.countContaining("hubs/cats/timeline"); calls != 1 {
-		t.Fatalf("upstream called %d times for a cached page, want 1", calls)
+		t.Fatalf("upstream called %d times, want 1", calls)
 	}
 }
 
-func TestPageCacheNegotiatesEncodingFromOneEntry(t *testing.T) {
-	server, upstream := newTestServer(t)
+func TestEncodingNegotiatedPerClient(t *testing.T) {
+	server, _ := newTestServer(t)
 	client := noCompressionClient()
 	url := server.URL + "/tagged/encoding"
 
@@ -224,10 +205,6 @@ func TestPageCacheNegotiatesEncodingFromOneEntry(t *testing.T) {
 	gzipLen := len(bodyOf(t, gzipped))
 	if gzipLen >= plainLen {
 		t.Fatalf("gzip body (%d) is not smaller than plain (%d)", gzipLen, plainLen)
-	}
-	// Both were served from the same cache entry.
-	if calls := upstream.countContaining("hubs/encoding/timeline"); calls != 1 {
-		t.Fatalf("upstream called %d times, want 1 shared fill", calls)
 	}
 }
 
@@ -270,10 +247,10 @@ func TestPollResultsAreJSONValidatedAndCached(t *testing.T) {
 	}
 }
 
-func TestMediaProxy(t *testing.T) {
+func TestDownloadRoute(t *testing.T) {
 	server, upstream := newTestServer(t)
 	client := noCompressionClient()
-	media := server.URL + "/tblr/media/64/a/b.jpg"
+	media := server.URL + "/download/64/a/b.jpg"
 
 	resp := get(t, client, media, nil)
 	if resp.StatusCode != http.StatusOK {
@@ -299,14 +276,14 @@ func TestMediaProxy(t *testing.T) {
 	}
 
 	// Query strings must survive the rewrite and reach the CDN.
-	withQuery := "/tblr/media/64/a/b.jpg?sig=abc123"
+	withQuery := "/download/64/a/b.jpg?sig=abc123"
 	get(t, client, server.URL+withQuery, nil)
 	if calls := upstream.countContaining("64.media.tumblr.com/a/b.jpg?sig=abc123"); calls != 1 {
 		t.Fatalf("upstream did not receive the query string (calls=%d)", calls)
 	}
 
-	// The download flag is hyperblur's own and must not be forwarded.
-	download := get(t, client, media+"?download=1", nil)
+	// Every download carries a filename.
+	download := get(t, client, media, nil)
 	if got := download.Header.Get("Content-Disposition"); !strings.Contains(got, `filename="b.jpg"`) {
 		t.Fatalf("Content-Disposition = %q, want an attachment filename", got)
 	}
@@ -315,7 +292,7 @@ func TestMediaProxy(t *testing.T) {
 	}
 
 	// Traversal attempts never reach the CDN.
-	traversal := server.URL + "/tblr/media/64/a%2F..%2F..%2Fetc/passwd"
+	traversal := server.URL + "/download/64/a%2F..%2F..%2Fetc/passwd"
 	if code := get(t, client, traversal, nil).StatusCode; code != http.StatusNotFound {
 		t.Fatalf("traversal status = %d, want 404", code)
 	}
@@ -329,7 +306,7 @@ func TestMediaProxy(t *testing.T) {
 func TestMediaForwardsRangeAndConditionals(t *testing.T) {
 	server, upstream := newTestServer(t)
 	client := noCompressionClient()
-	media := server.URL + "/tblr/media/64/a/b.jpg"
+	media := server.URL + "/download/64/a/b.jpg"
 
 	get(t, client, media, map[string]string{
 		"Range":             "bytes=0-99",
@@ -387,27 +364,9 @@ func TestSecurityHeadersAndStaticRoutes(t *testing.T) {
 	}
 }
 
-func TestPrewarmFillsTheCache(t *testing.T) {
-	upstream := newFakeUpstream()
-	app := newTestApp(t, upstream)
-	server := httptest.NewServer(app.Handler())
-	t.Cleanup(server.Close)
-
-	deadline := time.Now().Add(3 * time.Second)
-	for time.Now().Before(deadline) {
-		if app.pages.Len() > 0 {
-			return
-		}
-		time.Sleep(20 * time.Millisecond)
-	}
-	t.Fatal("prewarm did not fill the page cache")
-}
-
-func TestHEADRequestIsServedFromCache(t *testing.T) {
+func TestHEADRequestHasNoBody(t *testing.T) {
 	server, _ := newTestServer(t)
 	client := noCompressionClient()
-
-	get(t, client, server.URL+"/tagged/head", nil)
 
 	req, err := http.NewRequest(http.MethodHead, server.URL+"/tagged/head", nil)
 	if err != nil {

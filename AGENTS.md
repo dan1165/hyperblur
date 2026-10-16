@@ -27,21 +27,20 @@ Build into `bin/` on Windows: `.gitignore` covers `/bin/` and `/hyperblur`, but 
 `hyperblur -healthcheck` probes local `/healthz`, sets exit code. That is the
 compose healthcheck (image is `scratch`: no shell, no curl).
 
-## Routing & cache (easy to break)
+## Routing (easy to break)
 
-- ServeMux patterns cover `/assets/`, `/tblr/...`, `/at/{path...}`, `/api/v1/poll/...`,
+- ServeMux patterns cover `/assets/`, `/download/{cdn}/{path...}`, `/api/v1/poll/...`,
   `/healthz`, `/{$}`. Everything else (explore/search/tagged/blog) is hand-split in
   `handleFallback` (`GET /`) — blog paths collide with the wildcard patterns, so do not
   move them into the mux.
-- `cacheablePath` (`web/cache.go`) decides what the page cache may store. It excludes
-  `/assets/`, `/tblr/`, `/api/`, `/at/`, `/robots.txt`, `/manifest.webmanifest`,
-  `/sw.js`, `/healthz`. Any other `200` HTML page is cached automatically.
-- A cached page stores **raw HTML + one precomputed gzip**. Client encoding is
-  negotiated at serve time; cache key is just `path?query`. `writePage` deliberately
-  writes uncompressed for cacheable paths so the cache can do the encoding — do not
-  re-add gzip there.
-- Server intentionally has **no `WriteTimeout`**: media streams, a deadline would cut
-  long downloads.
+- **There is no page cache.** Every page view fetches Tumblr once. The only cache is
+  `ttlCache` (`web/ttlcache.go`) for poll results, 512 entries, 18 s.
+- Display media (images, video, audio, avatars) loads straight from Tumblr's CDN:
+  `urlHandler` leaves those URLs absolute. Only `/download/{cdn}/{path...}`
+  (`handleDownload`) streams through hyperblur, to attach a filename. It accepts
+  `*.media.tumblr.com` hosts only.
+- Server intentionally has **no `WriteTimeout`**: downloads stream, a deadline would cut
+  them off.
 
 ## UI layer (austere monochrome)
 
@@ -67,9 +66,6 @@ compose healthcheck (image is `scratch`: no shell, no curl).
 
 - **Never percent-decode twice.** `net/http` already decodes `r.URL.Path`, `r.PathValue`
   and the query. Decoding again corrupts any tag or query containing literal `%XX`.
-- **`/at/...` must use `App.At`**, a client with redirects disabled, so upstream `301`
-  is visible. Media client follows redirects: using it here returns `200` and resolver
-  always `502`s.
 - API host is hardcoded (`https://www.tumblr.com/api/v2/`). Tests inject a fake via the
   `tumblr.NewAPI(transport http.RoundTripper, ...)` seam. Keep that seam, keep fake
   upstream in `web/integration_test.go` working.
@@ -78,12 +74,13 @@ compose healthcheck (image is `scratch`: no shell, no curl).
 - Build version comes from `-ldflags "-X github.com/dan1165/hyperblur/web.Version="`
   (Dockerfile + CI), falling back to git revision. Do not hardcode it in `main.go`.
 - With no `HYPERBLUR_TUMBLR_API_TOKEN`, bundled token is used and a warning is logged.
-- `HYPERBLUR_CACHE=false` disables page cache entirely (middleware is skipped).
+- `go.mod` has **no dependencies**. Everything is standard library; adding a module
+  needs a reason that survives the ladder in the ponytail skill.
 
 ## Conventions
 
 - CI (`.github/workflows/docker.yml`) runs `go vet`, then `go test -race`, before
   building image. A `v*` tag publishes tagged image, otherwise `latest`.
 - Commit messages use short conventional prefixes (`perf:`, `fix:`, `docs:`).
-- Env vars and caching/compression rationale live in `README.md`. Keep it in sync when
+- `README.md` holds the env vars and the compression rationale. Keep it in sync when
   behaviour changes.

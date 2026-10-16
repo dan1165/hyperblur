@@ -2,6 +2,7 @@ package web
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"embed"
@@ -15,7 +16,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"os"
 	"path"
 	"regexp"
 	"runtime/debug"
@@ -26,9 +26,6 @@ import (
 
 	"github.com/dan1165/hyperblur/npf"
 	"github.com/dan1165/hyperblur/tumblr"
-	"github.com/hashicorp/golang-lru/v2/expirable"
-	"github.com/klauspost/compress/gzip"
-	"golang.org/x/sync/singleflight"
 )
 
 // Handler builds HTTP handler for app.
@@ -44,14 +41,8 @@ func (a *App) Handler() http.Handler {
 	mux.HandleFunc("GET /offline", a.handleOffline)
 	mux.HandleFunc("GET /healthz", a.handleHealth)
 
-	// Media proxying.
-	mux.HandleFunc("GET /tblr/media/{cdn}/{path...}", a.handleMediaCDN)
-	mux.HandleFunc("GET /tblr/a/{path...}", a.handleMediaAudio)
-	mux.HandleFunc("GET /tblr/assets/{path...}", a.handleMediaAssets)
-	mux.HandleFunc("GET /tblr/static/{path...}", a.handleMediaStatic)
-
-	// at.tumblr.com link redirects.
-	mux.HandleFunc("GET /at/{path...}", a.handleAtLinks)
+	// Downloads only: display media loads straight from Tumblr's CDN.
+	mux.HandleFunc("GET /download/{cdn}/{path...}", a.handleDownload)
 
 	// API.
 	mux.HandleFunc("GET /api/v1/poll/{blog}/{post_id}/{poll_id}/results", a.handleAPIPollResults)
@@ -60,11 +51,7 @@ func (a *App) Handler() http.Handler {
 	// patterns next to /assets/.
 	mux.HandleFunc("GET /", a.handleFallback)
 
-	// Security headers wrap the app; the page cache sits outside so cached
-	// responses carry the same headers without re-running the middleware.
-	a.inner = a.middleware(mux)
-	a.prewarm()
-	return a.pageCache(a.inner)
+	return a.middleware(mux)
 }
 
 // handleFallback dispatches explore/search/tagged/blog paths. Not ServeMux
@@ -207,23 +194,16 @@ func (a *App) middleware(next http.Handler) http.Handler {
 		header.Set("cache-control", "no-store, no-cache, must-revalidate, max-age=0")
 		header.Set("pragma", "no-cache")
 		header.Set("expires", "0")
-		imgSrc := "'self' data:"
-		mediaSrc := "'self'"
-		if !ProxyMedia {
-			// Direct mode: media is loaded straight from Tumblr's CDN.
-			imgSrc += " https://*.tumblr.com"
-			mediaSrc += " https://*.tumblr.com"
-		}
 		header.Set("content-security-policy", strings.Join([]string{
 			"default-src 'none'",
 			"script-src 'self'",
 			"style-src 'self' 'unsafe-inline'",
-			"img-src " + imgSrc,
+			"img-src 'self' data: https://*.tumblr.com",
 			"font-src 'self' data:",
 			"connect-src 'self'",
 			"manifest-src 'self'",
 			"worker-src 'self'",
-			"media-src " + mediaSrc,
+			"media-src 'self' https://*.tumblr.com",
 			"child-src 'self' blob:",
 			"base-uri 'none'",
 			"form-action 'self'",
@@ -252,17 +232,6 @@ func (a *App) handleRobots(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("content-type", "text/plain; charset=utf-8")
 	w.Header().Set("Content-Length", strconv.Itoa(len(entry.body)))
 	_, _ = w.Write(entry.body)
-}
-
-// applyMediaMode reads HYPERBLUR_PROXY_MEDIA. Unset or truthy proxies media;
-// a falsey value loads it straight from Tumblr's CDN.
-func applyMediaMode() {
-	switch strings.ToLower(strings.TrimSpace(os.Getenv(proxyMediaEnvVar))) {
-	case "0", "false", "no", "off":
-		ProxyMedia = false
-	default:
-		ProxyMedia = true
-	}
 }
 
 func (a *App) handleManifest(w http.ResponseWriter, r *http.Request) {
@@ -311,15 +280,6 @@ func (a *App) writePage(w http.ResponseWriter, r *http.Request, status int, html
 	header.Set("Content-Type", "text/html; charset=utf-8")
 
 	body := []byte(html)
-	// Cacheable pages are buffered raw by the page cache, which negotiates the
-	// client encoding from the precomputed gzip variant.
-	if a.caching && cacheablePath(r.URL.Path) {
-		header.Set("Content-Length", strconv.Itoa(len(body)))
-		w.WriteHeader(status)
-		_, _ = w.Write(body)
-		return
-	}
-
 	if acceptsGzip(r) {
 		body = gzipCompress(body)
 		header.Set("Content-Encoding", "gzip")
@@ -432,24 +392,14 @@ func (a *App) newPageData(r *http.Request) *PageData {
 
 // App holds shared server state.
 type App struct {
-	API   *tumblr.API
-	Media *http.Client
-	// At resolves at.tumblr.com links. It must not follow redirects, so the
-	// 301 can be inspected.
-	At     *http.Client
+	API    *tumblr.API
+	Media  *http.Client
 	Logger *log.Logger
 	assets map[string]*assetEntry
 
-	// Caching + background refresh.
-	inner      http.Handler
-	pages      *expirable.LRU[string, *pageResponse]
-	polls      *expirable.LRU[string, []byte]
-	sf         singleflight.Group
-	pollsSF    singleflight.Group
-	refreshSF  singleflight.Group
-	caching    bool
-	cacheTTL   time.Duration
-	cacheStale time.Duration
+	// polls caches poll results for a few seconds, so a post with several polls
+	// does not hammer the API while a reader watches.
+	polls *ttlCache
 
 	// Precomputed inline stylesheets.
 	css     string
@@ -458,25 +408,17 @@ type App struct {
 
 // NewApp builds app and Tumblr API client.
 func NewApp(logger *log.Logger) *App {
-	applyMediaMode()
 	transport := newTransport()
 	assets := loadAssets()
 
 	app := &App{
-		API:        tumblr.NewAPI(transport, 10*time.Second),
-		Media:      &http.Client{Transport: transport, Timeout: 30 * time.Second},
-		At:         &http.Client{Transport: transport, Timeout: 30 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }},
-		Logger:     logger,
-		assets:     assets,
-		caching:    envBool("HYPERBLUR_CACHE", true),
-		cacheTTL:   envSeconds("HYPERBLUR_CACHE_TTL", 60),
-		cacheStale: envSeconds("HYPERBLUR_CACHE_STALE", 600),
-		css:        inlineCSS(assets, ""),
-		cssBlog:    inlineCSS(assets, "css/blog.css"),
-	}
-	if app.caching {
-		app.pages = expirable.NewLRU[string, *pageResponse](512, nil, app.cacheTTL+app.cacheStale)
-		app.polls = expirable.NewLRU[string, []byte](512, nil, 18*time.Second)
+		API:     tumblr.NewAPI(transport, 10*time.Second),
+		Media:   &http.Client{Transport: transport, Timeout: 30 * time.Second},
+		Logger:  logger,
+		assets:  assets,
+		polls:   newTTLCache(512, 18*time.Second),
+		css:     inlineCSS(assets, ""),
+		cssBlog: inlineCSS(assets, "css/blog.css"),
 	}
 	if app.API.UsingBundledToken {
 		app.Logger.Print("warning: using the bundled Tumblr API token; set HYPERBLUR_TUMBLR_API_TOKEN to use your own")
@@ -537,52 +479,16 @@ func (a *App) pageCSS(blog bool) string {
 	return a.css
 }
 
-// prewarm fetches the common entry points into the cache in the background, so
-// the first visitor already hits a warm cache.
-func (a *App) prewarm() {
-	if !a.caching {
-		return
-	}
-	for _, path := range []string{"/explore/trending", "/explore/today"} {
-		req := &http.Request{
-			Method: http.MethodGet,
-			URL:    &url.URL{Path: path},
-			Header: make(http.Header),
-		}
-		req.Header.Set("Accept-Encoding", "gzip")
-		a.refresh(cacheKey(req), req)
-	}
-}
-
-func envBool(name string, fallback bool) bool {
-	switch strings.ToLower(strings.TrimSpace(os.Getenv(name))) {
-	case "0", "false", "no", "off":
-		return false
-	case "1", "true", "yes", "on":
-		return true
-	}
-	return fallback
-}
-
-func envSeconds(name string, fallback int) time.Duration {
-	if v, err := strconv.Atoi(strings.TrimSpace(os.Getenv(name))); err == nil && v > 0 {
-		return time.Duration(v) * time.Second
-	}
-	return time.Duration(fallback) * time.Second
+// acceptsGzip reports whether the client asked for gzip.
+func acceptsGzip(r *http.Request) bool {
+	return strings.Contains(r.Header.Get("Accept-Encoding"), "gzip")
 }
 
 // handleHealth is a tiny health/observability endpoint.
 func (a *App) handleHealth(w http.ResponseWriter, r *http.Request) {
-	pages, polls := 0, 0
-	if a.pages != nil {
-		pages = a.pages.Len()
-	}
-	if a.polls != nil {
-		polls = a.polls.Len()
-	}
 	w.Header().Set("content-type", "text/plain; charset=utf-8")
 	w.Header().Set("x-hyperblur-version", Version)
-	fmt.Fprintf(w, "ok\nversion: %s\ncache: %t\npage entries: %d\npoll entries: %d\n", Version, a.caching, pages, polls)
+	fmt.Fprintf(w, "ok\nversion: %s\n", Version)
 }
 
 // newTransport returns an HTTP transport tuned for many concurrent Tumblr
@@ -718,9 +624,8 @@ func compressible(ct string) bool {
 		strings.Contains(ct, "svg")
 }
 
-// gzipLevel is level 6 rather than BestSpeed: compression happens once per
-// cache fill and the result is served many times, and on a real 535 KB page
-// level 6 costs ~0.4 ms more while shipping ~10% fewer bytes (98 KB vs 109 KB).
+// gzipLevel is 6 rather than BestSpeed: on a real 535 KB page it costs ~0.4 ms
+// more and ships ~10% fewer bytes (98 KB vs 109 KB).
 const gzipLevel = 6
 
 // gzipWriters recycles gzip writers across requests. Pooled writers retain no
@@ -825,55 +730,24 @@ var blacklistResponseHeaders = map[string]bool{
 	"x-frame-options":         true,
 }
 
-const (
-	videoAccept       = "video/webm,video/ogg,video/*;q=0.9, application/ogg;q=0.7,audio/*;q=0.6,*/*;q=0.5"
-	audioAccept       = "audio/webm,audio/ogg,audio/wav,audio/*;q=0.9,application/ogg;q=0.7,video/*;q=0.6,*/*;q=0.5"
-	maxFilenameLength = 150
-)
+const maxFilenameLength = 150
 
-func (a *App) handleMediaCDN(w http.ResponseWriter, r *http.Request) {
+// handleDownload streams one media file through hyperblur and names it, so a
+// click saves it instead of opening the CDN in a tab. Display media never comes
+// through here: pages load that straight from Tumblr's CDN.
+func (a *App) handleDownload(w http.ResponseWriter, r *http.Request) {
 	cdn := r.PathValue("cdn")
-	if !validCDNName(cdn) {
-		http.NotFound(w, r)
-		return
-	}
-	extra := map[string]string(nil)
-	if cdn == "ve" || cdn == "va" {
-		extra = map[string]string{"accept": videoAccept}
-	}
-	a.serveMedia(w, r, "https://"+cdn+".media.tumblr.com", extra)
-}
-
-func (a *App) handleMediaAudio(w http.ResponseWriter, r *http.Request) {
-	a.serveMedia(w, r, "https://a.tumblr.com", map[string]string{"accept": audioAccept})
-}
-
-func (a *App) handleMediaAssets(w http.ResponseWriter, r *http.Request) {
-	a.serveMedia(w, r, "https://assets.tumblr.com", nil)
-}
-
-func (a *App) handleMediaStatic(w http.ResponseWriter, r *http.Request) {
-	a.serveMedia(w, r, "https://static.tumblr.com", nil)
-}
-
-// serveMedia proxies media through hyperblur, so the browser never contacts
-// Tumblr's CDN; a forced download adds a content-disposition filename.
-func (a *App) serveMedia(w http.ResponseWriter, r *http.Request, origin string, extraHeaders map[string]string) {
 	path := r.PathValue("path")
-	if !validMediaPath(path) {
+	if !validCDNName(cdn) || !validMediaPath(path) {
 		http.NotFound(w, r)
 		return
 	}
 
-	target := origin + "/" + quotePath(path)
+	target := "https://" + cdn + ".media.tumblr.com/" + quotePath(path)
 	if query := mediaUpstreamQuery(r.URL.RawQuery); query != "" {
 		target += "?" + query
 	}
-	disposition := ""
-	if downloadRequested(r) {
-		disposition = buildContentDisposition(path)
-	}
-	a.streamMedia(w, r, target, extraHeaders, disposition)
+	a.streamMedia(w, r, target, buildContentDisposition(path))
 }
 
 // mediaUpstreamQuery drops hyperblur's own download flag and passes the rest of
@@ -892,46 +766,14 @@ func mediaUpstreamQuery(rawQuery string) string {
 	return strings.Join(kept, "&")
 }
 
-func (a *App) handleAtLinks(w http.ResponseWriter, r *http.Request) {
-	path := r.PathValue("path")
-	if !validMediaPath(path) {
-		http.NotFound(w, r)
-		return
-	}
-	request, err := http.NewRequestWithContext(r.Context(), http.MethodHead, "https://at.tumblr.com/"+quotePath(path), nil)
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-	request.Header.Set("user-agent", tumblr.DefaultUserAgent)
-
-	response, err := a.At.Do(request)
-	if err != nil {
-		a.messageError(w, r, http.StatusBadGateway, "Error: could not reach Tumblr to resolve this link", "")
-		return
-	}
-	defer response.Body.Close()
-
-	if response.StatusCode == http.StatusMovedPermanently {
-		if location, err := url.Parse(response.Header.Get("location")); err == nil && strings.HasPrefix(location.Path, "/") {
-			http.Redirect(w, r, location.Path, http.StatusFound)
-			return
-		}
-	}
-	a.messageError(w, r, http.StatusBadGateway, "Error: Tumblr did not redirect this link to a hyperblur page", "")
-}
-
-func (a *App) streamMedia(w http.ResponseWriter, r *http.Request, origin string, extraHeaders map[string]string, downloadFilename string) {
-	request, err := http.NewRequestWithContext(r.Context(), http.MethodGet, origin, nil)
+func (a *App) streamMedia(w http.ResponseWriter, r *http.Request, target, downloadFilename string) {
+	request, err := http.NewRequestWithContext(r.Context(), http.MethodGet, target, nil)
 	if err != nil {
 		w.WriteHeader(http.StatusBadGateway)
 		return
 	}
 	for _, header := range mediaRequestHeaders {
 		request.Header.Set(header[0], header[1])
-	}
-	for key, value := range extraHeaders {
-		request.Header.Set(key, value)
 	}
 	for _, header := range forwardedRequestHeaders {
 		if value := r.Header.Get(header); value != "" {
@@ -941,7 +783,7 @@ func (a *App) streamMedia(w http.ResponseWriter, r *http.Request, origin string,
 
 	response, err := a.Media.Do(request)
 	if err != nil {
-		a.Logger.Printf("failed to fetch media %s: %v", origin, err)
+		a.Logger.Printf("failed to fetch media %s: %v", target, err)
 		w.WriteHeader(http.StatusBadGateway)
 		return
 	}
@@ -971,7 +813,7 @@ func (a *App) streamMedia(w http.ResponseWriter, r *http.Request, origin string,
 	w.WriteHeader(response.StatusCode)
 	buf := copyBuffers.Get().(*[]byte)
 	if _, err := io.CopyBuffer(w, response.Body, *buf); err != nil {
-		a.Logger.Printf("media stream interrupted for %s: %v", origin, err)
+		a.Logger.Printf("media stream interrupted for %s: %v", target, err)
 	}
 	copyBuffers.Put(buf)
 }
@@ -1002,10 +844,6 @@ func validMediaPath(path string) bool {
 	return !strings.Contains(decoded, "/../") &&
 		!strings.HasPrefix(decoded, "../") &&
 		!strings.HasSuffix(decoded, "/..")
-}
-
-func downloadRequested(r *http.Request) bool {
-	return truthyQuery(r.URL.Query().Get("download"))
 }
 
 // quotePath percent-encodes path, keeps "/" separators.

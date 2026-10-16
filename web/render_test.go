@@ -7,20 +7,16 @@ import (
 )
 
 func TestURLHandler(t *testing.T) {
-	old := ProxyMedia
-	ProxyMedia = true
-	t.Cleanup(func() { ProxyMedia = old })
-
 	tests := []struct {
 		name string
 		in   string
 		want string
 	}{
-		{"media proxy", "https://64.media.tumblr.com/abc/def.jpg", "/tblr/media/64/abc/def.jpg"},
-		{"media keeps query", "https://64.media.tumblr.com/abc/def.jpg?sig=abc123", "/tblr/media/64/abc/def.jpg?sig=abc123"},
-		{"assets", "https://assets.tumblr.com/images/x.gif", "/tblr/assets/images/x.gif"},
-		{"static", "https://static.tumblr.com/x/y.css", "/tblr/static/x/y.css"},
-		{"audio", "https://a.tumblr.com/tumblr_abc.mp3", "/tblr/a/tumblr_abc.mp3"},
+		{"media stays on the CDN", "https://64.media.tumblr.com/abc/def.jpg", "https://64.media.tumblr.com/abc/def.jpg"},
+		{"media keeps query", "https://64.media.tumblr.com/abc/def.jpg?sig=abc123", "https://64.media.tumblr.com/abc/def.jpg?sig=abc123"},
+		{"assets stays absolute", "https://assets.tumblr.com/images/x.gif", "https://assets.tumblr.com/images/x.gif"},
+		{"static stays absolute", "https://static.tumblr.com/x/y.css", "https://static.tumblr.com/x/y.css"},
+		{"audio stays absolute", "https://a.tumblr.com/tumblr_abc.mp3", "https://a.tumblr.com/tumblr_abc.mp3"},
 		{"blog post", "https://staff.tumblr.com/post/123/slug", "/staff/123/slug"},
 		{"blog page", "https://staff.tumblr.com/tagged/go", "/staff/tagged/go"},
 		{"foreign", "https://example.com/x?a=1", "https://example.com/x?a=1"},
@@ -33,17 +29,6 @@ func TestURLHandler(t *testing.T) {
 				t.Fatalf("urlHandler(%q) = %q, want %q", tt.in, got, tt.want)
 			}
 		})
-	}
-}
-
-func TestURLHandlerDoesNotProxyDirectMode(t *testing.T) {
-	old := ProxyMedia
-	ProxyMedia = false
-	t.Cleanup(func() { ProxyMedia = old })
-
-	in := "https://64.media.tumblr.com/abc/def.jpg"
-	if got := urlHandler(in); got != in {
-		t.Fatalf("urlHandler(%q) = %q, want it unchanged in direct mode", in, got)
 	}
 }
 
@@ -65,7 +50,7 @@ func TestDownloadURL(t *testing.T) {
 		in   string
 		path string
 	}{
-		{"proxied", "https://64.media.tumblr.com/abc/def.jpg", "/tblr/media/64/abc/def.jpg"},
+		{"tumblr media", "https://64.media.tumblr.com/abc/def.jpg", "/download/64/abc/def.jpg"},
 		{"foreign", "https://example.com/a.jpg", "/a.jpg"},
 	}
 	for _, tt := range tests {
@@ -78,9 +63,6 @@ func TestDownloadURL(t *testing.T) {
 			if parsed.Path != tt.path {
 				t.Fatalf("downloadURL(%q) path = %q, want %q", tt.in, parsed.Path, tt.path)
 			}
-			if parsed.Query().Get("download") != "1" {
-				t.Fatalf("downloadURL(%q) = %q, missing download=1", tt.in, got)
-			}
 		})
 	}
 }
@@ -89,14 +71,14 @@ func TestDownloadURL(t *testing.T) {
 func TestDownloadURLKeepsExistingQuery(t *testing.T) {
 	got := downloadURL("https://64.media.tumblr.com/abc/def.jpg?x=1")
 	if strings.Count(got, "?") != 1 {
-		t.Fatalf("DownloadURL produced %q, want a single query separator", got)
+		t.Fatalf("downloadURL produced %q, want a single query separator", got)
 	}
 	parsed, err := url.Parse(got)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if parsed.Query().Get("x") != "1" || parsed.Query().Get("download") != "1" {
-		t.Fatalf("downloadURL(%q) = %q, want both x=1 and download=1", "with query", got)
+	if parsed.Path != "/download/64/abc/def.jpg" || parsed.Query().Get("x") != "1" {
+		t.Fatalf("downloadURL(%q) = %q, want the download route keeping x=1", "with query", got)
 	}
 }
 

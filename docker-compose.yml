@@ -4,16 +4,9 @@ services:
     container_name: hyperblur
     restart: always
     environment:
-      # true = proxy media through hyperblur (zero CDN, hides viewer IP).
-      # false = load media straight from Tumblr's CDN (faster).
-      HYPERBLUR_PROXY_MEDIA: "${HYPERBLUR_PROXY_MEDIA:-true}"
       # Optional: your own Tumblr API token. Empty uses the bundled one.
       HYPERBLUR_TUMBLR_API_TOKEN: "${HYPERBLUR_TUMBLR_API_TOKEN:-}"
       HYPERBLUR_PORT: "${HYPERBLUR_PORT:-8000}"
-      # In-memory page cache with TTL + stale-while-revalidate.
-      HYPERBLUR_CACHE: "${HYPERBLUR_CACHE:-true}"
-      HYPERBLUR_CACHE_TTL: "${HYPERBLUR_CACHE_TTL:-60}"
-      HYPERBLUR_CACHE_STALE: "${HYPERBLUR_CACHE_STALE:-600}"
     ports:
       - "${HYPERBLUR_PORT:-8000}:${HYPERBLUR_PORT:-8000}"
     # The image is scratch, so the probe is the binary itself.

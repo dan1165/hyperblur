@@ -134,12 +134,6 @@ func addDownloadButton(container *npf.Node, mediaURL string) {
 	).Add(npf.RawHTML(downloadIcon)))
 }
 
-// ProxyMedia routes post media through hyperblur when true. When false, media
-// loads straight from Tumblr's CDN. Set from HYPERBLUR_PROXY_MEDIA.
-var ProxyMedia = true
-
-const proxyMediaEnvVar = "HYPERBLUR_PROXY_MEDIA"
-
 // urlHandler rewrites Tumblr URLs in posts to hyperblur's privacy-friendly paths.
 func urlHandler(rawURL string) string { return unwrapURL(rawURL, 0) }
 
@@ -176,17 +170,13 @@ func unwrapURL(rawURL string, depth int) string {
 	}
 
 	if hostname != "" && strings.HasSuffix(hostname, "tumblr.com") {
-		// Route media/asset/static hosts through the local proxy so the browser
-		// never contacts Tumblr's CDN (zero CDN). Downloads use downloadURL.
+		// Media, asset and static hosts keep their absolute CDN URL: display
+		// media loads straight from Tumblr. Only downloads come through
+		// hyperblur, see downloadURL.
 		if strings.Contains(hostname, ".media.tumblr.com") ||
 			strings.HasSuffix(hostname, "assets.tumblr.com") ||
 			strings.HasSuffix(hostname, "static.tumblr.com") ||
 			strings.HasPrefix(hostname, "a.") {
-			if ProxyMedia {
-				if p := proxyPath(rawURL); p != "" {
-					return p
-				}
-			}
 			return u.String()
 		}
 
@@ -208,9 +198,9 @@ func unwrapURL(rawURL string, depth int) string {
 	return u.String()
 }
 
-// proxyPath maps Tumblr media/asset URL to /tblr/... proxy path, or "" when not
-// proxied media.
-func proxyPath(rawURL string) string {
+// downloadPath maps a Tumblr media URL to hyperblur's /download route, or ""
+// when the URL is not media the download route can fetch.
+func downloadPath(rawURL string) string {
 	u, err := url.Parse(rawURL)
 	if err != nil {
 		return ""
@@ -220,27 +210,16 @@ func proxyPath(rawURL string) string {
 	if path == "" {
 		path = u.Path
 	}
-	if hostname == "" || !strings.HasSuffix(hostname, "tumblr.com") {
+	if hostname == "" || !strings.HasSuffix(hostname, ".media.tumblr.com") {
 		return ""
 	}
 
-	if strings.HasSuffix(hostname, ".media.tumblr.com") {
-		subDomains := strings.Split(hostname, ".")
-		if len(subDomains) > 1 && subDomains[1] == "media" {
-			return withQuery("/tblr/media/"+subDomains[0]+path, u.RawQuery)
-		}
-		if len(subDomains) > 2 && subDomains[0] == "www" && subDomains[2] == "media" {
-			return withQuery("/tblr/media/"+subDomains[1]+path, u.RawQuery)
-		}
+	subDomains := strings.Split(hostname, ".")
+	if len(subDomains) > 1 && subDomains[1] == "media" {
+		return withQuery("/download/"+subDomains[0]+path, u.RawQuery)
 	}
-
-	switch {
-	case strings.HasSuffix(hostname, "assets.tumblr.com"):
-		return withQuery("/tblr/assets"+path, u.RawQuery)
-	case strings.HasSuffix(hostname, "static.tumblr.com"):
-		return withQuery("/tblr/static"+path, u.RawQuery)
-	case strings.HasPrefix(hostname, "a."):
-		return withQuery("/tblr/a"+path, u.RawQuery)
+	if len(subDomains) > 2 && subDomains[0] == "www" && subDomains[2] == "media" {
+		return withQuery("/download/"+subDomains[1]+path, u.RawQuery)
 	}
 	return ""
 }
@@ -253,12 +232,11 @@ func withQuery(path, rawQuery string) string {
 	return path + "?" + rawQuery
 }
 
-// downloadURL rewrites media URL to proxied path forcing download. Tumblr media
-// always goes through the proxy, so the download gets a filename even when
-// HYPERBLUR_PROXY_MEDIA is off.
+// downloadURL points a media link at hyperblur's download route, which streams
+// the file and names it. Non-Tumblr URLs get a best-effort download flag.
 func downloadURL(rawURL string) string {
-	if p := proxyPath(rawURL); p != "" {
-		return setQueryParam(p, "download", "1")
+	if p := downloadPath(rawURL); p != "" {
+		return p
 	}
 	return setQueryParam(rawURL, "download", "1")
 }

@@ -3,13 +3,12 @@ package web
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
-
-	json "github.com/goccy/go-json"
 
 	"github.com/dan1165/hyperblur/tumblr"
 )
@@ -638,42 +637,26 @@ func (a *App) handleAPIPollResults(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Poll results are fetched live by the client; a very short cache keeps that
-	// cheap without showing stale results.
+	// Poll results are fetched live by the client; a few seconds of cache keeps
+	// that cheap without showing stale results.
 	key := blog + "/" + postID + "/" + pollID
-	if a.polls != nil {
-		if body, ok := a.polls.Get(key); ok {
-			w.Header().Set("content-type", "application/json; charset=utf-8")
-			_, _ = w.Write(body)
-			return
-		}
+	if body, ok := a.polls.Get(key); ok {
+		w.Header().Set("content-type", "application/json; charset=utf-8")
+		_, _ = w.Write(body)
+		return
 	}
 
-	ctx := r.Context()
-	value, err, _ := a.pollsSF.Do(key, func() (any, error) {
-		if a.polls != nil {
-			if body, ok := a.polls.Get(key); ok {
-				return body, nil
-			}
-		}
-		result, err := a.API.PollResults(ctx, blog, postID, pollID)
-		if err != nil {
-			return nil, err
-		}
-		var buf bytes.Buffer
-		_ = json.NewEncoder(&buf).Encode(result["response"])
-		body := buf.Bytes()
-		if a.polls != nil {
-			a.polls.Add(key, body)
-		}
-		return body, nil
-	})
+	result, err := a.API.PollResults(r.Context(), blog, postID, pollID)
 	if err != nil {
 		a.Logger.Printf("poll results for %s: %v", key, err)
 		writeJSONError(w, http.StatusBadGateway, "could not load poll results")
 		return
 	}
-	body, _ := value.([]byte)
+
+	var buf bytes.Buffer
+	_ = json.NewEncoder(&buf).Encode(result["response"])
+	body := buf.Bytes()
+	a.polls.Set(key, body)
 
 	w.Header().Set("content-type", "application/json; charset=utf-8")
 	_, _ = w.Write(body)
