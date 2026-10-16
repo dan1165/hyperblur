@@ -6,7 +6,6 @@
 package npf
 
 import (
-	"sort"
 	"strings"
 )
 
@@ -133,11 +132,19 @@ func (n *Node) render(b *strings.Builder) {
 	b.WriteByte('<')
 	b.WriteString(n.Tag)
 
-	keys := make([]string, 0, len(n.Attrs))
+	// Elements carry a handful of attributes each and a page renders thousands
+	// of elements, so sort a small stack buffer by insertion instead of boxing
+	// a heap slice into sort.Interface.
+	var attrBuf [8]string
+	keys := attrBuf[:0]
 	for k := range n.Attrs {
 		keys = append(keys, k)
 	}
-	sort.Strings(keys)
+	for i := 1; i < len(keys); i++ {
+		for j := i; j > 0 && keys[j] < keys[j-1]; j-- {
+			keys[j], keys[j-1] = keys[j-1], keys[j]
+		}
+	}
 	for _, k := range keys {
 		b.WriteByte(' ')
 		b.WriteString(k)

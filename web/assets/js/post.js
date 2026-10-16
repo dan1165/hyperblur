@@ -1,46 +1,52 @@
 "use strict";
 
 function requestPollResults(poll_element, pollId) {
-    return new Promise(function (resolve, reject) {
-        let post = poll_element.closest(".post");
-        const blogName = post.getElementsByClassName("blog-name")[0].innerHTML;
-        const postId = post.dataset.postId;
+    const post = poll_element.closest(".post");
+    if (!post) return Promise.reject(new Error("poll block outside a post"));
 
-        let poll_results_url;
+    const blogNameElement = post.getElementsByClassName("blog-name")[0];
+    const blogName = blogNameElement ? blogNameElement.textContent : "";
+    const postId = post.dataset.postId;
+    if (!blogName || !postId || !pollId) {
+        return Promise.reject(new Error("incomplete poll reference"));
+    }
 
-        if (poll_element.classList.contains("expired-poll")) {
-            poll_results_url = `/api/v1/poll/${blogName}/${postId}/${pollId}/results?expired=1`;
-        } else {
-            poll_results_url = `/api/v1/poll/${blogName}/${postId}/${pollId}/results`;
+    let poll_results_url = `/api/v1/poll/${encodeURIComponent(blogName)}/${encodeURIComponent(postId)}/${encodeURIComponent(pollId)}/results`;
+    if (poll_element.classList.contains("expired-poll")) {
+        poll_results_url += "?expired=1";
+    }
+
+    return fetch(poll_results_url).then((response) => {
+        if (!response.ok) {
+            throw new Error(`poll results request failed: HTTP ${response.status}`);
         }
-
-        const pollResultsFetch = fetch(poll_results_url);
-
-        pollResultsFetch.then((results) => {
-            return results.json();
-        }).then((parsed_results) => {
-            return resolve(parsed_results);
-        });
-    })
+        return response.json();
+    });
 }
 
 function fill_poll_results(poll_element, results) {
-    const sorted_poll_results = Object.entries(results.results).sort((a,b) => (a[1]-b[1])).reverse();
+    const pollChoices = poll_element.getElementsByClassName("poll-choices")[0];
+    const pollMetadataElement = poll_element.getElementsByClassName("poll-metadata")[0];
+    if (!pollChoices || !pollMetadataElement) return;
+    const pollTimestamp = pollMetadataElement.children[0];
+    if (!pollTimestamp) return;
+
+    const votes_by_answer = (results && results.results) || {};
+    const sorted_poll_results = Object.entries(votes_by_answer).sort((a,b) => (a[1]-b[1])).reverse();
 
     // First we must find the total number of votes and the winner(s) of the poll
     let total_votes = 0;
 
     // Answer ID to winner status and amount of votes
     const processed_poll_results = {};
-    const winner_vote_count = sorted_poll_results[0][1];
+    const winner_vote_count = sorted_poll_results.length ? sorted_poll_results[0][1] : 0;
 
     for (let [answer_id, votes] of sorted_poll_results) {
         processed_poll_results[answer_id] = {"is_winner": (winner_vote_count == votes), "votes": votes};
         total_votes += votes
     }
-    
+
     const answerIdChoiceElementArray = [];
-    const pollChoices = poll_element.getElementsByClassName("poll-choices")[0];
 
     for (let choiceElement of pollChoices.children) {
         answerIdChoiceElementArray.push([choiceElement.dataset.answerId, choiceElement]);
@@ -82,16 +88,12 @@ function fill_poll_results(poll_element, results) {
         choiceElement.appendChild(voteCountElement);
     }
 
-    const pollMetadataElement = poll_element.getElementsByClassName("poll-metadata")[0]
-
     const totalVotesElement = document.createElement("span")
-    totalVotesElement.innerHTML = `${total_votes} votes`
+    totalVotesElement.textContent = `${total_votes} votes`
 
     const separatorElement = document.createElement("span")
-    separatorElement.innerHTML = '•'
+    separatorElement.textContent = '•'
     separatorElement.classList.add("separator")
-
-    const pollTimestamp = pollMetadataElement.children[0]
 
     const newMetadataContents = document.createDocumentFragment()
     newMetadataContents.append(totalVotesElement, separatorElement, pollTimestamp.cloneNode(true))
@@ -110,8 +112,10 @@ function populate_polls() {
             continue;
         }
 
-        requestPollResults(poll, poll.dataset.pollId).then((answers) => {fill_poll_results(poll, answers)})
-    }    
+        requestPollResults(poll, poll.dataset.pollId)
+            .then((answers) => { fill_poll_results(poll, answers) })
+            .catch(() => { /* leave the poll as rendered; results are optional */ });
+    }
 };
 
 // TODO lazy load polls

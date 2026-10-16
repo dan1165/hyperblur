@@ -1,7 +1,7 @@
 // hyperblur service worker: offline shell + fast repeat loads.
 'use strict';
 
-const CACHE = 'hyperblur-v2';
+const CACHE = 'hyperblur-v3';
 const CORE = [
   '/offline',
   '/assets/js/post.js',

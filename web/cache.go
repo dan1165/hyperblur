@@ -4,10 +4,14 @@ import (
 	"bytes"
 	"context"
 	"net/http"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"time"
 )
+
+// sharedRenderTimeout bounds cache-fill work that several clients wait on.
+const sharedRenderTimeout = 30 * time.Second
 
 // pageResponse is a cached HTML response: the raw body plus a precomputed gzip
 // variant, so any client encoding is served without recompressing.
@@ -95,7 +99,9 @@ func (r *recorder) response(ttl, stale time.Duration) *pageResponse {
 		ttl:    ttl,
 		stale:  stale,
 	}
-	if status == http.StatusOK {
+	// Compress anything worth compressing, including error pages, so a cached
+	// HTML path never falls back to an uncompressed body.
+	if len(raw) > 512 && status != http.StatusNotModified {
 		resp.gz = gzipCompress(raw)
 	}
 	return resp
@@ -160,9 +166,10 @@ func (a *App) pageCache(next http.Handler) http.Handler {
 			if item, ok := a.pages.Get(key); ok && item.usable() {
 				return item, nil
 			}
-			rec := newRecorder()
-			next.ServeHTTP(rec, r)
-			resp := rec.response(a.cacheTTL, a.cacheStale)
+			resp := a.renderShared(next, r)
+			if resp == nil {
+				return nil, nil
+			}
 			if resp.status == http.StatusOK {
 				a.pages.Add(key, resp)
 			}
@@ -177,17 +184,37 @@ func (a *App) pageCache(next http.Handler) http.Handler {
 	})
 }
 
+// renderShared runs next to fill or refresh a cache entry. The work is shared by
+// every waiter, so it runs on a detached context — one client hanging up must
+// not fail the others — and a panic is contained, since a panic in a background
+// goroutine would otherwise end the process.
+func (a *App) renderShared(next http.Handler, r *http.Request) (resp *pageResponse) {
+	ctx, cancel := context.WithTimeout(context.Background(), sharedRenderTimeout)
+	defer cancel()
+
+	defer func() {
+		if p := recover(); p != nil {
+			a.Logger.Printf("panic rendering %s: %v\n%s", r.URL.RequestURI(), p, debug.Stack())
+			resp = nil
+		}
+	}()
+
+	rec := newRecorder()
+	next.ServeHTTP(rec, r.Clone(ctx))
+	return rec.response(a.cacheTTL, a.cacheStale)
+}
+
 // refresh re-runs the request in the background and updates the cache entry.
 // Concurrent refreshes of the same key are collapsed by singleflight.
 func (a *App) refresh(key string, r *http.Request) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	clone := r.Clone(ctx)
 	go func() {
-		defer cancel()
+		defer func() {
+			if p := recover(); p != nil {
+				a.Logger.Printf("panic refreshing %s: %v\n%s", key, p, debug.Stack())
+			}
+		}()
 		_, _, _ = a.refreshSF.Do(key, func() (any, error) {
-			rec := newRecorder()
-			a.inner.ServeHTTP(rec, clone)
-			if resp := rec.response(a.cacheTTL, a.cacheStale); resp.status == http.StatusOK {
+			if resp := a.renderShared(a.inner, r); resp != nil && resp.status == http.StatusOK {
 				a.pages.Add(key, resp)
 			}
 			return nil, nil

@@ -2,6 +2,8 @@ package tumblr
 
 import (
 	"fmt"
+	"sort"
+	"strconv"
 	"time"
 )
 
@@ -272,7 +274,7 @@ func parseReblogNote(target map[string]any) *ReblogNote {
 		ID:      str(target["postId"]),
 		Blog:    parseLimitedBlog(obj(target["blog"])),
 		Content: slice(target["content"]),
-		Layout:  slice(target["content"]),
+		Layout:  slice(target["layout"]),
 		Tags:    stringSlice(target["tags"]),
 		Date:    timeFromUnix(target["timestamp"]),
 	}
@@ -280,9 +282,22 @@ func parseReblogNote(target map[string]any) *ReblogNote {
 
 func parseSimpleReblogNote(target map[string]any) *ReblogNote {
 	avatarMap := obj(target["avatarUrl"])
-	var avatars []Avatar
-	for _, v := range avatarMap {
-		if s, ok := v.(string); ok {
+	sizes := make([]string, 0, len(avatarMap))
+	for size := range avatarMap {
+		sizes = append(sizes, size)
+	}
+	// Ascending size order, so the last avatar is the largest.
+	sort.Slice(sizes, func(i, j int) bool {
+		a, aerr := strconv.Atoi(sizes[i])
+		b, berr := strconv.Atoi(sizes[j])
+		if aerr != nil || berr != nil {
+			return sizes[i] < sizes[j]
+		}
+		return a < b
+	})
+	avatars := make([]Avatar, 0, len(sizes))
+	for _, size := range sizes {
+		if s, ok := avatarMap[size].(string); ok {
 			avatars = append(avatars, Avatar{URL: s})
 		}
 	}

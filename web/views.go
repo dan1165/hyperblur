@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"html"
 	"net/url"
 	"strings"
@@ -55,6 +56,9 @@ var viewPool = sync.Pool{
 
 // PageData is per-page render context.
 type PageData struct {
+	// Ctx bounds upstream work triggered while rendering (poll results).
+	Ctx context.Context
+
 	Path     string
 	Endpoint string
 
@@ -208,7 +212,7 @@ func (a *App) renderPostBody(v *view, data *PageData, post *tumblr.Post) {
 	var mainErr *RenderError
 	var mainTag string
 	if hasContent {
-		mainErr, mainTag = a.FormatNPF(post.Content, post.Layout, post.Blog.Name, post.ID, data.RequestPollData)
+		mainErr, mainTag = a.FormatNPF(data.Ctx, post.Content, post.Layout, post.Blog.Name, post.ID, data.RequestPollData)
 	}
 
 	v.raw(`<div class="post-content">`)
@@ -225,7 +229,7 @@ func (a *App) renderPostBody(v *view, data *PageData, post *tumblr.Post) {
 			Date:           trail.Date,
 			UseThisPostURL: trail.BlogName() + "/" + trail.ID,
 		})
-		trailErr, trailTag := a.FormatNPF(trail.Content, trail.Layout, post.Blog.Name, post.ID, data.RequestPollData)
+		trailErr, trailTag := a.FormatNPF(data.Ctx, trail.Content, trail.Layout, post.Blog.Name, post.ID, data.RequestPollData)
 		if trailErr != nil {
 			a.logNPFError(post, "trail", trailErr)
 			a.renderNPFError(v, trailErr)
@@ -399,7 +403,7 @@ func (a *App) renderBlogHeader(v *view, data *PageData) {
 
 	var descriptionTag string
 	if len(blogInfo.DescriptionNPF) > 0 {
-		if _, tag := a.FormatNPF(blogInfo.DescriptionNPF, nil, "", "", false); tag != "" {
+		if _, tag := a.FormatNPF(data.Ctx, blogInfo.DescriptionNPF, nil, "", "", false); tag != "" {
 			descriptionTag = tag
 		}
 	}
@@ -445,16 +449,24 @@ func noteCountLabel(n int) string {
 	return formatDecimal(n) + " notes"
 }
 
+// unreservedBytes marks RFC 3986 unreserved bytes, so percentEncode can test a
+// byte with one lookup instead of scanning strings.
+var unreservedBytes = func() (table [256]bool) {
+	for _, c := range []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~") {
+		table[c] = true
+	}
+	return table
+}()
+
 // percentEncode percent-encodes s, leaving unreserved chars and any char in
 // safe untouched.
 func percentEncode(s, safe string) string {
-	const unreserved = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
 	const hex = "0123456789ABCDEF"
 	var b strings.Builder
 	b.Grow(len(s))
 	for i := 0; i < len(s); i++ {
 		c := s[i]
-		if strings.IndexByte(unreserved, c) >= 0 || strings.IndexByte(safe, c) >= 0 {
+		if unreservedBytes[c] || (c < 128 && strings.IndexByte(safe, c) >= 0) {
 			b.WriteByte(c)
 			continue
 		}
@@ -549,9 +561,8 @@ func renderBlogName(v *view, blog *tumblr.Blog, broken *tumblr.BrokenBlog) {
 		v.esc(blog.Name)
 		v.raw(`</a>`)
 	case broken != nil:
-		v.raw(`<span class="link blog-name broken-blog" href="/`)
-		v.esc(broken.Name)
-		v.raw(`">`)
+		// No blog page to link to: the API no longer returns this blog.
+		v.raw(`<span class="link blog-name broken-blog">`)
 		v.esc(broken.Name)
 		v.raw(`</span>`)
 	}
@@ -691,8 +702,9 @@ func (a *App) renderNotesControlBar(v *view, data *PageData) {
 		v.esc("Filter")
 		v.raw(dropdownIcon)
 		v.raw(`</span><ul class="control-bar-dropdown-menu">`)
-		v.raw(searchFilterItem(!data.Latest, "/"+data.PostURL+"?note_viewer=replies", "Oldest first"))
-		v.raw(searchFilterItem(data.Latest, "/"+data.PostURL+"?note_viewer=replies&latest", "Newest first"))
+		postPath := htmlEscape(data.PostURL)
+		v.raw(searchFilterItem(!data.Latest, "/"+postPath+"?note_viewer=replies", "Oldest first"))
+		v.raw(searchFilterItem(data.Latest, "/"+postPath+"?note_viewer=replies&latest", "Newest first"))
 		v.raw(`</ul></li>`)
 	case "reblogs":
 		filter := data.ReblogFilter
@@ -705,9 +717,10 @@ func (a *App) renderNotesControlBar(v *view, data *PageData) {
 		v.esc("Filter")
 		v.raw(dropdownIcon)
 		v.raw(`</span><ul class="control-bar-dropdown-menu">`)
-		v.raw(searchFilterItem(filter == "reblogs_with_comments", "/"+data.PostURL+"?note_viewer=reblogs", "Comments and tags"))
-		v.raw(searchFilterItem(filter == "reblogs_with_content_comments", "/"+data.PostURL+"?note_viewer=reblogs&reblog_filter=reblogs_with_content_comments", "Comments only"))
-		v.raw(searchFilterItem(filter == "reblogs_only", "/"+data.PostURL+"?note_viewer=reblogs&reblog_filter=reblogs_only", "Other reblogs"))
+		postPath := htmlEscape(data.PostURL)
+		v.raw(searchFilterItem(filter == "reblogs_with_comments", "/"+postPath+"?note_viewer=reblogs", "Comments and tags"))
+		v.raw(searchFilterItem(filter == "reblogs_with_content_comments", "/"+postPath+"?note_viewer=reblogs&reblog_filter=reblogs_with_content_comments", "Comments only"))
+		v.raw(searchFilterItem(filter == "reblogs_only", "/"+postPath+"?note_viewer=reblogs&reblog_filter=reblogs_only", "Other reblogs"))
 		v.raw(`</ul></li>`)
 	}
 }
@@ -759,7 +772,7 @@ func (a *App) renderReplyNote(v *view, data *PageData, note *tumblr.ReplyNote) {
 	if blog != nil {
 		blogName = blog.Name
 	}
-	_, tag := a.FormatNPF(note.Content, note.Layout, blogName, "", data.RequestPollData)
+	_, tag := a.FormatNPF(data.Ctx, note.Content, note.Layout, blogName, "", data.RequestPollData)
 	v.raw(tag)
 	v.raw(`</p></div></div>`)
 }
@@ -780,7 +793,7 @@ func (a *App) renderReblogNote(v *view, data *PageData, note *tumblr.ReblogNote)
 		UseThisPostURL: postURL,
 	})
 	v.raw(`<div class="post-content">`)
-	_, tag := a.FormatNPF(note.Content, note.Layout, note.Blog.Name, note.ID, data.RequestPollData)
+	_, tag := a.FormatNPF(data.Ctx, note.Content, note.Layout, note.Blog.Name, note.ID, data.RequestPollData)
 	v.raw(tag)
 	v.raw(`</div>`)
 	if len(note.Tags) > 0 {

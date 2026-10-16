@@ -1,6 +1,6 @@
 # hyperblur
 
-Alternative Tumblr frontend. No account, no tracking, no caching. One Go binary,
+Alternative Tumblr frontend. No account, no tracking, no cookies. One Go binary,
 every asset inside.
 
 ## Run
@@ -17,7 +17,7 @@ Pulls `ghcr.io/dan1165/hyperblur:latest`, serves <http://localhost:8000>. Or:
 docker run --rm -p 8000:8000 ghcr.io/dan1165/hyperblur:latest
 ```
 
-Manual (Go 1.24+):
+Manual (Go 1.26+):
 
 ```bash
 go build -o hyperblur ./cmd/hyperblur
@@ -77,7 +77,9 @@ so repeat loads are instant and the last pages work offline.
 
 Media is proxied through hyperblur by default, so the browser never contacts
 Tumblr's CDN and Tumblr never sees the viewer's IP. Set
-`HYPERBLUR_PROXY_MEDIA=false` to load it straight from the CDN instead.
+`HYPERBLUR_PROXY_MEDIA=false` to load it straight from the CDN instead. One-click
+downloads always go through hyperblur, so they work in either mode and keep the
+original filename.
 
 ## Performance
 

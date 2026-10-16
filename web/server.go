@@ -2,6 +2,7 @@ package web
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"embed"
 	"encoding/hex"
@@ -225,7 +226,11 @@ func (a *App) middleware(next http.Handler) http.Handler {
 			"worker-src 'self'",
 			"media-src " + mediaSrc,
 			"child-src 'self' blob:",
+			"base-uri 'none'",
+			"form-action 'self'",
+			"frame-ancestors 'none'",
 		}, "; "))
+		header.Set("x-frame-options", "DENY")
 
 		next.ServeHTTP(w, r)
 	})
@@ -405,7 +410,7 @@ func (a *App) fail(w http.ResponseWriter, r *http.Request, err error) {
 
 // newPageData builds page data with request fields.
 func (a *App) newPageData(r *http.Request) *PageData {
-	return &PageData{Path: r.URL.Path}
+	return &PageData{Ctx: r.Context(), Path: r.URL.Path}
 }
 
 // App holds shared server state.
@@ -420,6 +425,7 @@ type App struct {
 	pages      *expirable.LRU[string, *pageResponse]
 	polls      *expirable.LRU[string, []byte]
 	sf         singleflight.Group
+	pollsSF    singleflight.Group
 	refreshSF  singleflight.Group
 	caching    bool
 	cacheTTL   time.Duration
@@ -450,6 +456,9 @@ func NewApp(logger *log.Logger) *App {
 	if app.caching {
 		app.pages = expirable.NewLRU[string, *pageResponse](512, nil, app.cacheTTL+app.cacheStale)
 		app.polls = expirable.NewLRU[string, []byte](512, nil, 18*time.Second)
+	}
+	if app.API.UsingBundledToken {
+		app.Logger.Print("warning: using the bundled Tumblr API token; set HYPERBLUR_TUMBLR_API_TOKEN to use your own")
 	}
 	return app
 }
@@ -553,20 +562,24 @@ func newTransport() *http.Transport {
 }
 
 // FormatNPF renders post content, returns optional render error.
-func (a *App) FormatNPF(content, layout []any, blogName, postID string, fetchPolls bool) (*RenderError, string) {
+func (a *App) FormatNPF(ctx context.Context, content, layout []any, blogName, postID string, fetchPolls bool) (*RenderError, string) {
 	params := Params{
 		BlogName: blogName,
 		PostID:   postID,
+		Ctx:      ctx,
 	}
 	if fetchPolls && blogName != "" && postID != "" {
-		params.PollCallback = a.pollCallback(blogName, postID)
+		params.PollCallback = a.pollCallback(ctx, blogName, postID)
 	}
 	return FormatNPF(content, layout, params)
 }
 
-func (a *App) pollCallback(blog, postID string) npf.PollCallback {
+func (a *App) pollCallback(ctx context.Context, blog, postID string) npf.PollCallback {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	return func(pollID string, _ int64) (map[string]npf.PollResult, error) {
-		result, err := a.API.PollResults(blog, postID, pollID)
+		result, err := a.API.PollResults(ctx, blog, postID, pollID)
 		if err != nil {
 			return nil, err
 		}
@@ -688,7 +701,9 @@ func (a *App) handleAsset(w http.ResponseWriter, r *http.Request) {
 
 	header := w.Header()
 	header.Set("ETag", entry.etag)
-	header.Set("Cache-Control", "public, max-age=604800, immutable")
+	// No "immutable": asset URLs are fixed across builds, so a revalidation
+	// after max-age is what lets a deploy replace post.js.
+	header.Set("Cache-Control", "public, max-age=604800")
 	header.Del("pragma")
 	header.Del("expires")
 
@@ -709,22 +724,35 @@ func (a *App) handleAsset(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(body)
 }
 
-var mediaRequestHeaders = map[string]string{
-	"user-agent":      tumblr.DefaultUserAgent,
-	"accept":          "image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8,*/*;q=0.5",
-	"accept-language": "en-US,en;q=0.5",
-	"connection":      "keep-alive",
-	"te":              "trailers",
-	"referer":         "https://www.tumblr.com/",
+var mediaRequestHeaders = [][2]string{
+	{"user-agent", tumblr.DefaultUserAgent},
+	{"accept", "image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8,*/*;q=0.5"},
+	{"accept-language", "en-US,en;q=0.5"},
+	{"connection", "keep-alive"},
+	{"te", "trailers"},
+	{"referer", "https://www.tumblr.com/"},
 }
 
 var forwardedRequestHeaders = []string{"range", "if-range", "if-none-match", "if-modified-since"}
 
-// Headers hyperblur never forwards from upstream media.
+// Headers hyperblur never forwards from upstream media. Origin-scoped security
+// headers and cookies have to go: they would otherwise apply to hyperblur's own
+// origin, not Tumblr's.
 var blacklistResponseHeaders = map[string]bool{
-	"access-control-allow-origin": true,
-	"alt-svc":                     true,
-	"server":                      true,
+	"access-control-allow-origin":         true,
+	"alt-svc":                             true,
+	"server":                              true,
+	"set-cookie":                          true,
+	"strict-transport-security":           true,
+	"content-security-policy-report-only": true,
+	"content-disposition":                 true,
+	"report-to":                           true,
+	"nel":                                 true,
+	"origin-trial":                        true,
+	"permissions-policy":                  true,
+	"cross-origin-opener-policy":          true,
+	"cross-origin-embedder-policy":        true,
+	"cross-origin-resource-policy":        true,
 	// Set by our middleware; never duplicate.
 	"cache-control":           true,
 	"pragma":                  true,
@@ -733,6 +761,7 @@ var blacklistResponseHeaders = map[string]bool{
 	"x-content-type-options":  true,
 	"referrer-policy":         true,
 	"content-security-policy": true,
+	"x-frame-options":         true,
 }
 
 const (
@@ -776,6 +805,9 @@ func (a *App) serveMedia(w http.ResponseWriter, r *http.Request, origin string, 
 	}
 
 	target := origin + "/" + quotePath(path)
+	if query := mediaUpstreamQuery(r.URL.RawQuery); query != "" {
+		target += "?" + query
+	}
 	disposition := ""
 	if downloadRequested(r) {
 		disposition = buildContentDisposition(path)
@@ -783,9 +815,29 @@ func (a *App) serveMedia(w http.ResponseWriter, r *http.Request, origin string, 
 	a.streamMedia(w, r, target, extraHeaders, disposition)
 }
 
+// mediaUpstreamQuery drops hyperblur's own download flag and passes the rest of
+// the query through byte-for-byte, so signed CDN URLs stay valid.
+func mediaUpstreamQuery(rawQuery string) string {
+	if rawQuery == "" {
+		return ""
+	}
+	kept := make([]string, 0, 4)
+	for _, pair := range strings.Split(rawQuery, "&") {
+		if key, _, _ := strings.Cut(pair, "="); key == "download" {
+			continue
+		}
+		kept = append(kept, pair)
+	}
+	return strings.Join(kept, "&")
+}
+
 func (a *App) handleAtLinks(w http.ResponseWriter, r *http.Request) {
 	path := r.PathValue("path")
-	request, err := http.NewRequestWithContext(r.Context(), http.MethodHead, "https://at.tumblr.com/"+path, nil)
+	if !validMediaPath(path) {
+		http.NotFound(w, r)
+		return
+	}
+	request, err := http.NewRequestWithContext(r.Context(), http.MethodHead, "https://at.tumblr.com/"+quotePath(path), nil)
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -794,7 +846,7 @@ func (a *App) handleAtLinks(w http.ResponseWriter, r *http.Request) {
 
 	response, err := a.Media.Do(request)
 	if err != nil {
-		a.messageError(w, r, http.StatusBadGateway, "Error: Tumblr HTTP 301 redirect points to foreign URL", "")
+		a.messageError(w, r, http.StatusBadGateway, "Error: could not reach Tumblr to resolve this link", "")
 		return
 	}
 	defer response.Body.Close()
@@ -805,7 +857,7 @@ func (a *App) handleAtLinks(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	a.messageError(w, r, http.StatusBadGateway, "Error: Tumblr HTTP 301 redirect points to foreign URL", "")
+	a.messageError(w, r, http.StatusBadGateway, "Error: Tumblr did not redirect this link to a hyperblur page", "")
 }
 
 func (a *App) streamMedia(w http.ResponseWriter, r *http.Request, origin string, extraHeaders map[string]string, downloadFilename string) {
@@ -814,8 +866,8 @@ func (a *App) streamMedia(w http.ResponseWriter, r *http.Request, origin string,
 		w.WriteHeader(http.StatusBadGateway)
 		return
 	}
-	for key, value := range mediaRequestHeaders {
-		request.Header.Set(key, value)
+	for _, header := range mediaRequestHeaders {
+		request.Header.Set(header[0], header[1])
 	}
 	for key, value := range extraHeaders {
 		request.Header.Set(key, value)
@@ -876,20 +928,19 @@ func validCDNName(cdn string) bool {
 	return true
 }
 
+// validMediaPath rejects NUL bytes and ".." segments. Checked without splitting
+// the path: this runs for every proxied media request.
 func validMediaPath(path string) bool {
 	decoded, err := url.PathUnescape(path)
 	if err != nil {
 		decoded = path
 	}
-	if strings.ContainsRune(decoded, 0) {
+	if strings.ContainsRune(decoded, 0) || decoded == ".." {
 		return false
 	}
-	for _, segment := range strings.Split(decoded, "/") {
-		if segment == ".." {
-			return false
-		}
-	}
-	return true
+	return !strings.Contains(decoded, "/../") &&
+		!strings.HasPrefix(decoded, "../") &&
+		!strings.HasSuffix(decoded, "/..")
 }
 
 func downloadRequested(r *http.Request) bool {

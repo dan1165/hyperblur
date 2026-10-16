@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"net/url"
@@ -28,6 +29,8 @@ type Params struct {
 	PostID   string
 	// PollCallback fetches poll results.
 	PollCallback npf.PollCallback
+	// Ctx bounds upstream work done while rendering; nil means Background.
+	Ctx context.Context
 }
 
 // FormatNPF renders NPF content to hyperblur HTML. Failure returns RenderError
@@ -135,7 +138,16 @@ const proxyMediaEnvVar = "HYPERBLUR_PROXY_MEDIA"
 
 // URLHandler rewrites Tumblr URLs in posts to hyperblur's privacy-friendly
 // paths.
-func URLHandler(rawURL string) string {
+func URLHandler(rawURL string) string { return urlHandler(rawURL, 0) }
+
+// maxUnwrapDepth caps recursion into wrapped redirect links, so a post cannot
+// nest href.li/t.umblr.com redirects deeply enough to exhaust the stack.
+const maxUnwrapDepth = 4
+
+func urlHandler(rawURL string, depth int) string {
+	if depth > maxUnwrapDepth {
+		return rawURL
+	}
 	u, err := url.Parse(rawURL)
 	if err != nil {
 		return rawURL
@@ -150,12 +162,12 @@ func URLHandler(rawURL string) string {
 	// Redirect links can hold malformed URLs (e.g. https://href.li/?http://).
 	// Recurse into wrapped URL.
 	if strings.HasSuffix(hostname, "href.li") {
-		return URLHandler(u.RawQuery)
+		return urlHandler(u.RawQuery, depth+1)
 	}
 	if strings.HasSuffix(hostname, "t.umblr.com") {
 		if values, err := url.ParseQuery(u.RawQuery); err == nil {
 			if redirect := values.Get("z"); redirect != "" {
-				return URLHandler(redirect)
+				return urlHandler(redirect, depth+1)
 			}
 		}
 	}
@@ -212,30 +224,53 @@ func proxyPath(rawURL string) string {
 	if strings.HasSuffix(hostname, ".media.tumblr.com") {
 		subDomains := strings.Split(hostname, ".")
 		if len(subDomains) > 1 && subDomains[1] == "media" {
-			return "/tblr/media/" + subDomains[0] + path
+			return withQuery("/tblr/media/"+subDomains[0]+path, u.RawQuery)
 		}
 		if len(subDomains) > 2 && subDomains[0] == "www" && subDomains[2] == "media" {
-			return "/tblr/media/" + subDomains[1] + path
+			return withQuery("/tblr/media/"+subDomains[1]+path, u.RawQuery)
 		}
 	}
 
 	switch {
 	case strings.HasSuffix(hostname, "assets.tumblr.com"):
-		return "/tblr/assets" + path
+		return withQuery("/tblr/assets"+path, u.RawQuery)
 	case strings.HasSuffix(hostname, "static.tumblr.com"):
-		return "/tblr/static" + path
+		return withQuery("/tblr/static"+path, u.RawQuery)
 	case strings.HasPrefix(hostname, "a."):
-		return "/tblr/a" + path
+		return withQuery("/tblr/a"+path, u.RawQuery)
 	}
 	return ""
 }
 
-// DownloadURL rewrites media URL to proxied path forcing download.
+// withQuery appends rawQuery verbatim, so signed CDN URLs keep working.
+func withQuery(path, rawQuery string) string {
+	if rawQuery == "" {
+		return path
+	}
+	return path + "?" + rawQuery
+}
+
+// DownloadURL rewrites media URL to proxied path forcing download. Tumblr media
+// always goes through the proxy, so the download gets a filename even when
+// HYPERBLUR_PROXY_MEDIA is off.
 func DownloadURL(rawURL string) string {
 	if p := proxyPath(rawURL); p != "" {
-		return p + "?download=1"
+		return setQueryParam(p, "download", "1")
 	}
-	return rawURL + "?download=1"
+	return setQueryParam(rawURL, "download", "1")
+}
+
+// setQueryParam returns rawURL with key=value set in its query, replacing any
+// existing value.
+func setQueryParam(rawURL, key, value string) string {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return rawURL
+	}
+	query := u.Query()
+	query.Set(key, value)
+	u.RawQuery = query.Encode()
+	return u.String()
 }
 
 // Localizer provides hyperblur's English strings and formatting to

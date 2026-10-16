@@ -2,6 +2,7 @@ package web
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"net/http"
 	"net/url"
@@ -13,7 +14,12 @@ import (
 	"github.com/dan1165/hyperblur/tumblr"
 )
 
-const postsPerPage = 20
+const (
+	postsPerPage = 20
+	// maxBlogPage bounds ?page=, so a crafted number cannot ask Tumblr for a
+	// multi-million-post offset.
+	maxBlogPage = 1000
+)
 
 type exploreTarget int
 
@@ -35,20 +41,21 @@ func (a *App) handleExplore(w http.ResponseWriter, r *http.Request, target explo
 	data := a.newPageData(r)
 
 	continuation := unquoteQuery(r.URL.Query().Get("continuation"))
+	ctx := r.Context()
 
 	var raw map[string]any
 	var err error
 	switch target {
 	case exploreTrending:
-		raw, err = a.API.ExploreTrending(continuation)
+		raw, err = a.API.ExploreTrending(ctx, continuation)
 		data.Title = "Trending topics"
 		data.Endpoint = "trending"
 	case exploreToday:
-		raw, err = a.API.ExploreToday(continuation)
+		raw, err = a.API.ExploreToday(ctx, continuation)
 		data.Title = "Today on Tumblr"
 		data.Endpoint = "today"
 	default:
-		raw, err = a.API.ExplorePost(postType, continuation)
+		raw, err = a.API.ExplorePost(ctx, postType, continuation)
 		data.Title = "Trending topics"
 	}
 	if err != nil {
@@ -170,7 +177,7 @@ func (a *App) querySearch(r *http.Request, query, timeFilter string, filter *tum
 		postFilter = *filter
 	}
 
-	raw, err := a.API.TimelineSearch(query, continuation, latest, days, postFilter)
+	raw, err := a.API.TimelineSearch(r.Context(), query, continuation, latest, days, postFilter)
 	if err != nil {
 		return nil, err
 	}
@@ -209,7 +216,7 @@ func (a *App) handleTagged(w http.ResponseWriter, r *http.Request) {
 	}
 
 	continuation := unquoteQuery(r.URL.Query().Get("continuation"))
-	raw, err := a.API.HubsTimeline(tag, continuation, latest)
+	raw, err := a.API.HubsTimeline(r.Context(), tag, continuation, latest)
 	if err != nil {
 		a.fail(w, r, err)
 		return
@@ -243,11 +250,11 @@ func (a *App) handleBlogIndex(w http.ResponseWriter, r *http.Request) {
 	page := 1
 	if raw := r.URL.Query().Get("page"); raw != "" {
 		if parsed, err := strconv.Atoi(raw); err == nil && parsed > 1 {
-			page = parsed
+			page = min(parsed, maxBlogPage)
 		}
 	}
 
-	timeline, err := a.getBlogPosts(blog, "", "", strconv.Itoa((page-1)*postsPerPage), strconv.Itoa(postsPerPage))
+	timeline, err := a.getBlogPosts(r.Context(), blog, "", "", strconv.Itoa((page-1)*postsPerPage), strconv.Itoa(postsPerPage))
 	if err != nil {
 		a.fail(w, r, err)
 		return
@@ -298,7 +305,7 @@ func (a *App) handleBlogTags(w http.ResponseWriter, r *http.Request) {
 	}
 	continuation := unquoteQuery(r.URL.Query().Get("continuation"))
 
-	timeline, err := a.getBlogPosts(blog, continuation, tag, "", "")
+	timeline, err := a.getBlogPosts(r.Context(), blog, continuation, tag, "", "")
 	if err != nil {
 		a.fail(w, r, err)
 		return
@@ -309,6 +316,10 @@ func (a *App) handleBlogTags(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) handleBlogSearchRedirect(w http.ResponseWriter, r *http.Request) {
 	blog := unquotePath(r.PathValue("blog"))
+	if !validBlogName(blog) {
+		http.NotFound(w, r)
+		return
+	}
 	if query := r.URL.Query().Get("q"); query != "" {
 		http.Redirect(w, r, "/"+blog+"/search/"+urlEscape(query), http.StatusFound)
 		return
@@ -324,8 +335,9 @@ func (a *App) handleBlogSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	continuation := unquoteQuery(r.URL.Query().Get("continuation"))
+	ctx := r.Context()
 
-	raw, err := a.API.BlogSearch(blog, query, continuation)
+	raw, err := a.API.BlogSearch(ctx, blog, query, continuation)
 	if err != nil {
 		a.fail(w, r, err)
 		return
@@ -333,7 +345,7 @@ func (a *App) handleBlogSearch(w http.ResponseWriter, r *http.Request) {
 	timeline := tumblr.ParseBlogTimeline(responseOf(raw), true)
 	if timeline == nil || timeline.BlogInfo == nil {
 		// No results: fall back to blog info with empty post list.
-		fallback, ferr := a.getBlogPosts(blog, "", "", "", "")
+		fallback, ferr := a.getBlogPosts(ctx, blog, "", "", "", "")
 		if ferr != nil {
 			a.fail(w, r, ferr)
 			return
@@ -360,7 +372,7 @@ func (a *App) serveBlogPost(w http.ResponseWriter, r *http.Request, slug string)
 		return
 	}
 
-	post, err := a.getBlogPost(blog, postID)
+	post, err := a.getBlogPost(r.Context(), blog, postID)
 	if err != nil {
 		a.fail(w, r, err)
 		return
@@ -419,15 +431,20 @@ func (a *App) serveBlogPost(w http.ResponseWriter, r *http.Request, slug string)
 
 func (a *App) handleRedirectPostNoSlug(w http.ResponseWriter, r *http.Request) {
 	blog := unquotePath(r.PathValue("blog"))
-	postID := r.PathValue("post_id")
-	http.Redirect(w, r, "/"+blog+"/"+postID, http.StatusFound)
+	if !validBlogName(blog) {
+		http.NotFound(w, r)
+		return
+	}
+	http.Redirect(w, r, "/"+blog+"/"+r.PathValue("post_id"), http.StatusFound)
 }
 
 func (a *App) handleRedirectPost(w http.ResponseWriter, r *http.Request) {
 	blog := unquotePath(r.PathValue("blog"))
-	postID := r.PathValue("post_id")
-	slug := unquotePath(r.PathValue("slug"))
-	http.Redirect(w, r, "/"+blog+"/"+postID+"/"+slug, http.StatusFound)
+	if !validBlogName(blog) {
+		http.NotFound(w, r)
+		return
+	}
+	http.Redirect(w, r, "/"+blog+"/"+r.PathValue("post_id")+"/"+urlEscape(unquotePath(r.PathValue("slug"))), http.StatusFound)
 }
 
 // serveNotesViewer renders replies/reblogs/likes viewer for post.
@@ -435,6 +452,7 @@ func (a *App) serveNotesViewer(w http.ResponseWriter, r *http.Request, post *tum
 	blog := post.Blog.Name
 	postID := post.ID
 	args := r.URL.Query()
+	ctx := r.Context()
 
 	latest := args.Has("latest")
 	reblogFilter := ""
@@ -442,7 +460,7 @@ func (a *App) serveNotesViewer(w http.ResponseWriter, r *http.Request, post *tum
 	raw, err := func() (map[string]any, error) {
 		switch noteType {
 		case "replies":
-			return a.API.BlogPostReplies(blog, postID, args.Get("after"), latest)
+			return a.API.BlogPostReplies(ctx, blog, postID, args.Get("after"), latest)
 		case "reblogs":
 			mode := tumblr.ReblogsWithComments
 			switch args.Get("reblog_filter") {
@@ -458,11 +476,11 @@ func (a *App) serveNotesViewer(w http.ResponseWriter, r *http.Request, post *tum
 			}
 			before := args.Get("before_timestamp")
 			if mode == tumblr.ReblogsOnly {
-				return a.API.BlogNotes(blog, postID, true, false, before)
+				return a.API.BlogNotes(ctx, blog, postID, true, false, before)
 			}
-			return a.API.BlogPostNotesTimeline(blog, postID, mode, false, before)
+			return a.API.BlogPostNotesTimeline(ctx, blog, postID, mode, false, before)
 		default: // likes
-			return a.API.BlogNotes(blog, postID, true, true, args.Get("before_timestamp"))
+			return a.API.BlogNotes(ctx, blog, postID, true, true, args.Get("before_timestamp"))
 		}
 	}()
 	if err != nil {
@@ -586,36 +604,78 @@ func (a *App) renderNumberedPaging(v *view, data *PageData) {
 // API
 // ---------------------------------------------------------------------------
 
+// validPollID accepts the character set Tumblr uses for poll and answer client
+// ids, which keeps "/" and ".." out of the upstream URL.
+func validPollID(id string) bool {
+	if id == "" || len(id) > 64 {
+		return false
+	}
+	for i := 0; i < len(id); i++ {
+		c := id[i]
+		switch {
+		case c >= 'a' && c <= 'z', c >= 'A' && c <= 'Z', c >= '0' && c <= '9', c == '-', c == '_':
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// writeJSONError keeps API failures JSON, since the poll viewer parses them.
+func writeJSONError(w http.ResponseWriter, status int, message string) {
+	w.Header().Set("content-type", "application/json; charset=utf-8")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(map[string]string{"error": message})
+}
+
 func (a *App) handleAPIPollResults(w http.ResponseWriter, r *http.Request) {
 	blog := unquotePath(r.PathValue("blog"))
 	postID := r.PathValue("post_id")
 	pollID := unquotePath(r.PathValue("poll_id"))
+
+	if blog == "" || !validBlogName(blog) || !numericPostID(postID) || !validPollID(pollID) {
+		writeJSONError(w, http.StatusBadRequest, "invalid poll reference")
+		return
+	}
 
 	// Poll results are fetched live by the client; a very short cache keeps that
 	// cheap without showing stale results.
 	key := blog + "/" + postID + "/" + pollID
 	if a.polls != nil {
 		if body, ok := a.polls.Get(key); ok {
-			w.Header().Set("content-type", "application/json")
+			w.Header().Set("content-type", "application/json; charset=utf-8")
 			_, _ = w.Write(body)
 			return
 		}
 	}
 
-	result, err := a.API.PollResults(blog, postID, pollID)
+	ctx := r.Context()
+	value, err, _ := a.pollsSF.Do(key, func() (any, error) {
+		if a.polls != nil {
+			if body, ok := a.polls.Get(key); ok {
+				return body, nil
+			}
+		}
+		result, err := a.API.PollResults(ctx, blog, postID, pollID)
+		if err != nil {
+			return nil, err
+		}
+		var buf bytes.Buffer
+		_ = json.NewEncoder(&buf).Encode(result["response"])
+		body := buf.Bytes()
+		if a.polls != nil {
+			a.polls.Add(key, body)
+		}
+		return body, nil
+	})
 	if err != nil {
-		a.fail(w, r, err)
+		a.Logger.Printf("poll results for %s: %v", key, err)
+		writeJSONError(w, http.StatusBadGateway, "could not load poll results")
 		return
 	}
+	body, _ := value.([]byte)
 
-	var buf bytes.Buffer
-	_ = json.NewEncoder(&buf).Encode(result["response"])
-	body := buf.Bytes()
-	if a.polls != nil {
-		a.polls.Add(key, body)
-	}
-
-	w.Header().Set("content-type", "application/json")
+	w.Header().Set("content-type", "application/json; charset=utf-8")
 	_, _ = w.Write(body)
 }
 
@@ -628,8 +688,8 @@ func responseOf(raw map[string]any) map[string]any {
 	return response
 }
 
-func (a *App) getBlogPosts(blog, continuation, tag, offset, limit string) (*tumblr.BlogTimeline, error) {
-	raw, err := a.API.BlogPosts(blog, continuation, tag, offset, limit)
+func (a *App) getBlogPosts(ctx context.Context, blog, continuation, tag, offset, limit string) (*tumblr.BlogTimeline, error) {
+	raw, err := a.API.BlogPosts(ctx, blog, continuation, tag, offset, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -640,8 +700,8 @@ func (a *App) getBlogPosts(blog, continuation, tag, offset, limit string) (*tumb
 	return timeline, nil
 }
 
-func (a *App) getBlogPost(blog, postID string) (*tumblr.Post, error) {
-	raw, err := a.API.BlogPost(blog, postID)
+func (a *App) getBlogPost(ctx context.Context, blog, postID string) (*tumblr.Post, error) {
+	raw, err := a.API.BlogPost(ctx, blog, postID)
 	if err != nil {
 		return nil, err
 	}

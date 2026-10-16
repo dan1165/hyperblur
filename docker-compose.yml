@@ -10,5 +10,9 @@ services:
       # Optional: your own Tumblr API token. Empty uses the bundled one.
       HYPERBLUR_TUMBLR_API_TOKEN: "${HYPERBLUR_TUMBLR_API_TOKEN:-}"
       HYPERBLUR_PORT: "${HYPERBLUR_PORT:-8000}"
+      # In-memory page cache with TTL + stale-while-revalidate.
+      HYPERBLUR_CACHE: "${HYPERBLUR_CACHE:-true}"
+      HYPERBLUR_CACHE_TTL: "${HYPERBLUR_CACHE_TTL:-60}"
+      HYPERBLUR_CACHE_STALE: "${HYPERBLUR_CACHE_STALE:-600}"
     ports:
       - "${HYPERBLUR_PORT:-8000}:${HYPERBLUR_PORT:-8000}"

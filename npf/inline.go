@@ -189,6 +189,11 @@ func (f *inlineFormatter) makeTag(insn Instruction) *Node {
 	case FMTSmall:
 		return El("small", "class", "inline-small")
 	case FMTColor:
+		if !validHexColor(insn.Hex) {
+			// Not a hex colour: drop the style rather than let post content
+			// inject arbitrary CSS.
+			return El("span", "class", "inline-color")
+		}
 		return El("span", "style", "color: "+insn.Hex+";", "class", "inline-color")
 	case FMTLink:
 		return El("a", "href", f.urlHandler(insn.URL), "class", "inline-link")
@@ -196,6 +201,28 @@ func (f *inlineFormatter) makeTag(insn Instruction) *Node {
 		return El("a", "href", f.urlHandler(insn.BlogURL), "class", "inline-mention")
 	}
 	return El("span")
+}
+
+// validHexColor reports whether s is a CSS hex colour (#rgb, #rgba, #rrggbb or
+// #rrggbbaa).
+func validHexColor(s string) bool {
+	switch len(s) {
+	case 4, 5, 7, 9:
+	default:
+		return false
+	}
+	if s[0] != '#' {
+		return false
+	}
+	for i := 1; i < len(s); i++ {
+		c := s[i]
+		switch {
+		case c >= '0' && c <= '9', c >= 'a' && c <= 'f', c >= 'A' && c <= 'F':
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 func (f *inlineFormatter) calcTags(op *StyleInterval) (*Node, *Node) {

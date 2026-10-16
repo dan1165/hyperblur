@@ -559,13 +559,20 @@ func (f *Formatter) applyLayout() {
 					for i, item := range rowItems {
 						if iri, ok := item.(imageRowItem); ok {
 							imageIndices = append(imageIndices, i)
-							ratios = append(ratios, round(float64(iri.orig.Width)/float64(iri.orig.Height), 4))
+							if iri.orig.Width > 0 && iri.orig.Height > 0 {
+								ratios = append(ratios, round(float64(iri.orig.Width)/float64(iri.orig.Height), 4))
+							}
 						}
 					}
-					aspectRatio := maxFloat(ratios)
+					// Share the widest ratio across the row, when one exists.
+					var aspectRatio *float64
+					if len(ratios) > 0 {
+						max := maxFloat(ratios)
+						aspectRatio = &max
+					}
 					for _, i := range imageIndices {
 						iri := rowItems[i].(imageRowItem)
-						rowItems[i] = f.formatImage(iri.block, len(imageIndices), &aspectRatio)
+						rowItems[i] = f.formatImage(iri.block, len(imageIndices), aspectRatio)
 					}
 				}
 
@@ -607,6 +614,9 @@ func (f *Formatter) applyLayout() {
 }
 
 func maxFloat(values []float64) float64 {
+	if len(values) == 0 {
+		return 0
+	}
 	max := values[0]
 	for _, v := range values[1:] {
 		if v > max {
@@ -655,11 +665,21 @@ func pyFloatStr(f float64) string {
 	return s
 }
 
-// createSrcset renders media objects to srcset data.
+// createSrcset renders media objects to srcset data, skipping entries without a
+// usable width ("0w" is invalid).
 func createSrcset(media []MediaObject, urlHandler func(string) string) []string {
 	out := make([]string, 0, len(media))
 	for _, m := range media {
-		out = append(out, fmt.Sprintf("%s %dw", urlHandler(m.URL), m.Width))
+		if m.Width <= 0 {
+			continue
+		}
+		handled := urlHandler(m.URL)
+		buf := make([]byte, 0, len(handled)+8)
+		buf = append(buf, handled...)
+		buf = append(buf, ' ')
+		buf = strconv.AppendInt(buf, int64(m.Width), 10)
+		buf = append(buf, 'w')
+		out = append(out, string(buf))
 	}
 	return out
 }
@@ -693,20 +713,29 @@ func formatImageContainer(block *ImageBlock, rowLength int, overrideAspect *floa
 		case len(block.Media) > 0:
 			orig := block.Media[0]
 			original = &orig
-			imageStyle = fmt.Sprintf("width: %dpx; height: %dpx;", original.Width, original.Height)
+			if orig.Width > 0 && orig.Height > 0 {
+				imageStyle = fmt.Sprintf("width: %dpx; height: %dpx;", orig.Width, orig.Height)
+			}
 			withAspect = false
 		default:
 			return El("div", "class", "image-container")
 		}
 	}
 
-	if withAspect {
-		if overrideAspect != nil {
+	// Without usable dimensions there is no honest aspect ratio to set; letting
+	// the image size itself beats emitting "aspect-ratio: Inf".
+	if original.Width <= 0 || original.Height <= 0 {
+		withAspect = false
+	}
+	if overrideAspect != nil {
+		if *overrideAspect <= 0 {
+			withAspect = false
+		} else if withAspect {
 			containerStyle = "aspect-ratio: " + pyFloatStr(*overrideAspect) + ";"
-		} else {
-			ratio := round(float64(original.Width)/float64(original.Height), 4)
-			containerStyle = "aspect-ratio: " + pyFloatStr(ratio) + ";"
 		}
+	} else if withAspect {
+		ratio := round(float64(original.Width)/float64(original.Height), 4)
+		containerStyle = "aspect-ratio: " + pyFloatStr(ratio) + ";"
 	}
 
 	container := El("div", "class", "image-container")

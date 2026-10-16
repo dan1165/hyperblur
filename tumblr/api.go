@@ -1,6 +1,7 @@
 package tumblr
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -101,6 +102,10 @@ const (
 type API struct {
 	client  *http.Client
 	headers map[string]string
+
+	// UsingBundledToken reports whether DefaultToken is in use, so the server
+	// can warn at startup.
+	UsingBundledToken bool
 }
 
 // DefaultUserAgent is user agent hyperblur sends to Tumblr.
@@ -113,12 +118,14 @@ func NewAPI(transport http.RoundTripper, timeout time.Duration) *API {
 	if strings.HasPrefix(strings.ToLower(token), "bearer ") {
 		token = strings.TrimSpace(token[len("bearer "):])
 	}
-	if token == "" {
+	bundled := token == ""
+	if bundled {
 		token = defaultAuthorizationToken
 	}
 
 	return &API{
-		client: &http.Client{Transport: transport, Timeout: timeout},
+		client:            &http.Client{Transport: transport, Timeout: timeout},
+		UsingBundledToken: bundled,
 		headers: map[string]string{
 			"accept":        "application/json;format=camelcase",
 			"user-agent":    DefaultUserAgent,
@@ -130,8 +137,9 @@ func NewAPI(transport http.RoundTripper, timeout time.Duration) *API {
 	}
 }
 
-// getJSON requests endpoint, retries transient network failures.
-func (a *API) getJSON(endpoint string, params url.Values) (map[string]any, error) {
+// getJSON requests endpoint, retries transient network failures. ctx must be
+// non-nil; canceling it aborts the request and stops retries.
+func (a *API) getJSON(ctx context.Context, endpoint string, params url.Values) (map[string]any, error) {
 	target := "https://www.tumblr.com/api/v2/" + endpoint
 	if len(params) > 0 {
 		target += "?" + params.Encode()
@@ -139,7 +147,7 @@ func (a *API) getJSON(endpoint string, params url.Values) (map[string]any, error
 
 	var lastErr error
 	for attempt := 1; attempt <= maxRetries; attempt++ {
-		result, retryable, err := a.requestJSON(target)
+		result, retryable, err := a.requestJSON(ctx, target)
 		if err == nil {
 			return result, nil
 		}
@@ -147,13 +155,17 @@ func (a *API) getJSON(endpoint string, params url.Values) (map[string]any, error
 		if !retryable || attempt >= maxRetries {
 			break
 		}
-		time.Sleep(retryBackoff * time.Duration(attempt))
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(retryBackoff * time.Duration(attempt)):
+		}
 	}
 	return nil, lastErr
 }
 
-func (a *API) requestJSON(target string) (map[string]any, bool, error) {
-	request, err := http.NewRequest(http.MethodGet, target, nil)
+func (a *API) requestJSON(ctx context.Context, target string) (map[string]any, bool, error) {
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, target, nil)
 	if err != nil {
 		return nil, false, err
 	}
@@ -163,8 +175,8 @@ func (a *API) requestJSON(target string) (map[string]any, bool, error) {
 
 	response, err := a.client.Do(request)
 	if err != nil {
-		// Network failure: retryable.
-		return nil, true, err
+		// Network failure: retryable unless the caller went away.
+		return nil, ctx.Err() == nil, err
 	}
 	defer response.Body.Close()
 
@@ -207,14 +219,15 @@ func mapErrorResponse(result map[string]any, httpStatus int) *APIError {
 	}
 
 	kind := ErrGeneric
-	switch internalCode {
-	case 13001:
+	switch {
+	case internalCode == 13001:
 		kind = ErrRestrictedTag
-	case 4012:
+	case internalCode == 4012:
 		kind = ErrLoginRequired
-	case 4013:
+	case internalCode == 4013:
 		kind = ErrPasswordRequired
-	case 0:
+	case httpStatus == http.StatusNotFound:
+		// Tumblr answers 404 without an errors array for missing blogs/posts.
 		kind = ErrBlogNotFound
 	}
 
@@ -226,34 +239,34 @@ func mapErrorResponse(result map[string]any, httpStatus int) *APIError {
 // ---------------------------------------------------------------------------
 
 // ExploreTrending requests /explore/trending.
-func (a *API) ExploreTrending(continuation string) (map[string]any, error) {
+func (a *API) ExploreTrending(ctx context.Context, continuation string) (map[string]any, error) {
 	params := url.Values{"reblog_info": {"true"}, "fields[blogs]": {ExploreBlogInfoFields}}
 	if continuation != "" {
 		params.Set("cursor", continuation)
 	}
-	return a.getJSON("explore/trending", params)
+	return a.getJSON(ctx, "explore/trending", params)
 }
 
 // ExploreToday requests /explore/home/today.
-func (a *API) ExploreToday(continuation string) (map[string]any, error) {
+func (a *API) ExploreToday(ctx context.Context, continuation string) (map[string]any, error) {
 	params := url.Values{"fields[blogs]": {ExploreBlogInfoFields}, "reblog_info": {"true"}}
 	if continuation != "" {
 		params.Set("cursor", continuation)
 	}
-	return a.getJSON("explore/home/today", params)
+	return a.getJSON(ctx, "explore/home/today", params)
 }
 
 // ExplorePost requests /explore/posts/<type>.
-func (a *API) ExplorePost(postType ExplorePostType, continuation string) (map[string]any, error) {
+func (a *API) ExplorePost(ctx context.Context, postType ExplorePostType, continuation string) (map[string]any, error) {
 	params := url.Values{"reblog_info": {"true"}, "fields[blogs]": {ExploreBlogInfoFields}}
 	if continuation != "" {
 		params.Set("cursor", continuation)
 	}
-	return a.getJSON("explore/posts/"+string(postType), params)
+	return a.getJSON(ctx, "explore/posts/"+string(postType), params)
 }
 
 // TimelineSearch requests /timeline/search.
-func (a *API) TimelineSearch(query, continuation string, latest bool, days int, postTypeFilter PostTypeFilter) (map[string]any, error) {
+func (a *API) TimelineSearch(ctx context.Context, query, continuation string, latest bool, days int, postTypeFilter PostTypeFilter) (map[string]any, error) {
 	mode := "top"
 	if latest {
 		mode = "recent"
@@ -276,11 +289,11 @@ func (a *API) TimelineSearch(query, continuation string, latest bool, days int, 
 	if continuation != "" {
 		params.Set("cursor", continuation)
 	}
-	return a.getJSON("timeline/search", params)
+	return a.getJSON(ctx, "timeline/search", params)
 }
 
 // HubsTimeline requests /hubs/<tag>/timeline.
-func (a *API) HubsTimeline(tag string, continuation string, latest bool) (map[string]any, error) {
+func (a *API) HubsTimeline(ctx context.Context, tag, continuation string, latest bool) (map[string]any, error) {
 	sort := "top"
 	if latest {
 		sort = "recent"
@@ -296,11 +309,11 @@ func (a *API) HubsTimeline(tag string, continuation string, latest bool) (map[st
 		params.Set("skip_header", "1")
 		params.Set("cursor", continuation)
 	}
-	return a.getJSON("hubs/"+url.PathEscape(tag)+"/timeline", params)
+	return a.getJSON(ctx, "hubs/"+url.PathEscape(tag)+"/timeline", params)
 }
 
 // BlogPosts requests /blog/<name>/posts.
-func (a *API) BlogPosts(blogName, continuation, tag, offset, limit string) (map[string]any, error) {
+func (a *API) BlogPosts(ctx context.Context, blogName, continuation, tag, offset, limit string) (map[string]any, error) {
 	params := url.Values{
 		"fields[blogs]":        {BlogPostsBlogInfoFields},
 		"npf":                  {"true"},
@@ -320,11 +333,11 @@ func (a *API) BlogPosts(blogName, continuation, tag, offset, limit string) (map[
 		params.Set("tumblelog", blogName)
 		params.Set("page_number", continuation)
 	}
-	return a.getJSON("blog/"+url.PathEscape(blogName)+"/posts", params)
+	return a.getJSON(ctx, "blog/"+url.PathEscape(blogName)+"/posts", params)
 }
 
 // BlogSearch requests /blog/<name>/search/<query>.
-func (a *API) BlogSearch(blogName, query, continuation string) (map[string]any, error) {
+func (a *API) BlogSearch(ctx context.Context, blogName, query, continuation string) (map[string]any, error) {
 	escapedBlog := url.PathEscape(blogName)
 	params := url.Values{
 		"reblog_info":   {"true"},
@@ -338,17 +351,17 @@ func (a *API) BlogSearch(blogName, query, continuation string) (map[string]any, 
 		params.Set("rawurldecode", "1")
 		params.Set("cursor", continuation)
 	}
-	return a.getJSON("blog/"+escapedBlog+"/search/"+url.PathEscape(query), params)
+	return a.getJSON(ctx, "blog/"+escapedBlog+"/search/"+url.PathEscape(query), params)
 }
 
 // BlogPost requests /blog/<name>/posts/<id>/permalink.
-func (a *API) BlogPost(blogName, postID string) (map[string]any, error) {
+func (a *API) BlogPost(ctx context.Context, blogName, postID string) (map[string]any, error) {
 	params := url.Values{"fields[blogs]": {PostBlogInfoFields}, "reblog_info": {"true"}}
-	return a.getJSON("blog/"+url.PathEscape(blogName)+"/posts/"+postID+"/permalink", params)
+	return a.getJSON(ctx, "blog/"+url.PathEscape(blogName)+"/posts/"+postID+"/permalink", params)
 }
 
 // BlogPostReplies requests /blog/<id>/post/<id>/replies.
-func (a *API) BlogPostReplies(blogID, postID, afterID string, latest bool) (map[string]any, error) {
+func (a *API) BlogPostReplies(ctx context.Context, blogID, postID, afterID string, latest bool) (map[string]any, error) {
 	sort := "asc"
 	if latest {
 		sort = "desc"
@@ -364,11 +377,11 @@ func (a *API) BlogPostReplies(blogID, postID, afterID string, latest bool) (map[
 	} else {
 		params = url.Values{"after": {afterID}, "sort": {sort}}
 	}
-	return a.getJSON("blog/"+url.PathEscape(blogID)+"/post/"+postID+"/replies", params)
+	return a.getJSON(ctx, "blog/"+url.PathEscape(blogID)+"/post/"+postID+"/replies", params)
 }
 
 // BlogPostNotesTimeline requests /blog/<id>/post/<id>/notes/timeline.
-func (a *API) BlogPostNotesTimeline(blogID, postID string, mode ReblogNoteTypes, latest bool, beforeTimestamp string) (map[string]any, error) {
+func (a *API) BlogPostNotesTimeline(ctx context.Context, blogID, postID string, mode ReblogNoteTypes, latest bool, beforeTimestamp string) (map[string]any, error) {
 	var params url.Values
 	if beforeTimestamp != "" {
 		params = url.Values{
@@ -388,11 +401,11 @@ func (a *API) BlogPostNotesTimeline(blogID, postID string, mode ReblogNoteTypes,
 			"fields[blogs]":    {"avatar,theme,name"},
 		}
 	}
-	return a.getJSON("blog/"+url.PathEscape(blogID)+"/post/"+postID+"/notes/timeline", params)
+	return a.getJSON(ctx, "blog/"+url.PathEscape(blogID)+"/post/"+postID+"/notes/timeline", params)
 }
 
 // BlogNotes requests /blog/<id>/notes.
-func (a *API) BlogNotes(blogID, postID string, latest, returnLikes bool, beforeTimestamp string) (map[string]any, error) {
+func (a *API) BlogNotes(ctx context.Context, blogID, postID string, latest, returnLikes bool, beforeTimestamp string) (map[string]any, error) {
 	mode := "likes"
 	if !returnLikes {
 		mode = "reblogs_only"
@@ -407,10 +420,10 @@ func (a *API) BlogNotes(blogID, postID string, latest, returnLikes bool, beforeT
 		}
 		params = url.Values{"id": {postID}, "mode": {mode}, "sort": {sort}}
 	}
-	return a.getJSON("blog/"+url.PathEscape(blogID)+"/notes", params)
+	return a.getJSON(ctx, "blog/"+url.PathEscape(blogID)+"/notes", params)
 }
 
 // PollResults requests /polls/<blog>/<post>/<poll>/results.
-func (a *API) PollResults(blogName, postID, pollID string) (map[string]any, error) {
-	return a.getJSON("polls/"+url.PathEscape(blogName)+"/"+postID+"/"+pollID+"/results", nil)
+func (a *API) PollResults(ctx context.Context, blogName, postID, pollID string) (map[string]any, error) {
+	return a.getJSON(ctx, "polls/"+url.PathEscape(blogName)+"/"+postID+"/"+pollID+"/results", nil)
 }
