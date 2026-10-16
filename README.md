@@ -139,10 +139,12 @@ docker pull ghcr.io/dan1165/hyperblur:latest
 Unexpected errors log server-side with request and stack trace. Error page shows
 same details plus issue link: <https://github.com/dan1165/hyperblur/issues>.
 
-## Disclaimer
+## Built with
 
-Built with the assistance of [opencode](https://opencode.ai), running the latest
-DeepSeek Flash model.
+hyperblur is built with the help of AI coding agents, both running DeepSeek:
+
+- [opencode](https://opencode.ai)
+- [Claude Code](https://www.anthropic.com/claude-code) (Anthropic)
 
 ## License
 
