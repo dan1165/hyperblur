@@ -15,15 +15,15 @@ import (
 // downloadIcon overlays every downloadable media element.
 const downloadIcon = `<svg class="icon" xmlns="http://www.w3.org/2000/svg" height="20" width="20" viewBox="0 -960 960 960"><path d="M480-320 280-520l56-58 104 104v-326h80v326l104-104 56 58-200 200ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z"/></svg>`
 
-// RenderError describes post-render failure, mirroring hyperblur's
+// renderError describes post-render failure, mirroring hyperblur's
 // create_user_friendly_error_message.
-type RenderError struct {
+type renderError struct {
 	Name    string
 	Message string
 }
 
-// Params configure post render.
-type Params struct {
+// params configure post render.
+type params struct {
 	// BlogName and PostID feed poll no-JS fallback link.
 	BlogName string
 	PostID   string
@@ -36,12 +36,12 @@ type Params struct {
 	EagerBudget *int
 }
 
-// FormatNPF renders NPF content to hyperblur HTML. Failure returns RenderError
+// formatNPF renders NPF content to hyperblur HTML. Failure returns renderError
 // and error placeholder body; success returns nil and post body.
-func FormatNPF(content, layout []any, p Params) (*RenderError, string) {
+func formatNPF(content, layout []any, p params) (*renderError, string) {
 	opts := npf.Options{
-		URLHandler:   URLHandler,
-		Localizer:    Localizer{},
+		URLHandler:   urlHandler,
+		Localizer:    localizer{},
 		PollCallback: p.PollCallback,
 		BlogName:     p.BlogName,
 		PostID:       p.PostID,
@@ -53,7 +53,7 @@ func FormatNPF(content, layout []any, p Params) (*RenderError, string) {
 
 	hasError, html := npf.Format(content, layout, opts)
 	if hasError {
-		return &RenderError{
+		return &renderError{
 			Name:    "RenderErrorDisclaimerError",
 			Message: "Rendered post contains errors",
 		}, `<div class="post-body has-error"></div>`
@@ -126,7 +126,7 @@ func addDownloadButton(container *npf.Node, mediaURL string) {
 		return
 	}
 	container.Add(npf.El("a",
-		"href", DownloadURL(mediaURL),
+		"href", downloadURL(mediaURL),
 		"download", "",
 		"class", "media-download",
 		"title", "Download",
@@ -140,15 +140,14 @@ var ProxyMedia = true
 
 const proxyMediaEnvVar = "HYPERBLUR_PROXY_MEDIA"
 
-// URLHandler rewrites Tumblr URLs in posts to hyperblur's privacy-friendly
-// paths.
-func URLHandler(rawURL string) string { return urlHandler(rawURL, 0) }
+// urlHandler rewrites Tumblr URLs in posts to hyperblur's privacy-friendly paths.
+func urlHandler(rawURL string) string { return unwrapURL(rawURL, 0) }
 
 // maxUnwrapDepth caps recursion into wrapped redirect links, so a post cannot
 // nest href.li/t.umblr.com redirects deeply enough to exhaust the stack.
 const maxUnwrapDepth = 4
 
-func urlHandler(rawURL string, depth int) string {
+func unwrapURL(rawURL string, depth int) string {
 	if depth > maxUnwrapDepth {
 		return rawURL
 	}
@@ -166,19 +165,19 @@ func urlHandler(rawURL string, depth int) string {
 	// Redirect links can hold malformed URLs (e.g. https://href.li/?http://).
 	// Recurse into wrapped URL.
 	if strings.HasSuffix(hostname, "href.li") {
-		return urlHandler(u.RawQuery, depth+1)
+		return unwrapURL(u.RawQuery, depth+1)
 	}
 	if strings.HasSuffix(hostname, "t.umblr.com") {
 		if values, err := url.ParseQuery(u.RawQuery); err == nil {
 			if redirect := values.Get("z"); redirect != "" {
-				return urlHandler(redirect, depth+1)
+				return unwrapURL(redirect, depth+1)
 			}
 		}
 	}
 
 	if hostname != "" && strings.HasSuffix(hostname, "tumblr.com") {
 		// Route media/asset/static hosts through the local proxy so the browser
-		// never contacts Tumblr's CDN (zero CDN). Downloads use DownloadURL.
+		// never contacts Tumblr's CDN (zero CDN). Downloads use downloadURL.
 		if strings.Contains(hostname, ".media.tumblr.com") ||
 			strings.HasSuffix(hostname, "assets.tumblr.com") ||
 			strings.HasSuffix(hostname, "static.tumblr.com") ||
@@ -254,10 +253,10 @@ func withQuery(path, rawQuery string) string {
 	return path + "?" + rawQuery
 }
 
-// DownloadURL rewrites media URL to proxied path forcing download. Tumblr media
+// downloadURL rewrites media URL to proxied path forcing download. Tumblr media
 // always goes through the proxy, so the download gets a filename even when
 // HYPERBLUR_PROXY_MEDIA is off.
-func DownloadURL(rawURL string) string {
+func downloadURL(rawURL string) string {
 	if p := proxyPath(rawURL); p != "" {
 		return setQueryParam(p, "download", "1")
 	}
@@ -277,17 +276,17 @@ func setQueryParam(rawURL, key, value string) string {
 	return u.String()
 }
 
-// Localizer provides hyperblur's English strings and formatting to
+// localizer provides hyperblur's English strings and formatting to
 // npf.Localizer.
-type Localizer struct{}
+type localizer struct{}
 
 // Translate implements npf.Localizer.
-func (Localizer) Translate(key string, subst map[string]string) string {
+func (localizer) Translate(key string, subst map[string]string) string {
 	return substitute(npfString(key), subst)
 }
 
 // TranslatePlural implements npf.Localizer.
-func (Localizer) TranslatePlural(key string, number int, subst map[string]string) string {
+func (localizer) TranslatePlural(key string, number int, subst map[string]string) string {
 	if strings.TrimPrefix(key, "plural_") == "poll_total_votes" {
 		text := "{votes} votes"
 		if number == 1 {
@@ -356,7 +355,7 @@ func npfString(key string) string {
 //
 // ponytail: approximates babel's format_timedelta(threshold=1.1) with largest
 // unit whose value >= 1.1. Swap golang.org/x/text for exact babel wording.
-func (Localizer) FormatDuration(key string, d time.Duration) string {
+func (localizer) FormatDuration(key string, d time.Duration) string {
 	units := []struct {
 		seconds float64
 		name    string
@@ -385,12 +384,12 @@ func (Localizer) FormatDuration(key string, d time.Duration) string {
 
 // FormatDatetime implements npf.Localizer. babel en_US "short": M/d/yy, h:mm a,
 // narrow no-break space (U+202F) before AM/PM.
-func (Localizer) FormatDatetime(key string, t time.Time) string {
+func (localizer) FormatDatetime(key string, t time.Time) string {
 	return t.Format("1/2/06, 3:04") + "\u202f" + t.Format("PM")
 }
 
 // FormatDecimal implements npf.Localizer with en_US thousands grouping.
-func (Localizer) FormatDecimal(key string, n float64) string {
+func (localizer) FormatDecimal(key string, n float64) string {
 	negative := n < 0
 	if negative {
 		n = -n

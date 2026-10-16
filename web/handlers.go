@@ -384,7 +384,7 @@ func (a *App) serveBlogPost(w http.ResponseWriter, r *http.Request, slug string)
 
 	// Ensure URL slug matches; redirect to canonical URL.
 	if slug != post.Slug {
-		path := "/" + PostPath(post)
+		path := "/" + postPath(post)
 		if post.Slug == "" {
 			path = "/" + post.Blog.Name + "/" + post.ID
 		}
@@ -403,7 +403,7 @@ func (a *App) serveBlogPost(w http.ResponseWriter, r *http.Request, slug string)
 	}
 
 	data := a.newPageData(r)
-	data.ExtraCSS = []string{"/assets/css/blog.css"}
+	data.BlogPage = true
 	data.Title = post.Blog.Title
 	if data.Title == "" {
 		data.Title = post.Blog.Name
@@ -517,7 +517,7 @@ type blogRender struct {
 
 func (a *App) renderBlogPage(w http.ResponseWriter, r *http.Request, br blogRender) {
 	data := a.newPageData(r)
-	data.ExtraCSS = []string{"/assets/css/blog.css"}
+	data.BlogPage = true
 	data.Title = br.title
 	data.Blog = br.timeline
 	data.Tag = br.tag

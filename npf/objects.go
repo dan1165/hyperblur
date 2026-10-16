@@ -120,13 +120,6 @@ type LinkBlock struct {
 	Poster      []MediaObject
 }
 
-// EmbedIframe is embed iframe metadata.
-type EmbedIframe struct {
-	URL    string
-	Width  int
-	Height int
-}
-
 // AudioBlock is parsed NPF audio block.
 type AudioBlock struct {
 	URL       string
@@ -142,13 +135,13 @@ type AudioBlock struct {
 
 // VideoBlock is parsed NPF video block.
 type VideoBlock struct {
-	URL         string
-	Provider    string
-	Media       []MediaObject
-	EmbedHTML   string
-	EmbedIframe *EmbedIframe
-	EmbedURL    string
-	Poster      []MediaObject
+	URL            string
+	Provider       string
+	Media          []MediaObject
+	EmbedHTML      string
+	HasEmbedIframe bool
+	EmbedURL       string
+	Poster         []MediaObject
 }
 
 // PollResult is one poll answer's result.

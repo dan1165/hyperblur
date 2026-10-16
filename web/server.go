@@ -615,9 +615,9 @@ func newTransport() *http.Transport {
 	}
 }
 
-// FormatNPF renders post content, returns optional render error.
-func (a *App) FormatNPF(ctx context.Context, content, layout []any, blogName, postID string, fetchPolls bool, eagerBudget *int) (*RenderError, string) {
-	params := Params{
+// formatNPF renders post content, returns optional render error.
+func (a *App) formatNPF(ctx context.Context, content, layout []any, blogName, postID string, fetchPolls bool, eagerBudget *int) (*renderError, string) {
+	params := params{
 		BlogName:    blogName,
 		PostID:      postID,
 		Ctx:         ctx,
@@ -626,7 +626,7 @@ func (a *App) FormatNPF(ctx context.Context, content, layout []any, blogName, po
 	if fetchPolls && blogName != "" && postID != "" {
 		params.PollCallback = a.pollCallback(ctx, blogName, postID)
 	}
-	return FormatNPF(content, layout, params)
+	return formatNPF(content, layout, params)
 }
 
 func (a *App) pollCallback(ctx context.Context, blog, postID string) npf.PollCallback {

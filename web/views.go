@@ -27,7 +27,7 @@ func formatDatetime(t time.Time) string {
 
 // formatDecimal groups thousands like babel en_US format_decimal.
 func formatDecimal(n int) string {
-	return Localizer{}.FormatDecimal("", float64(n))
+	return localizer{}.FormatDecimal("", float64(n))
 }
 
 // ---------------------------------------------------------------------------
@@ -39,18 +39,16 @@ type view struct {
 }
 
 func (v *view) raw(s string) *view { v.b.WriteString(s); return v }
-func (v *view) esc(s string) *view { v.b.WriteString(escapeHTML(s)); return v }
+func (v *view) esc(s string) *view { v.b.WriteString(htmlEscape(s)); return v }
 
-// escapeHTML is html.EscapeString with a fast path for the common case: page
+// htmlEscape is html.EscapeString with a fast path for the common case: page
 // renders escape a value per element, and most values hold nothing to escape.
-func escapeHTML(s string) string {
+func htmlEscape(s string) string {
 	if !strings.ContainsAny(s, `&<>"'`) {
 		return s
 	}
 	return html.EscapeString(s)
 }
-
-func htmlEscape(s string) string { return escapeHTML(s) }
 
 func (v *view) string() string { return v.b.String() }
 
@@ -73,7 +71,7 @@ type PageData struct {
 	Endpoint string
 
 	Title       string
-	ExtraCSS    []string
+	BlogPage    bool
 	InlineStyle string
 
 	Query string
@@ -141,7 +139,7 @@ func (a *App) renderPage(data *PageData, center func(v *view)) string {
 	v.raw("<link rel=\"icon\" type=\"image/png\" href=\"/assets/images/icon-192.png\">\n")
 	v.raw("<link rel=\"apple-touch-icon\" href=\"/assets/images/apple-touch-icon.png\">\n")
 	v.raw("<style>")
-	v.raw(a.pageCSS(len(data.ExtraCSS) > 0))
+	v.raw(a.pageCSS(data.BlogPage))
 	v.raw("</style>\n")
 	v.raw("<script src=\"/assets/js/post.js\" defer></script>\n")
 	if data.InlineStyle != "" {
@@ -220,7 +218,7 @@ func (a *App) renderPost(v *view, data *PageData, post *tumblr.Post) {
 
 	postURL := data.PostURL
 	if postURL == "" {
-		postURL = PostPath(post)
+		postURL = postPath(post)
 	}
 
 	a.renderPostHeader(v, data, postHeaderData{
@@ -239,12 +237,12 @@ func (a *App) renderPost(v *view, data *PageData, post *tumblr.Post) {
 func (a *App) renderPostBody(v *view, data *PageData, post *tumblr.Post) {
 	hasContent := len(post.Content) > 0
 
-	var mainErr *RenderError
+	var mainErr *renderError
 	var mainTag string
 	if hasContent {
 		// Media spends from the page's shared eager budget: the first images
 		// load immediately, the rest wait until they scroll into view.
-		mainErr, mainTag = a.FormatNPF(data.Ctx, post.Content, post.Layout, post.Blog.Name, post.ID, data.RequestPollData, &data.EagerImages)
+		mainErr, mainTag = a.formatNPF(data.Ctx, post.Content, post.Layout, post.Blog.Name, post.ID, data.RequestPollData, &data.EagerImages)
 	}
 
 	v.raw(`<div class="post-content">`)
@@ -261,7 +259,7 @@ func (a *App) renderPostBody(v *view, data *PageData, post *tumblr.Post) {
 			Date:           trail.Date,
 			UseThisPostURL: trail.BlogName() + "/" + trail.ID,
 		})
-		trailErr, trailTag := a.FormatNPF(data.Ctx, trail.Content, trail.Layout, post.Blog.Name, post.ID, data.RequestPollData, nil)
+		trailErr, trailTag := a.formatNPF(data.Ctx, trail.Content, trail.Layout, post.Blog.Name, post.ID, data.RequestPollData, nil)
 		if trailErr != nil {
 			a.logNPFError(post, "trail", trailErr)
 			a.renderNPFError(v, trailErr)
@@ -273,7 +271,7 @@ func (a *App) renderPostBody(v *view, data *PageData, post *tumblr.Post) {
 	if len(post.Trail) > 0 && hasContent {
 		postURL := data.PostURL
 		if postURL == "" {
-			postURL = PostPath(post)
+			postURL = postPath(post)
 		}
 		v.raw(`<div class="trail-post">`)
 		a.renderPostHeader(v, data, postHeaderData{
@@ -331,7 +329,7 @@ func (a *App) renderPostFooter(v *view, data *PageData, post *tumblr.Post, postU
 	v.raw(`</div></div></footer>`)
 }
 
-func (a *App) renderNPFError(v *view, renderErr *RenderError) {
+func (a *App) renderNPFError(v *view, renderErr *renderError) {
 	v.raw(`<figure class="alert error secondary"><figcaption><svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M480-280q17 0 28.5-11.5T520-320q0-17-11.5-28.5T480-360q-17 0-28.5 11.5T440-320q0 17 11.5 28.5T480-280Zm-40-160h80v-240h-80v240Zm40 360q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Z"/></svg><h4>`)
 	v.esc("Failed to render the contents of this post")
 	v.raw(`</h4><p>`)
@@ -342,7 +340,7 @@ func (a *App) renderNPFError(v *view, renderErr *RenderError) {
 }
 
 // logNPFError records NPF render failure for post.
-func (a *App) logNPFError(post *tumblr.Post, where string, err *RenderError) {
+func (a *App) logNPFError(post *tumblr.Post, where string, err *renderError) {
 	a.Logger.Printf("npf render error (%s) for post %s/%s: %s", where, post.Blog.Name, post.ID, err.Message)
 }
 
@@ -435,17 +433,17 @@ func (a *App) renderBlogHeader(v *view, data *PageData) {
 
 	var descriptionTag string
 	if len(blogInfo.DescriptionNPF) > 0 {
-		if _, tag := a.FormatNPF(data.Ctx, blogInfo.DescriptionNPF, nil, "", "", false, nil); tag != "" {
+		if _, tag := a.formatNPF(data.Ctx, blogInfo.DescriptionNPF, nil, "", "", false, nil); tag != "" {
 			descriptionTag = tag
 		}
 	}
 
-	banner := URLHandler(blogInfo.Banner)
+	banner := urlHandler(blogInfo.Banner)
 	avatar := ""
 	if len(blogInfo.Avatar) >= 2 {
-		avatar = URLHandler(blogInfo.Avatar[len(blogInfo.Avatar)-2].URL)
+		avatar = urlHandler(blogInfo.Avatar[len(blogInfo.Avatar)-2].URL)
 	} else if len(blogInfo.Avatar) == 1 {
-		avatar = URLHandler(blogInfo.Avatar[0].URL)
+		avatar = urlHandler(blogInfo.Avatar[0].URL)
 	}
 
 	v.raw(`<header id="blog-header"><img id="banner" alt="" loading="eager" decoding="async" src="`)
@@ -528,8 +526,8 @@ type postHeaderData struct {
 	UseThisPostURL string
 }
 
-// PostPath returns post path, no leading slash.
-func PostPath(post *tumblr.Post) string {
+// postPath returns post path, no leading slash.
+func postPath(post *tumblr.Post) string {
 	path := post.Blog.Name + "/" + post.ID
 	if post.Slug != "" {
 		path += "/" + post.Slug
@@ -571,7 +569,7 @@ func renderAvatarLink(v *view, href, src string, eager bool) {
 // renderAvatar renders blog avatar, or anonymous when blog inactive or missing.
 func renderAvatar(v *view, blog *tumblr.Blog, eager bool) {
 	if blog != nil && blog.Active {
-		renderAvatarLink(v, blog.Name, URLHandler(blog.AvatarURL()), eager)
+		renderAvatarLink(v, blog.Name, urlHandler(blog.AvatarURL()), eager)
 		return
 	}
 	v.raw(`<img class="avatar" alt=""`)
@@ -664,7 +662,7 @@ func (a *App) reblogAttribution(from, root *tumblr.ReblogAttribution) string {
 		}
 	}
 
-	return `<a href="` + htmlEscape(URLHandler(url)) + `" class="` + strings.Join(classes, " ") + `">` + htmlEscape(name) + `</a>`
+	return `<a href="` + htmlEscape(urlHandler(url)) + `" class="` + strings.Join(classes, " ") + `">` + htmlEscape(name) + `</a>`
 }
 
 func isTumblrURL(rawURL string) bool {
@@ -804,7 +802,7 @@ func (a *App) renderReplyNote(v *view, data *PageData, note *tumblr.ReplyNote) {
 	if blog != nil {
 		blogName = blog.Name
 	}
-	_, tag := a.FormatNPF(data.Ctx, note.Content, note.Layout, blogName, "", data.RequestPollData, nil)
+	_, tag := a.formatNPF(data.Ctx, note.Content, note.Layout, blogName, "", data.RequestPollData, nil)
 	v.raw(tag)
 	v.raw(`</p></div></div>`)
 }
@@ -825,7 +823,7 @@ func (a *App) renderReblogNote(v *view, data *PageData, note *tumblr.ReblogNote)
 		UseThisPostURL: postURL,
 	})
 	v.raw(`<div class="post-content">`)
-	_, tag := a.FormatNPF(data.Ctx, note.Content, note.Layout, note.Blog.Name, note.ID, data.RequestPollData, nil)
+	_, tag := a.formatNPF(data.Ctx, note.Content, note.Layout, note.Blog.Name, note.ID, data.RequestPollData, nil)
 	v.raw(tag)
 	v.raw(`</div>`)
 	if len(note.Tags) > 0 {
@@ -842,7 +840,7 @@ func (a *App) renderLikeNote(v *view, data *PageData, note *tumblr.LikeNote) {
 		avatar = note.Avatar["128"]
 	}
 	v.raw(`<div class="note like"><div class="post-author">`)
-	renderAvatarLink(v, note.BlogName, URLHandler(avatar), data.takeEagerImage())
+	renderAvatarLink(v, note.BlogName, urlHandler(avatar), data.takeEagerImage())
 	v.raw(`<div class="author-information"><div class="primary-post-author"><div class="blog-name-title-grouping"><a class="link blog-name" href="/`)
 	v.esc(note.BlogName)
 	v.raw(`">`)
@@ -851,8 +849,6 @@ func (a *App) renderLikeNote(v *view, data *PageData, note *tumblr.LikeNote) {
 	v.esc(note.BlogTitle)
 	v.raw(`</span></div></div></div></div></div>`)
 }
-
-func deseq(values url.Values) string { return values.Encode() }
 
 func addQuery(query string) string {
 	if query != "" {
@@ -893,11 +889,11 @@ func (a *App) renderSearchControlBar(v *view, data *PageData) {
 	b.WriteString(`</span><ul class="control-bar-dropdown-menu">`)
 	if data.PostFilter != "" {
 		filter := urlEscape(data.PostFilter)
-		b.WriteString(searchFilterItem(data.SortBy == "popular", "/search/"+query+"/"+filter+addQuery(deseq(base)), "Popular"))
-		b.WriteString(searchFilterItem(data.SortBy == "recent", "/search/"+query+"/recent/"+filter+addQuery(deseq(base)), "Latest"))
+		b.WriteString(searchFilterItem(data.SortBy == "popular", "/search/"+query+"/"+filter+addQuery(base.Encode()), "Popular"))
+		b.WriteString(searchFilterItem(data.SortBy == "recent", "/search/"+query+"/recent/"+filter+addQuery(base.Encode()), "Latest"))
 	} else {
-		b.WriteString(searchFilterItem(data.SortBy == "popular", "/search/"+query+addQuery(deseq(base)), "Popular"))
-		b.WriteString(searchFilterItem(data.SortBy == "recent", "/search/"+query+"/recent"+addQuery(deseq(base)), "Latest"))
+		b.WriteString(searchFilterItem(data.SortBy == "popular", "/search/"+query+addQuery(base.Encode()), "Popular"))
+		b.WriteString(searchFilterItem(data.SortBy == "recent", "/search/"+query+"/recent"+addQuery(base.Encode()), "Latest"))
 	}
 	b.WriteString(`</ul></li>`)
 
@@ -929,14 +925,14 @@ func (a *App) renderSearchControlBar(v *view, data *PageData) {
 	b.WriteString(`</span><ul class="control-bar-dropdown-menu">`)
 
 	if data.SortBy == "recent" {
-		b.WriteString(searchFilterItem(data.PostFilter == "", "/search/"+query+"/recent"+addQuery(deseq(base)), "All Types"))
+		b.WriteString(searchFilterItem(data.PostFilter == "", "/search/"+query+"/recent"+addQuery(base.Encode()), "All Types"))
 	} else {
-		b.WriteString(searchFilterItem(data.PostFilter == "", "/search/"+query+addQuery(deseq(base)), "All Types"))
+		b.WriteString(searchFilterItem(data.PostFilter == "", "/search/"+query+addQuery(base.Encode()), "All Types"))
 	}
 	for _, postType := range []string{"text", "photo", "gif", "quote", "link", "chat", "audio", "video", "ask", "poll"} {
-		target := "/search/" + query + "/" + urlEscape(postType) + addQuery(deseq(base))
+		target := "/search/" + query + "/" + urlEscape(postType) + addQuery(base.Encode())
 		if data.SortBy == "recent" {
-			target = "/search/" + query + "/recent/" + urlEscape(postType) + addQuery(deseq(base))
+			target = "/search/" + query + "/recent/" + urlEscape(postType) + addQuery(base.Encode())
 		}
 		b.WriteString(searchFilterItem(data.PostFilter == postType, target, postTypeLabel(postType)))
 	}

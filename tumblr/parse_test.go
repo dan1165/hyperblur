@@ -16,10 +16,10 @@ func TestParseReblogNoteKeepsLayout(t *testing.T) {
 		"layout":  []any{map[string]any{"type": "rows", "display": []any{}}},
 	}
 
-	parsed := ParseReblogNoteItem(element)
+	parsed := parseReblogNoteItem(element)
 	note, ok := parsed.(*ReblogNote)
 	if !ok {
-		t.Fatalf("ParseReblogNoteItem returned %T, want *ReblogNote", parsed)
+		t.Fatalf("parseReblogNoteItem returned %T, want *ReblogNote", parsed)
 	}
 	if len(note.Layout) != 1 {
 		t.Fatalf("reblog note layout = %v, want the one layout block", note.Layout)
@@ -46,10 +46,10 @@ func TestParseSimpleReblogNoteAvatarOrder(t *testing.T) {
 		},
 	}
 
-	parsed := ParseReblogNoteItem(element)
+	parsed := parseReblogNoteItem(element)
 	note, ok := parsed.(*ReblogNote)
 	if !ok {
-		t.Fatalf("ParseReblogNoteItem returned %T, want *ReblogNote", parsed)
+		t.Fatalf("parseReblogNoteItem returned %T, want *ReblogNote", parsed)
 	}
 	if got := note.Blog.AvatarURL(); got != "https://example.com/512.png" {
 		t.Fatalf("AvatarURL() = %q, want the 512px avatar", got)

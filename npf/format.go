@@ -284,7 +284,7 @@ func (f *Formatter) formatVideo(block *VideoBlock) *Node {
 	}
 
 	if video == nil {
-		if block.EmbedHTML != "" || block.EmbedURL != "" || block.EmbedIframe != nil {
+		if block.EmbedHTML != "" || block.EmbedURL != "" || block.HasEmbedIframe {
 			return f.audiovisualFallback(
 				block.URL, block.Media, block.Poster, block.Provider,
 				f.localizer.Translate("link_block_fallback_embeds_are_disabled", nil),

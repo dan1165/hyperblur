@@ -49,12 +49,6 @@ func (f *fakeUpstream) countContaining(substr string) int {
 	return total
 }
 
-func (f *fakeUpstream) setStatus(key string, status int) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	f.status[key] = status
-}
-
 const exploreJSON = `{"response":{"timeline":{"elements":[
 	{"objectType":"post","id":"42","blog":{"name":"staff","title":"Staff","active":true},
 	 "content":[{"type":"text","subtype":"heading1","text":"Hello"},{"type":"text","text":"body text"}],

@@ -420,7 +420,7 @@ func (p *Parser) parseLinkBlock() *LinkBlock {
 	return block
 }
 
-func (p *Parser) fetchAudiovisual() (string, string, []MediaObject, []MediaObject, string, string, *EmbedIframe) {
+func (p *Parser) fetchAudiovisual() (string, string, []MediaObject, []MediaObject, string, string, bool) {
 	url := str(get(p.current, "url"))
 	provider := str(get(p.current, "provider"))
 	media := parseMediaObjects(get(p.current, "media"))
@@ -428,33 +428,24 @@ func (p *Parser) fetchAudiovisual() (string, string, []MediaObject, []MediaObjec
 	embedHTML, _ := asString(getOr(p.current, "embedHtml", "embed_html"))
 	embedURL, _ := asString(getOr(p.current, "embedUrl", "embed_url"))
 
-	var embedIframe *EmbedIframe
-	if ei, ok := getOr(p.current, "embedIframe", "embed_iframe").(map[string]any); ok {
-		iframe := &EmbedIframe{URL: str(get(ei, "url")), Width: 540, Height: 405}
-		if w, ok := asInt(get(ei, "width")); ok {
-			iframe.Width = w
-		}
-		if h, ok := asInt(get(ei, "height")); ok {
-			iframe.Height = h
-		}
-		embedIframe = iframe
-	}
+	// The formatter only asks whether an embed exists, never for its geometry.
+	_, hasEmbedIframe := getOr(p.current, "embedIframe", "embed_iframe").(map[string]any)
 
 	poster := parseMediaObjects(get(p.current, "poster"))
 
-	return url, provider, media, poster, embedHTML, embedURL, embedIframe
+	return url, provider, media, poster, embedHTML, embedURL, hasEmbedIframe
 }
 
 func (p *Parser) parseVideoBlock() *VideoBlock {
-	url, provider, media, poster, embedHTML, embedURL, embedIframe := p.fetchAudiovisual()
+	url, provider, media, poster, embedHTML, embedURL, hasEmbedIframe := p.fetchAudiovisual()
 	return &VideoBlock{
-		URL:         url,
-		Provider:    provider,
-		Media:       media,
-		EmbedHTML:   embedHTML,
-		EmbedIframe: embedIframe,
-		EmbedURL:    embedURL,
-		Poster:      poster,
+		URL:            url,
+		Provider:       provider,
+		Media:          media,
+		EmbedHTML:      embedHTML,
+		HasEmbedIframe: hasEmbedIframe,
+		EmbedURL:       embedURL,
+		Poster:         poster,
 	}
 }
 

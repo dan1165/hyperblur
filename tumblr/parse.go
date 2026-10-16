@@ -340,11 +340,11 @@ func parseSignpost(target map[string]any) *Signpost {
 // Item dispatcher
 // ---------------------------------------------------------------------------
 
-// ItemParser converts one raw element to model, nil if no match.
-type ItemParser func(map[string]any) any
+// itemParser converts one raw element to model, nil if no match.
+type itemParser func(map[string]any) any
 
-// ParseItem tries each parser, returns first match.
-func ParseItem(element map[string]any, parsers ...ItemParser) any {
+// parseItem tries each parser, returns first match.
+func parseItem(element map[string]any, parsers ...itemParser) any {
 	for _, parser := range parsers {
 		if parsed := parser(element); parsed != nil {
 			return parsed
@@ -353,32 +353,32 @@ func ParseItem(element map[string]any, parsers ...ItemParser) any {
 	return nil
 }
 
-// ParsePostItem parses raw element that must be post.
-func ParsePostItem(element map[string]any) any {
+// parsePostItem parses raw element that must be post.
+func parsePostItem(element map[string]any) any {
 	if str(element["objectType"]) == "post" {
 		return parsePost(element)
 	}
 	return nil
 }
 
-// ParseSignpostItem parses raw element that must be signpost.
-func ParseSignpostItem(element map[string]any) any {
+// parseSignpostItem parses raw element that must be signpost.
+func parseSignpostItem(element map[string]any) any {
 	if str(element["objectType"]) == "signpost_cta" {
 		return parseSignpost(element)
 	}
 	return nil
 }
 
-// ParseReplyNoteItem parses raw element that must be reply note.
-func ParseReplyNoteItem(element map[string]any) any {
+// parseReplyNoteItem parses raw element that must be reply note.
+func parseReplyNoteItem(element map[string]any) any {
 	if str(element["type"]) != "reply" {
 		return nil
 	}
 	return parseReplyNote(element)
 }
 
-// ParseReblogNoteItem parses raw element that must be reblog note.
-func ParseReblogNoteItem(element map[string]any) any {
+// parseReblogNoteItem parses raw element that must be reblog note.
+func parseReblogNoteItem(element map[string]any) any {
 	if str(element["type"]) != "reblog" {
 		return nil
 	}
@@ -388,8 +388,8 @@ func ParseReblogNoteItem(element map[string]any) any {
 	return parseReblogNote(element)
 }
 
-// ParseLikeNoteItem parses raw element that must be like note.
-func ParseLikeNoteItem(element map[string]any) any {
+// parseLikeNoteItem parses raw element that must be like note.
+func parseLikeNoteItem(element map[string]any) any {
 	if str(element["type"]) != "like" {
 		return nil
 	}
@@ -406,7 +406,7 @@ func ParseTimeline(initialData map[string]any) *Timeline {
 	var elements []any
 	var signposts []Signpost
 	for _, element := range slice(target["elements"]) {
-		parsed := ParseItem(obj(element), ParsePostItem, ParseSignpostItem)
+		parsed := parseItem(obj(element), parsePostItem, parseSignpostItem)
 		switch value := parsed.(type) {
 		case *Signpost:
 			signposts = append(signposts, *value)
@@ -455,7 +455,7 @@ func parsePosts(target map[string]any) ([]*Post, int) {
 	rawPosts := slice(target["posts"])
 	posts := make([]*Post, 0, len(rawPosts))
 	for _, raw := range rawPosts {
-		if parsed := ParseItem(obj(raw), ParsePostItem); parsed != nil {
+		if parsed := parseItem(obj(raw), parsePostItem); parsed != nil {
 			if post, ok := parsed.(*Post); ok {
 				posts = append(posts, post)
 			}
@@ -478,7 +478,7 @@ func ParseNoteTimeline(initialData map[string]any) *NoteTimeline {
 func parseNoteTimelineFrom(timeline, initialData map[string]any) *NoteTimeline {
 	var notes []any
 	for _, raw := range slice(timeline["elements"]) {
-		if parsed := ParseItem(obj(raw), ParseReplyNoteItem, ParseReblogNoteItem); parsed != nil {
+		if parsed := parseItem(obj(raw), parseReplyNoteItem, parseReblogNoteItem); parsed != nil {
 			notes = append(notes, parsed)
 		}
 	}
@@ -495,7 +495,7 @@ func parseNoteTimelineFrom(timeline, initialData map[string]any) *NoteTimeline {
 func parseNoteSequence(initialData map[string]any) *NoteTimeline {
 	var notes []any
 	for _, raw := range slice(initialData["notes"]) {
-		if parsed := ParseItem(obj(raw), ParseLikeNoteItem, ParseReblogNoteItem); parsed != nil {
+		if parsed := parseItem(obj(raw), parseLikeNoteItem, parseReblogNoteItem); parsed != nil {
 			notes = append(notes, parsed)
 		}
 	}

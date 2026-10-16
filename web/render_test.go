@@ -29,8 +29,8 @@ func TestURLHandler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := URLHandler(tt.in); got != tt.want {
-				t.Fatalf("URLHandler(%q) = %q, want %q", tt.in, got, tt.want)
+			if got := urlHandler(tt.in); got != tt.want {
+				t.Fatalf("urlHandler(%q) = %q, want %q", tt.in, got, tt.want)
 			}
 		})
 	}
@@ -42,8 +42,8 @@ func TestURLHandlerDoesNotProxyDirectMode(t *testing.T) {
 	t.Cleanup(func() { ProxyMedia = old })
 
 	in := "https://64.media.tumblr.com/abc/def.jpg"
-	if got := URLHandler(in); got != in {
-		t.Fatalf("URLHandler(%q) = %q, want it unchanged in direct mode", in, got)
+	if got := urlHandler(in); got != in {
+		t.Fatalf("urlHandler(%q) = %q, want it unchanged in direct mode", in, got)
 	}
 }
 
@@ -54,7 +54,7 @@ func TestURLHandlerNestedRedirectTerminates(t *testing.T) {
 	for i := 0; i < 50; i++ {
 		target = "https://href.li/?" + target
 	}
-	if got := URLHandler(target); got == "" {
+	if got := urlHandler(target); got == "" {
 		t.Fatal("URLHandler returned empty for deeply nested redirect")
 	}
 }
@@ -70,16 +70,16 @@ func TestDownloadURL(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := DownloadURL(tt.in)
+			got := downloadURL(tt.in)
 			parsed, err := url.Parse(got)
 			if err != nil {
-				t.Fatalf("DownloadURL(%q) = %q, unparsable: %v", tt.in, got, err)
+				t.Fatalf("downloadURL(%q) = %q, unparsable: %v", tt.in, got, err)
 			}
 			if parsed.Path != tt.path {
-				t.Fatalf("DownloadURL(%q) path = %q, want %q", tt.in, parsed.Path, tt.path)
+				t.Fatalf("downloadURL(%q) path = %q, want %q", tt.in, parsed.Path, tt.path)
 			}
 			if parsed.Query().Get("download") != "1" {
-				t.Fatalf("DownloadURL(%q) = %q, missing download=1", tt.in, got)
+				t.Fatalf("downloadURL(%q) = %q, missing download=1", tt.in, got)
 			}
 		})
 	}
@@ -87,7 +87,7 @@ func TestDownloadURL(t *testing.T) {
 
 // TestDownloadURLKeepsExistingQuery is the regression for the doubled "?" bug.
 func TestDownloadURLKeepsExistingQuery(t *testing.T) {
-	got := DownloadURL("https://64.media.tumblr.com/abc/def.jpg?x=1")
+	got := downloadURL("https://64.media.tumblr.com/abc/def.jpg?x=1")
 	if strings.Count(got, "?") != 1 {
 		t.Fatalf("DownloadURL produced %q, want a single query separator", got)
 	}
@@ -96,7 +96,7 @@ func TestDownloadURLKeepsExistingQuery(t *testing.T) {
 		t.Fatal(err)
 	}
 	if parsed.Query().Get("x") != "1" || parsed.Query().Get("download") != "1" {
-		t.Fatalf("DownloadURL(%q) = %q, want both x=1 and download=1", "with query", got)
+		t.Fatalf("downloadURL(%q) = %q, want both x=1 and download=1", "with query", got)
 	}
 }
 
