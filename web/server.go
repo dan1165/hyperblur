@@ -116,7 +116,7 @@ func (a *App) handleFallback(w http.ResponseWriter, r *http.Request) {
 		r.SetPathValue("slug", segments[2])
 		a.handleBlogPostWithSlug(w, r)
 	default:
-		http.NotFound(w, r)
+		a.notFound(w, r)
 	}
 }
 
@@ -132,7 +132,7 @@ func (a *App) routeExplore(w http.ResponseWriter, r *http.Request, segments []st
 		return
 	}
 	if len(segments) != 2 {
-		http.NotFound(w, r)
+		a.notFound(w, r)
 		return
 	}
 	switch segments[1] {
@@ -143,7 +143,7 @@ func (a *App) routeExplore(w http.ResponseWriter, r *http.Request, segments []st
 	default:
 		postType, ok := exploreTypes[segments[1]]
 		if !ok {
-			http.NotFound(w, r)
+			a.notFound(w, r)
 			return
 		}
 		a.handleExplore(w, r, explorePost, postType)
@@ -167,20 +167,20 @@ func (a *App) routeSearch(w http.ResponseWriter, r *http.Request, segments []str
 		}
 	case 4:
 		if segments[2] != "recent" {
-			http.NotFound(w, r)
+			a.notFound(w, r)
 			return
 		}
 		r.SetPathValue("query", segments[1])
 		r.SetPathValue("post_filter", segments[3])
 		a.handleSearchRecentFilter(w, r)
 	default:
-		http.NotFound(w, r)
+		a.notFound(w, r)
 	}
 }
 
 func (a *App) routeTagged(w http.ResponseWriter, r *http.Request, segments []string) {
 	if len(segments) != 2 {
-		http.NotFound(w, r)
+		a.notFound(w, r)
 		return
 	}
 	r.SetPathValue("tag", segments[1])
@@ -332,7 +332,8 @@ func (a *App) writePage(w http.ResponseWriter, r *http.Request, status int, html
 }
 
 func (a *App) messageError(w http.ResponseWriter, r *http.Request, status int, heading, description string) {
-	a.renderErrorPage(w, r, status, "#hyperblur-error { color: var(--color-text); text-align: center; }", func(v *view) {
+	// No inline style: base.css already carries the error page chrome.
+	a.renderErrorPage(w, r, status, "", func(v *view) {
 		v.raw(`<section id="hyperblur-error"><div><h1 aria-label="Error explanation heading">`)
 		v.esc(heading)
 		v.raw(`</h1><p aria-label="Error explanation">`)
@@ -355,17 +356,20 @@ func (a *App) genericError(w http.ResponseWriter, r *http.Request, err error) {
 	name, message, contextText := errorMessage(err)
 	contextText = fmt.Sprintf("Request: %s %s\n\n%s", r.Method, r.URL.RequestURI(), contextText)
 
-	a.renderErrorPage(w, r, http.StatusInternalServerError, "#hyperblur-error > div { background-color: var(--color-top-level-card-bg); border-radius: 0; padding: 25px; max-width: 100%; } #hyperblur-error { color: var(--color-text); } #hyperblur-error details { margin-top: 20px; } #hyperblur-error pre { text-wrap: wrap; } #hyperblur-error a { text-decoration: underline; } #error-header { font-size: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }", func(v *view) {
-		v.raw(`<section id="hyperblur-error"><div class="card"><div id="error-header"><h2>`)
-		v.esc("An unknown exception has occured!")
-		v.raw(`</h2><p>`)
-		v.esc("It looks like you have found a bug in hyperblur.")
-		v.raw(`</p><p><a href="https://github.com/dan1165/hyperblur/issues">`)
-		v.esc("Please report it here at GitHub")
-		v.raw(`</a></p></div>`)
-		a.renderErrorDetails(v, name, message, contextText, true)
-		v.raw(`</div></section>`)
-	})
+	a.renderErrorPage(w, r, http.StatusInternalServerError,
+		"#hyperblur-error > div { padding: var(--s-5); border: 1px solid var(--rule); background: var(--surface-2); text-align: left; }"+
+			" #error-header { display: flex; flex-direction: column; align-items: center; gap: var(--s-2); text-align: center; }"+
+			" #error-header h2 { margin: 0; font-size: var(--text-lg); }", func(v *view) {
+			v.raw(`<section id="hyperblur-error"><div class="card"><div id="error-header"><h2>`)
+			v.esc("An unknown exception has occured!")
+			v.raw(`</h2><p>`)
+			v.esc("It looks like you have found a bug in hyperblur.")
+			v.raw(`</p><p><a href="https://github.com/dan1165/hyperblur/issues">`)
+			v.esc("Please report it here at GitHub")
+			v.raw(`</a></p></div>`)
+			a.renderErrorDetails(v, name, message, contextText, true)
+			v.raw(`</div></section>`)
+		})
 }
 
 func errorMessage(err error) (string, string, string) {
@@ -407,9 +411,23 @@ func (a *App) fail(w http.ResponseWriter, r *http.Request, err error) {
 	a.genericError(w, r, err)
 }
 
+// notFound renders the styled 404 for HTML routes. Media and asset routes keep
+// net/http's plain text: they are not pages.
+func (a *App) notFound(w http.ResponseWriter, r *http.Request) {
+	a.messageError(w, r, http.StatusNotFound,
+		"Nothing here",
+		"That page does not exist. Check the address, or search for something else.")
+}
+
 // newPageData builds page data with request fields.
 func (a *App) newPageData(r *http.Request) *PageData {
-	return &PageData{Ctx: r.Context(), Path: r.URL.Path}
+	return &PageData{
+		Ctx:  r.Context(),
+		Path: r.URL.Path,
+		// The first few images load eagerly (avatar + first post media);
+		// everything below the fold waits for the scroll.
+		EagerImages: 3,
+	}
 }
 
 // App holds shared server state.
@@ -467,18 +485,46 @@ func NewApp(logger *log.Logger) *App {
 }
 
 // inlineCSS concatenates the embedded stylesheets once, so a page render never
-// builds them per request.
+// builds them per request. Rules are minified on the way in: the sheets are
+// commented for maintenance, and the browser does not need the comments.
 func inlineCSS(assets map[string]*assetEntry, extra string) string {
 	var b strings.Builder
-	for _, key := range []string{"css/base.css", "css/base-post-layout.css", "css/post.css"} {
+	for _, key := range []string{"css/base.css", "css/post.css"} {
 		if e := assets[key]; e != nil {
-			b.Write(e.body)
+			b.WriteString(minifyCSS(e.body))
 		}
 	}
 	if extra != "" {
 		if e := assets[extra]; e != nil {
-			b.Write(e.body)
+			b.WriteString(minifyCSS(e.body))
 		}
+	}
+	return b.String()
+}
+
+// cssComment matches /* ... */, which the stylesheets never nest and never
+// place inside a string.
+var cssComment = regexp.MustCompile(`/\*(?:[^*]|\*+[^*/])*\*+/`)
+
+// minifyCSS drops comments and per-line indentation. Both are safe: CSS strings
+// cannot contain a literal newline, and comments never carry meaning.
+func minifyCSS(css []byte) string {
+	stripped := cssComment.ReplaceAll(css, nil)
+
+	var b strings.Builder
+	b.Grow(len(stripped))
+	atLineStart := true
+	for _, c := range stripped {
+		if c == '\n' {
+			atLineStart = true
+			b.WriteByte(c)
+			continue
+		}
+		if atLineStart && (c == ' ' || c == '\t') {
+			continue
+		}
+		atLineStart = false
+		b.WriteByte(c)
 	}
 	return b.String()
 }
@@ -570,11 +616,12 @@ func newTransport() *http.Transport {
 }
 
 // FormatNPF renders post content, returns optional render error.
-func (a *App) FormatNPF(ctx context.Context, content, layout []any, blogName, postID string, fetchPolls bool) (*RenderError, string) {
+func (a *App) FormatNPF(ctx context.Context, content, layout []any, blogName, postID string, fetchPolls bool, eagerBudget *int) (*RenderError, string) {
 	params := Params{
-		BlogName: blogName,
-		PostID:   postID,
-		Ctx:      ctx,
+		BlogName:    blogName,
+		PostID:      postID,
+		Ctx:         ctx,
+		EagerBudget: eagerBudget,
 	}
 	if fetchPolls && blogName != "" && postID != "" {
 		params.PollCallback = a.pollCallback(ctx, blogName, postID)

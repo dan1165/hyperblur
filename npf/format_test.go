@@ -76,7 +76,7 @@ func TestCreateSrcsetSkipsZeroWidth(t *testing.T) {
 
 func TestFormatImageContainerAspectRatio(t *testing.T) {
 	block := &ImageBlock{Media: []MediaObject{{URL: "a.jpg", Width: 1080, Height: 540, HasOriginalDimensions: true}}}
-	html := formatImageContainer(block, 1, nil, identityURL, testLocalizer{}).Render()
+	html := formatImageContainer(block, 1, nil, identityURL, testLocalizer{}, false).Render()
 	if !strings.Contains(html, "aspect-ratio: 2.0;") {
 		t.Fatalf("missing aspect ratio in %q", html)
 	}
@@ -93,7 +93,7 @@ func TestFormatImageContainerZeroDimensions(t *testing.T) {
 		{URL: "a.jpg", Width: 100, Height: 0},
 		{URL: "a.jpg", Width: 0, Height: 100},
 	} {
-		html := formatImageContainer(&ImageBlock{Media: []MediaObject{media}}, 1, nil, identityURL, testLocalizer{}).Render()
+		html := formatImageContainer(&ImageBlock{Media: []MediaObject{media}}, 1, nil, identityURL, testLocalizer{}, false).Render()
 		if strings.Contains(html, "Inf") || strings.Contains(html, "NaN") {
 			t.Fatalf("invalid aspect ratio for %+v: %q", media, html)
 		}

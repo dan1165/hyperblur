@@ -243,7 +243,7 @@ func (a *App) handleTagged(w http.ResponseWriter, r *http.Request) {
 func (a *App) handleBlogIndex(w http.ResponseWriter, r *http.Request) {
 	blog := r.PathValue("blog")
 	if !validBlogName(blog) {
-		http.NotFound(w, r)
+		a.notFound(w, r)
 		return
 	}
 
@@ -300,7 +300,7 @@ func (a *App) handleBlogTags(w http.ResponseWriter, r *http.Request) {
 	blog := r.PathValue("blog")
 	tag := r.PathValue("tag")
 	if !validBlogName(blog) {
-		http.NotFound(w, r)
+		a.notFound(w, r)
 		return
 	}
 	continuation := r.URL.Query().Get("continuation")
@@ -317,7 +317,7 @@ func (a *App) handleBlogTags(w http.ResponseWriter, r *http.Request) {
 func (a *App) handleBlogSearchRedirect(w http.ResponseWriter, r *http.Request) {
 	blog := r.PathValue("blog")
 	if !validBlogName(blog) {
-		http.NotFound(w, r)
+		a.notFound(w, r)
 		return
 	}
 	if query := r.URL.Query().Get("q"); query != "" {
@@ -331,7 +331,7 @@ func (a *App) handleBlogSearch(w http.ResponseWriter, r *http.Request) {
 	blog := r.PathValue("blog")
 	query := r.PathValue("query")
 	if !validBlogName(blog) {
-		http.NotFound(w, r)
+		a.notFound(w, r)
 		return
 	}
 	continuation := r.URL.Query().Get("continuation")
@@ -368,7 +368,7 @@ func (a *App) serveBlogPost(w http.ResponseWriter, r *http.Request, slug string)
 	blog := r.PathValue("blog")
 	postID := r.PathValue("post_id")
 	if !validBlogName(blog) || !numericPostID(postID) {
-		http.NotFound(w, r)
+		a.notFound(w, r)
 		return
 	}
 
@@ -378,7 +378,7 @@ func (a *App) serveBlogPost(w http.ResponseWriter, r *http.Request, slug string)
 		return
 	}
 	if post == nil {
-		http.NotFound(w, r)
+		a.notFound(w, r)
 		return
 	}
 
@@ -432,7 +432,7 @@ func (a *App) serveBlogPost(w http.ResponseWriter, r *http.Request, slug string)
 func (a *App) handleRedirectPostNoSlug(w http.ResponseWriter, r *http.Request) {
 	blog := r.PathValue("blog")
 	if !validBlogName(blog) {
-		http.NotFound(w, r)
+		a.notFound(w, r)
 		return
 	}
 	http.Redirect(w, r, "/"+blog+"/"+r.PathValue("post_id"), http.StatusFound)
@@ -441,7 +441,7 @@ func (a *App) handleRedirectPostNoSlug(w http.ResponseWriter, r *http.Request) {
 func (a *App) handleRedirectPost(w http.ResponseWriter, r *http.Request) {
 	blog := r.PathValue("blog")
 	if !validBlogName(blog) {
-		http.NotFound(w, r)
+		a.notFound(w, r)
 		return
 	}
 	http.Redirect(w, r, "/"+blog+"/"+r.PathValue("post_id")+"/"+urlEscape(r.PathValue("slug")), http.StatusFound)

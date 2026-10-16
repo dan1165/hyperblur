@@ -31,6 +31,9 @@ type Params struct {
 	PollCallback npf.PollCallback
 	// Ctx bounds upstream work done while rendering; nil means Background.
 	Ctx context.Context
+	// EagerBudget is the page's shared eager-image budget, shared with the
+	// renderer so one post cannot spend more than the page allows.
+	EagerBudget *int
 }
 
 // FormatNPF renders NPF content to hyperblur HTML. Failure returns RenderError
@@ -45,6 +48,7 @@ func FormatNPF(content, layout []any, p Params) (*RenderError, string) {
 		ImageHook:    imageHook,
 		VideoHook:    videoHook,
 		PollHook:     pollHook,
+		EagerBudget:  p.EagerBudget,
 	}
 
 	hasError, html := npf.Format(content, layout, opts)

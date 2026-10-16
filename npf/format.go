@@ -38,6 +38,12 @@ type Formatter struct {
 	// Context hyperblur needs when augmenting output.
 	BlogName string
 	PostID   string
+
+	// EagerBudget, when non-nil, is the number of images left that may load
+	// eagerly. Each image rendered spends one; the rest load lazily. A page
+	// shares one budget across every post, so a photo-heavy first post cannot
+	// pull the whole feed down at once.
+	EagerBudget *int
 }
 
 func (f *Formatter) next() bool {
@@ -52,6 +58,15 @@ func (f *Formatter) next() bool {
 
 // HasRenderError reports whether any block failed to render.
 func (f *Formatter) HasRenderError() bool { return f.hasRenderError }
+
+// takeEager spends one slot of the page's eager-loading budget.
+func (f *Formatter) takeEager() bool {
+	if f.EagerBudget != nil && *f.EagerBudget > 0 {
+		*f.EagerBudget--
+		return true
+	}
+	return false
+}
 
 // URLHandler returns configured URL handler.
 func (f *Formatter) URLHandler(url string) string { return f.urlHandler(url) }
@@ -149,7 +164,7 @@ func (f *Formatter) formatUnsupported(block *Unsupported) *Node {
 
 func (f *Formatter) formatImage(block *ImageBlock, rowLength int, overrideAspect *float64) *Node {
 	figure := El("figure", "class", "image-block")
-	figure.Add(formatImageContainer(block, rowLength, overrideAspect, f.urlHandler, f.localizer))
+	figure.Add(formatImageContainer(block, rowLength, overrideAspect, f.urlHandler, f.localizer, f.takeEager()))
 
 	if block.Caption != "" {
 		figure.Add(El("figcaption", "class", "image-caption").Add(Txt(block.Caption)))
@@ -190,7 +205,8 @@ func (f *Formatter) formatLink(block *LinkBlock) *Node {
 		if alt == "" {
 			alt = f.localizer.Translate("link_block_poster_alt_text", map[string]string{"site": block.URL})
 		}
-		poster.Add(El("img", "srcset", srcset, "alt", alt, "sizes", "(max-width: 540px) 100vh, 540px"))
+		poster.Add(El("img", "srcset", srcset, "alt", alt, "sizes", "(max-width: 540px) 100vh, 540px",
+			"loading", "lazy", "decoding", "async"))
 
 		if block.Title != "" {
 			poster.Add(El("div", "class", "link-block-title poster-overlay-text").
@@ -340,7 +356,8 @@ func (f *Formatter) formatAudio(block *AudioBlock) *Node {
 				"srcset", strings.Join(createSrcset(block.Poster, f.urlHandler), ", "),
 				"alt", alt,
 				"sizes", "(max-width: 540px) 100vh, 540px",
-				"class", "ab-poster"))
+				"class", "ab-poster",
+				"loading", "lazy", "decoding", "async"))
 		}
 
 		if len(metadataElements) > 0 || len(block.Poster) > 0 {
@@ -685,8 +702,9 @@ func createSrcset(media []MediaObject, urlHandler func(string) string) []string 
 }
 
 // formatImageContainer renders inner <div class="image-container"> of image
-// block, mirroring npf_renderer.format.image.format_image.
-func formatImageContainer(block *ImageBlock, rowLength int, overrideAspect *float64, urlHandler func(string) string, loc Localizer) *Node {
+// block, mirroring npf_renderer.format.image.format_image. eager marks the
+// images above the fold, which skip lazy loading.
+func formatImageContainer(block *ImageBlock, rowLength int, overrideAspect *float64, urlHandler func(string) string, loc Localizer, eager bool) *Node {
 	containerStyle := ""
 	imageStyle := ""
 	var processed []MediaObject
@@ -752,7 +770,12 @@ func formatImageContainer(block *ImageBlock, rowLength int, overrideAspect *floa
 	img.SetAttr("src", urlHandler(original.URL))
 	img.SetAttr("srcset", strings.Join(createSrcset(processed, urlHandler), ", "))
 	img.SetAttr("class", "image")
-	img.SetAttr("loading", "eager")
+	if eager {
+		img.SetAttr("loading", "eager")
+	} else {
+		img.SetAttr("loading", "lazy")
+	}
+	img.SetAttr("decoding", "async")
 	img.SetAttr("alt", alt)
 	img.SetAttr("sizes", fmt.Sprintf("(max-width: 540px) %dvh, %dpx", 100/rowLength, 540/rowLength))
 	if imageStyle != "" {
@@ -824,7 +847,8 @@ func formatAsk(attr *BlogAttribution, urlHandler func(string) string, loc Locali
 		askerAttribution = El("p", "class", "asker").Add(RawHTML(asked))
 		askerAvatar = El("img",
 			"src", urlHandler("https://assets.tumblr.com/images/anonymous_avatar_96.gif"),
-			"loading", "eager",
+			"loading", "lazy",
+			"decoding", "async",
 			"class", "avatar asker-avatar image")
 	} else {
 		nameHTML := El("a",
@@ -837,7 +861,8 @@ func formatAsk(attr *BlogAttribution, urlHandler func(string) string, loc Locali
 		if len(attr.Avatar) > 0 {
 			askerAvatar = El("img",
 				"src", urlHandler(attr.Avatar[0].URL),
-				"loading", "eager",
+				"loading", "lazy",
+				"decoding", "async",
 				"class", "avatar asker-avatar image")
 		}
 	}
@@ -884,6 +909,9 @@ type Options struct {
 	// BlogName and PostID exposed to PollHook for no-JS fallback.
 	BlogName string
 	PostID   string
+
+	// EagerBudget is the shared count of images that may still load eagerly.
+	EagerBudget *int
 }
 
 // newFormatter builds Formatter from parsed content and layout.
@@ -893,15 +921,16 @@ func newFormatter(content, layout []any, opts Options) *Formatter {
 		urlHandler = func(u string) string { return u }
 	}
 	return &Formatter{
-		content:    content,
-		layout:     layout,
-		localizer:  opts.Localizer,
-		urlHandler: urlHandler,
-		ImageHook:  opts.ImageHook,
-		VideoHook:  opts.VideoHook,
-		PollHook:   opts.PollHook,
-		BlogName:   opts.BlogName,
-		PostID:     opts.PostID,
+		content:     content,
+		layout:      layout,
+		localizer:   opts.Localizer,
+		urlHandler:  urlHandler,
+		ImageHook:   opts.ImageHook,
+		VideoHook:   opts.VideoHook,
+		PollHook:    opts.PollHook,
+		BlogName:    opts.BlogName,
+		PostID:      opts.PostID,
+		EagerBudget: opts.EagerBudget,
 	}
 }
 

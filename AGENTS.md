@@ -43,6 +43,30 @@ compose healthcheck (the image is `scratch`, with no shell or curl).
 - The server intentionally has **no `WriteTimeout`**: media is streamed and a deadline
   would cut long downloads.
 
+## UI layer (austere monochrome)
+
+- Stylesheets: `web/assets/css/{base,post,blog}.css`. `base.css` holds the token
+  block (`--ink-*`, spacing, motion, type scale), the shell, nav, controls and
+  paging; `post.css` holds posts plus the whole NPF block set; `blog.css` is
+  appended on blog pages only. `inlineCSS` (`web/server.go`) concatenates base +
+  post (+ blog) once at startup and runs `minifyCSS` over them — edit the source
+  files, never a minified copy, and keep every colour a token (no raw hex/hsl
+  outside `:root` except the ink ramp itself).
+- Every class a page emits must exist in the inlined CSS. There is a check for
+  this pattern in the dev loop: fetch a page, collect `class="..."` tokens, and
+  grep the inlined `<style>` for each.
+- Images: `PageData.EagerImages` is the page's eager budget (set in
+  `newPageData`). `PageData.takeEagerImage()` spends it for avatars, and the
+  same counter is handed to the NPF renderer as `Options.EagerBudget` so each
+  image spends one slot. Anything past the budget renders `loading="lazy"`. Do
+  not hardcode `loading="eager"` in the renderer again.
+- `post.js` depends on these hooks — renaming them breaks behaviour silently:
+  `.post[data-post-id]`, the first `.blog-name` inside a post (the primary
+  author), `.poll-block[data-poll-id]` + `.poll-choices > li[data-answer-id]` +
+  `.poll-metadata` (first child is the timestamp), `.populated`,
+  `.expired-poll`, and `.control-bar-action` / `.control-bar-dropdown-menu`
+  (toggled with the `.open` class).
+
 ## Gotchas that have caused real bugs
 
 - **Never percent-decode twice.** `net/http` already decodes `r.URL.Path`, `r.PathValue`

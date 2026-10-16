@@ -100,6 +100,28 @@ type PageData struct {
 	NoteType     string
 	Latest       bool
 	ReblogFilter string
+
+	// EagerImages is the number of images left that load eagerly. Everything
+	// past the budget loads lazily, so a long feed stays cheap to open.
+	EagerImages int
+}
+
+// takeEagerImage spends one eager slot, reporting whether this image should
+// load eagerly.
+func (d *PageData) takeEagerImage() bool {
+	if d.EagerImages > 0 {
+		d.EagerImages--
+		return true
+	}
+	return false
+}
+
+// imageLoading returns the loading attributes for one image.
+func imageLoading(eager bool) string {
+	if eager {
+		return ` loading="eager" decoding="async"`
+	}
+	return ` loading="lazy" decoding="async"`
 }
 
 // renderPage wraps centre content in shared chrome.
@@ -109,7 +131,6 @@ func (a *App) renderPage(data *PageData, center func(v *view)) string {
 	v.raw("<meta charset=\"utf-8\">\n")
 	v.raw("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">\n")
 	v.raw("<meta name=\"referrer\" content=\"never\">\n")
-	v.raw("<meta name=\"referrer\" content=\"no-referrer\">\n")
 	v.raw("<meta name=\"color-scheme\" content=\"dark\">\n")
 	v.raw("<meta name=\"theme-color\" content=\"#0d0d0d\">\n")
 	v.raw("<link rel=\"manifest\" href=\"/manifest.webmanifest\">\n")
@@ -133,13 +154,12 @@ func (a *App) renderPage(data *PageData, center func(v *view)) string {
 	v.raw(" ")
 	v.esc("- hyperblur")
 	v.raw(" </title>\n</head>\n")
-	v.raw("<body class=\"dark-theme\">\n")
+	v.raw("<body>\n")
 	v.raw("<div class=\"container\">\n")
 	a.renderNavbar(v, data)
-	v.raw("<div class=\"contents\">\n<div class=\"left-column\"></div>\n<div class=\"center-column\">\n")
+	v.raw("<div class=\"contents\">\n<main class=\"center-column\">\n")
 	center(v)
-	v.raw("</div>\n<div class=\"right-column\"></div>\n</div>\n")
-	v.raw("<div class=\"buffer\"></div>\n")
+	v.raw("</main>\n</div>\n")
 	v.raw("<footer class=\"site-footer\"><a href=\"https://github.com/dan1165/hyperblur\">hyperblur on GitHub</a> <span class=\"version\">")
 	v.esc(Version)
 	v.raw("</span></footer>\n")
@@ -152,8 +172,8 @@ func (a *App) renderPage(data *PageData, center func(v *view)) string {
 
 func (a *App) renderNavbar(v *view, data *PageData) {
 	searchIcon := `<svg class="icon" xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20"><path d="M765-144 526-383q-30 22-65.792 34.5T384.035-336Q284-336 214-406t-70-170q0-100 70-170t170-70q100 0 170 70t70 170.035q0 40.381-12.5 76.173T577-434l239 239-51 51ZM384-408q70 0 119-49t49-119q0-70-49-119t-119-49q-70 0-119 49t-49 119q0 70 49 119t119 49Z"/></svg>`
-	v.raw(`<nav class="navbar"><div class="left-section"><a class="logo" href="/explore/trending">hyperblur</a>`)
-	v.raw(`<form class="search-bar" method="get" action="/search" autocomplete="off">`)
+	v.raw(`<nav class="navbar"><a class="logo" href="/explore/trending">hyperblur</a>`)
+	v.raw(`<form class="search-bar" method="get" action="/search" autocomplete="off" role="search">`)
 	v.raw(searchIcon)
 
 	var value string
@@ -171,7 +191,7 @@ func (a *App) renderNavbar(v *view, data *PageData) {
 	}
 	v.raw(` placeholder="`)
 	v.esc("Search")
-	v.raw(`"></input></form></div><div class="center-section">`)
+	v.raw(`"></input></form><div class="center-section">`)
 	v.raw(`<a class="nav-tab`)
 	if data.Endpoint == "today" {
 		v.raw(` selected-tab`)
@@ -186,7 +206,7 @@ func (a *App) renderNavbar(v *view, data *PageData) {
 	v.raw(`" href="/explore/trending" title="`)
 	v.esc("Trending")
 	v.raw(`"><svg xmlns="http://www.w3.org/2000/svg" height="30" viewBox="0 -960 960 960" width="30"><path d="m136-240-56-56 296-298 160 160 208-206H640v-80h240v240h-80v-104L536-320 376-480 136-240Z"/></svg></a>`)
-	v.raw(`</div><div class="right-section"></div></nav>`)
+	v.raw(`</div></nav>`)
 }
 
 // ---------------------------------------------------------------------------
@@ -194,7 +214,7 @@ func (a *App) renderNavbar(v *view, data *PageData) {
 // ---------------------------------------------------------------------------
 
 func (a *App) renderPost(v *view, data *PageData, post *tumblr.Post) {
-	v.raw(`<div class="post" data-post-id="`)
+	v.raw(`<article class="post" data-post-id="`)
 	v.esc(post.ID)
 	v.raw(`">`)
 
@@ -213,7 +233,7 @@ func (a *App) renderPost(v *view, data *PageData, post *tumblr.Post) {
 	a.renderPostBody(v, data, post)
 	a.renderPostFooter(v, data, post, postURL)
 
-	v.raw(`</div>`)
+	v.raw(`</article>`)
 }
 
 func (a *App) renderPostBody(v *view, data *PageData, post *tumblr.Post) {
@@ -222,7 +242,9 @@ func (a *App) renderPostBody(v *view, data *PageData, post *tumblr.Post) {
 	var mainErr *RenderError
 	var mainTag string
 	if hasContent {
-		mainErr, mainTag = a.FormatNPF(data.Ctx, post.Content, post.Layout, post.Blog.Name, post.ID, data.RequestPollData)
+		// Media spends from the page's shared eager budget: the first images
+		// load immediately, the rest wait until they scroll into view.
+		mainErr, mainTag = a.FormatNPF(data.Ctx, post.Content, post.Layout, post.Blog.Name, post.ID, data.RequestPollData, &data.EagerImages)
 	}
 
 	v.raw(`<div class="post-content">`)
@@ -239,7 +261,7 @@ func (a *App) renderPostBody(v *view, data *PageData, post *tumblr.Post) {
 			Date:           trail.Date,
 			UseThisPostURL: trail.BlogName() + "/" + trail.ID,
 		})
-		trailErr, trailTag := a.FormatNPF(data.Ctx, trail.Content, trail.Layout, post.Blog.Name, post.ID, data.RequestPollData)
+		trailErr, trailTag := a.FormatNPF(data.Ctx, trail.Content, trail.Layout, post.Blog.Name, post.ID, data.RequestPollData, nil)
 		if trailErr != nil {
 			a.logNPFError(post, "trail", trailErr)
 			a.renderNPFError(v, trailErr)
@@ -413,7 +435,7 @@ func (a *App) renderBlogHeader(v *view, data *PageData) {
 
 	var descriptionTag string
 	if len(blogInfo.DescriptionNPF) > 0 {
-		if _, tag := a.FormatNPF(data.Ctx, blogInfo.DescriptionNPF, nil, "", "", false); tag != "" {
+		if _, tag := a.FormatNPF(data.Ctx, blogInfo.DescriptionNPF, nil, "", "", false, nil); tag != "" {
 			descriptionTag = tag
 		}
 	}
@@ -426,15 +448,11 @@ func (a *App) renderBlogHeader(v *view, data *PageData) {
 		avatar = URLHandler(blogInfo.Avatar[0].URL)
 	}
 
-	v.raw(`<header id="blog-header"><img id="banner" alt="`)
-	v.esc("Blog banner")
-	v.raw(`" src="`)
+	v.raw(`<header id="blog-header"><img id="banner" alt="" loading="eager" decoding="async" src="`)
 	v.esc(banner)
 	v.raw(`"/><a href="/`)
 	v.esc(blogInfo.Name)
-	v.raw(`"><img class="avatar" alt="`)
-	v.esc("Blog avatar")
-	v.raw(`" src="`)
+	v.raw(`"><img class="avatar" alt="" loading="eager" decoding="async" src="`)
 	v.esc(avatar)
 	v.raw(`"/></a><div class="blog-header-textual-content">`)
 	if blogInfo.Title != "" {
@@ -522,7 +540,7 @@ func PostPath(post *tumblr.Post) string {
 func (a *App) renderPostHeader(v *view, data *PageData, hd postHeaderData) {
 	v.raw(`<div class="post-header"><div class="post-author">`)
 
-	renderAvatar(v, hd.Blog)
+	renderAvatar(v, hd.Blog, data.takeEagerImage())
 
 	v.raw(`<div class="author-information"><div class="primary-post-author">`)
 	renderBlogName(v, hd.Blog, hd.BrokenBlog)
@@ -540,21 +558,25 @@ func (a *App) renderPostHeader(v *view, data *PageData, hd postHeaderData) {
 }
 
 // renderAvatarLink renders linked blog avatar.
-func renderAvatarLink(v *view, href, src string) {
+func renderAvatarLink(v *view, href, src string, eager bool) {
 	v.raw(`<a href="/`)
 	v.esc(href)
-	v.raw(`"><img class="avatar" alt="Blog avatar" loading="eager" src="`)
+	v.raw(`"><img class="avatar" alt=""`)
+	v.raw(imageLoading(eager))
+	v.raw(` src="`)
 	v.esc(src)
 	v.raw(`"></a>`)
 }
 
 // renderAvatar renders blog avatar, or anonymous when blog inactive or missing.
-func renderAvatar(v *view, blog *tumblr.Blog) {
+func renderAvatar(v *view, blog *tumblr.Blog, eager bool) {
 	if blog != nil && blog.Active {
-		renderAvatarLink(v, blog.Name, URLHandler(blog.AvatarURL()))
+		renderAvatarLink(v, blog.Name, URLHandler(blog.AvatarURL()), eager)
 		return
 	}
-	v.raw(`<img class="avatar" alt="Blog avatar" loading="eager" src="/assets/images/anon_96px.png">`)
+	v.raw(`<img class="avatar" alt=""`)
+	v.raw(imageLoading(eager))
+	v.raw(` src="/assets/images/anon_96px.png">`)
 }
 
 // renderBlogName renders blog name, styled by active/deactivated/broken.
@@ -771,7 +793,7 @@ func (a *App) renderReplyNote(v *view, data *PageData, note *tumblr.ReplyNote) {
 	v.esc(note.ReplyID)
 	v.raw(`">`)
 
-	renderAvatar(v, blog)
+	renderAvatar(v, blog, data.takeEagerImage())
 
 	v.raw(`<div><div class="author-information"><div class="primary-post-author">`)
 	renderBlogName(v, blog, nil)
@@ -782,7 +804,7 @@ func (a *App) renderReplyNote(v *view, data *PageData, note *tumblr.ReplyNote) {
 	if blog != nil {
 		blogName = blog.Name
 	}
-	_, tag := a.FormatNPF(data.Ctx, note.Content, note.Layout, blogName, "", data.RequestPollData)
+	_, tag := a.FormatNPF(data.Ctx, note.Content, note.Layout, blogName, "", data.RequestPollData, nil)
 	v.raw(tag)
 	v.raw(`</p></div></div>`)
 }
@@ -803,7 +825,7 @@ func (a *App) renderReblogNote(v *view, data *PageData, note *tumblr.ReblogNote)
 		UseThisPostURL: postURL,
 	})
 	v.raw(`<div class="post-content">`)
-	_, tag := a.FormatNPF(data.Ctx, note.Content, note.Layout, note.Blog.Name, note.ID, data.RequestPollData)
+	_, tag := a.FormatNPF(data.Ctx, note.Content, note.Layout, note.Blog.Name, note.ID, data.RequestPollData, nil)
 	v.raw(tag)
 	v.raw(`</div>`)
 	if len(note.Tags) > 0 {
@@ -814,13 +836,13 @@ func (a *App) renderReblogNote(v *view, data *PageData, note *tumblr.ReblogNote)
 	v.raw(`</div><hr>`)
 }
 
-func (a *App) renderLikeNote(v *view, _ *PageData, note *tumblr.LikeNote) {
+func (a *App) renderLikeNote(v *view, data *PageData, note *tumblr.LikeNote) {
 	avatar := ""
 	if note.Avatar != nil {
 		avatar = note.Avatar["128"]
 	}
 	v.raw(`<div class="note like"><div class="post-author">`)
-	renderAvatarLink(v, note.BlogName, URLHandler(avatar))
+	renderAvatarLink(v, note.BlogName, URLHandler(avatar), data.takeEagerImage())
 	v.raw(`<div class="author-information"><div class="primary-post-author"><div class="blog-name-title-grouping"><a class="link blog-name" href="/`)
 	v.esc(note.BlogName)
 	v.raw(`">`)

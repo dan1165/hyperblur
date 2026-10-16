@@ -65,9 +65,10 @@ HYPERBLUR_PROXY_MEDIA=false HYPERBLUR_TUMBLR_API_TOKEN=your-token-here ./hyperbl
   link cards, audio, video, polls with live results, reblog trails, asks.
 - **Notes:** replies, reblogs (filterable), likes, paging.
 - **Media:** alt text, one-click download (proxied). NSFW shown unblurred.
-- **UI:** dark monochrome, system font, no external CDNs, posts always expanded,
-  numbered pagination. Browsing needs no JavaScript; small JS adds live poll
-  results and offline mode.
+- **UI:** austere monochrome — one neutral ink ramp, hairline rules instead of
+  cards, system font, no external CDNs, posts always expanded, numbered
+  pagination. Browsing needs no JavaScript; small JS adds live poll results and
+  offline mode.
 
 ### Install as an app (PWA)
 
@@ -97,8 +98,19 @@ dependencies:
   measurement: level 6 costs ~0.4 ms more than `BestSpeed` on a 535 KB page and
   ships ~10 % fewer bytes (98 KB vs 109 KB). Encoding is negotiated per client
   from one cache entry, so gzip and non-gzip visitors share a fill.
-- Stylesheets inlined, so a page renders with no stylesheet request. Other
-  assets carry ETag and cache a week.
+- Stylesheets inlined and minified once at startup, so a page renders with no
+  stylesheet request. Other assets carry ETag and cache a week.
+- **Only the first few images load eagerly.** Everything past the opening images
+  is `loading="lazy" decoding="async"`, so a 20-post feed opens without fetching
+  70 images: the browser, and hyperblur's proxy, only touch media as it scrolls
+  in. Measured on a photo feed, eager images went from 71 to 3.
+- **Off-screen posts skip layout and paint** (`content-visibility: auto` with a
+  contained intrinsic size), which keeps a 500 KB feed responsive while
+  scrolling.
+- No layout shift: media boxes carry their aspect ratio, counts and dates use
+  tabular numerals, and the chrome never reflows. Transitions are 90–140 ms on
+  composited properties only, and are disabled under
+  `prefers-reduced-motion: reduce`.
 - **In-memory page cache** with TTL and **stale-while-revalidate**: warm pages
   are served from memory; stale pages are served immediately while a background
   goroutine refreshes them. **Single-flight** collapses concurrent misses of the
